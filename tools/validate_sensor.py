@@ -51,13 +51,13 @@ class Sensor:
             rgb.extend((((p >> 11) & 31)*255//31, ((p >> 5) & 63)*255//63, (p & 31)*255//31))
         Image.frombytes("RGB", (w,h), bytes(rgb)).save(target)
 
-out = Path(".private/sensor-validation")
+out = Path(".private/sensor-validation-compact")
 out.mkdir(parents=True, exist_ok=True)
 device = Sensor()
 initial = None
 try:
     initial = device.command("status")
-    assert initial.get("firmware") == "MSA-WiFi-Sentinel-0.2-CyberDeck", "Unexpected firmware"
+    assert initial.get("firmware") == "MSA-WiFi-Sentinel-0.2.1-CyberDeck", "Unexpected firmware"
     assert initial.get("passive") is True and initial.get("injection_enabled") is False
     time.sleep(2)
     assert device.command("aps").get("result") == "aps_begin"
@@ -85,7 +85,7 @@ try:
     result = {
         "firmware": resumed["firmware"], "networks": len(aps),
         "frames": resumed["frames"], "pause_resume": True,
-        "captures": "5 framebuffer PNGs, 320x170", "passive": resumed["passive"],
+        "captures": [list(Image.open(out / (name + ".png")).size) for name in ("radar", "networks", "fingerprint", "alerts", "evidence")], "passive": resumed["passive"],
         "injection_enabled": resumed["injection_enabled"],
         "button_presses": resumed["button_presses"],
         "android_otg_tested": False,
@@ -100,3 +100,4 @@ finally:
         except Exception:
             pass
     device.s.close()
+

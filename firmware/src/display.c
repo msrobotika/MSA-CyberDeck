@@ -47,7 +47,7 @@ static void footer(void){
 }
 static unsigned channel_aps(unsigned c){unsigned n=0;for(unsigned i=0;i<view.count;i++)if(view.aps[i].channel==c)n++;return n;}
 static void spectrum(void){
- const int cx=64,cy=91,rad=42;
+ const int compact=height<150; const int cx=compact?46:64,cy=compact?79:91,rad=compact?29:42; const int sx=compact?88:126,base=compact?96:116,step=compact?10:13;
  for(int ring=1;ring<=3;ring++)for(int step=0;step<48;step++){
   float a=step*6.283185f/48,b=(step+1)*6.283185f/48;int r=rad*ring/3;
   line(cx+(int)(cosf(a)*r),cy+(int)(sinf(a)*r),cx+(int)(cosf(b)*r),cy+(int)(sinf(b)*r),EDGE);
@@ -60,59 +60,61 @@ static void spectrum(void){
   float a=i*2.399963f;int x=cx+(int)(cosf(a)*r*rad),y=cy+(int)(sinf(a)*r*rad);
   rect(x-1,y-1,3,3,GREEN);
  }
- char value[48];snprintf(value,sizeof(value),"%u REDES | CH %u",view.count,view.channel);text(126,48,value,&font13,WHITE);
- text(126,68,"RSSI / SIN DIRECCION",&font11,DIM);
+ char value[48];snprintf(value,sizeof(value),"%u REDES | CH %u",view.count,view.channel);text(sx,48,value,&font13,WHITE);
+ text(sx,66,compact?"RSSI RELATIVO":"RSSI / SIN DIRECCION",&font11,DIM);
  unsigned max=1;for(unsigned c=1;c<=13;c++){unsigned n=channel_aps(c);if(n>max)max=n;}
- for(unsigned c=1;c<=13;c++){int x=126+(c-1)*13;unsigned n=channel_aps(c);int h=n*30/max;
-  rect(x,116-h,9,h,c==view.channel?CYAN:GREEN);char label[4];snprintf(label,sizeof(label),"%u",c);text(x,120,label,&font11,DIM);
+ for(unsigned c=1;c<=13;c++){int x=sx+(c-1)*step;unsigned n=channel_aps(c);int h=n*(compact?15:30)/max;
+  rect(x,base-h,compact?7:9,h,c==view.channel?CYAN:GREEN);char label[4];snprintf(label,sizeof(label),"%u",c);text(x,base+4,label,&font11,DIM);
  }
 }
 static void networks(void){
  if(!view.count){centered(66,"ESCUCHANDO REDES",&font19,CYAN);centered(102,"Sin transmitir paquetes",&font11,DIM);return;}
- unsigned rows=3,start=view.selected/rows*rows;
+ unsigned rows=height<150?2:3,start=view.selected/rows*rows;
  for(unsigned row=0;row<rows&&start+row<view.count;row++){
   unsigned id=start+row;ap_t*a=&view.aps[id];int y=46+row*31;
   rect(8,y,width-16,28,CARD);if(id==view.selected)outline(8,y,width-16,28,CYAN);
   char value[48];snprintf(value,sizeof(value),"#%02u %s",id,a->ssid[0]?a->ssid:"SSID oculto");
-  clipped(14,y+1,165,value,&font13,WHITE);
+  clipped(14,y+1,width<300?115:165,value,&font13,WHITE);
   snprintf(value,sizeof(value),"CH%u %d %s",a->channel,a->rssi,sentinel_security(a->security));
-  clipped(181,y+5,width-192,value,&font11,a->security==SEC_OPEN?AMBER:GREEN);
+  clipped(width<300?132:181,y+5,width<300?98:width-192,value,&font11,a->security==SEC_OPEN?AMBER:GREEN);
  }
 }
 static void fingerprint(void){
  if(!view.count){centered(78,"SIN RED ELEGIDA",&font19,DIM);return;}
  ap_t*a=&view.aps[view.selected];char address[18],value[48];sentinel_address(a->bssid,address);
- clipped(9,47,width-18,a->ssid[0]?a->ssid:"SSID oculto",&font19,WHITE);
- text(9,72,address,&font13,CYAN);
+ clipped(9,45,width-18,a->ssid[0]?a->ssid:"SSID oculto",&font13,WHITE);
+ text(9,64,address,&font11,CYAN);
  snprintf(value,sizeof(value),"CH %u | %d dBm | %s",a->channel,a->rssi,sentinel_security(a->security));
- text(9,94,value,&font13,DIM);
- text(9,119,view.baseline_set&&!strcmp(a->ssid,view.baseline_ssid)?"SSID VIGILADO":"2s: fijar referencia propia",&font11,GREEN);
+ text(9,82,value,&font11,DIM);
+ text(9,99,view.baseline_set&&!strcmp(a->ssid,view.baseline_ssid)?"SSID VIGILADO":"2s: fijar referencia propia",&font11,GREEN);
 }
 static void alerts(void){
  char value[48];snprintf(value,sizeof(value),"%lu",(unsigned long)view.security_mismatches);
  text(10,47,"CAMBIOS SEGURIDAD",&font11,DIM);text(10,64,value,&font26,view.security_mismatches?RED:GREEN);
- text(100,73,view.security_mismatches?"REVISAR":"SIN AVISOS",&font19,view.security_mismatches?RED:GREEN);
+ text(70,71,view.security_mismatches?"REVISAR":"SIN AVISOS",&font13,view.security_mismatches?RED:GREEN);
  snprintf(value,sizeof(value),"%lu deauth | %lu disassoc",(unsigned long)view.deauth,(unsigned long)view.disassoc);
- text(10,104,value,&font13,view.deauth?AMBER:DIM);
- text(10,126,"Un aviso no demuestra un ataque",&font11,DIM);
+ text(10,89,value,&font11,view.deauth?AMBER:DIM);
+ text(10,102,"Un aviso no demuestra un ataque",&font11,DIM);
 }
 static void evidence(void){
- char value[48];snprintf(value,sizeof(value),"%lu tramas | %u redes",(unsigned long)view.frames,view.count);text(10,49,value,&font19,WHITE);
- snprintf(value,sizeof(value),"%lu beacons | %lu descartes",(unsigned long)view.beacons,(unsigned long)view.dropped);text(10,78,value,&font13,DIM);
- text(10,102,"USB 115200 | CH340 | APP ANDROID",&font11,CYAN);
- text(10,124,"Sin claves / sin inyeccion / datos en RAM",&font11,GREEN);
+ char value[48];snprintf(value,sizeof(value),"%lu tramas | %u redes",(unsigned long)view.frames,view.count);text(10,45,value,&font13,WHITE);
+ snprintf(value,sizeof(value),"%lu beacons | %lu descartes",(unsigned long)view.beacons,(unsigned long)view.dropped);text(10,64,value,&font11,DIM);
+ text(10,82,"USB 115200 | CH340 | APP ANDROID",&font11,CYAN);
+ text(10,99,"Sin claves / sin inyeccion / datos en RAM",&font11,GREEN);
 }
 static void confirm(void){
- centered(48,"FIJAR REFERENCIA PROPIA",&font13,AMBER);
- if(view.count)clipped(12,71,width-24,view.aps[view.selected].ssid,&font19,WHITE);
- centered(101,"Guarda SSID, BSSID, canal y seguridad.",&font11,DIM);
- centered(122,"No guarda contrasenas.",&font11,DIM);
+ centered(46,"FIJAR REFERENCIA PROPIA",&font13,AMBER);
+ if(view.count)clipped(12,66,width-24,view.aps[view.selected].ssid,&font13,WHITE);
+ centered(85,"Guarda SSID, BSSID, canal y seguridad.",&font11,DIM);
+ centered(100,"No guarda contrasenas.",&font11,DIM);
 }
-static void apply_geometry(void){if(applied_profile==requested_profile&&applied_invert==requested_invert)return;applied_profile=requested_profile;applied_invert=requested_invert;width=applied_profile?240:320;height=applied_profile?135:170;esp_lcd_panel_swap_xy(panel,true);esp_lcd_panel_mirror(panel,true,false);esp_lcd_panel_set_gap(panel,applied_profile?40:0,applied_profile?52:35);esp_lcd_panel_invert_color(panel,applied_invert);}static bool done(esp_lcd_panel_io_handle_t io,esp_lcd_panel_io_event_data_t*e,void*c){BaseType_t wake=pdFALSE;xSemaphoreGiveFromISR(flushed,&wake);return wake==pdTRUE;}
+static void apply_geometry(void){if(applied_profile==requested_profile&&applied_invert==requested_invert)return;applied_profile=requested_profile;applied_invert=requested_invert;width=applied_profile?240:320;height=applied_profile?135:170;esp_lcd_panel_swap_xy(panel,true);esp_lcd_panel_mirror(panel,true,false);esp_lcd_panel_set_gap(panel,applied_profile?40:0,applied_profile?53:35);esp_lcd_panel_invert_color(panel,applied_invert);}static bool done(esp_lcd_panel_io_handle_t io,esp_lcd_panel_io_event_data_t*e,void*c){BaseType_t wake=pdFALSE;xSemaphoreGiveFromISR(flushed,&wake);return wake==pdTRUE;}
 static void short_press(void){page=page==5?2:(page+1)%PAGE_COUNT;manual_until=millis()+60000;}static void double_press(void){if(page==0)sentinel_clear();else if(page==1||page==2)sentinel_next();manual_until=millis()+60000;}static void hold_press(void){manual_until=millis()+60000;if(page==0)sentinel_set_running(!view.running);else if(page==1)page=2;else if(page==2&&view.count)page=5;else if(page==3)sentinel_forget_baseline();else if(page==5){sentinel_baseline_selected();page=3;}}
 static void button_task(void*unused){bool stable=true,raw=true;uint32_t changed=0,down=0,last_up=0;bool held=false,pending=false;while(1){uint32_t now=millis();bool level=gpio_get_level(0);if(level!=raw){raw=level;changed=now;}if(level!=stable&&now-changed>=30){stable=level;if(!stable){down=now;held=false;}else{button_presses++;if(held){button_holds++;pending=false;}else if(pending&&now-last_up<330){pending=false;double_press();}else{pending=true;last_up=now;}}}if(!stable&&!held&&now-down>=1600){held=true;hold_press();}if(pending&&now-last_up>=330){pending=false;short_press();}vTaskDelay(pdMS_TO_TICKS(10));}}
 static void screen_task(void*unused){while(1){frame_ms=esp_timer_get_time()/1000;uint32_t now=millis();sentinel_snapshot(&view);if(manual(now)||page==5)last_rotation=now;else if(now-last_rotation>12000){page=(page+1)%PAGE_COUNT;last_rotation=now;}apply_geometry();rect(0,0,width,height,BG);header();if(page==0)spectrum();else if(page==1)networks();else if(page==2)fingerprint();else if(page==3)alerts();else if(page==4)evidence();else confirm();footer();while(xSemaphoreTake(flushed,0)==pdTRUE){}if(esp_lcd_panel_draw_bitmap(panel,0,0,width,height,pixels)==ESP_OK&&xSemaphoreTake(flushed,pdMS_TO_TICKS(1000))==pdTRUE)frames++;if(capture_requested){capture_requested=false;serial_blob((uint8_t*)pixels,width*height*2,width,height);xSemaphoreGive(capture_done);}vTaskDelay(pdMS_TO_TICKS(90));}}
 void screen_start(int profile,bool invert){requested_profile=profile;requested_invert=invert;flushed=xSemaphoreCreateBinary();capture_done=xSemaphoreCreateBinary();pixels=heap_caps_malloc(170*320*2,MALLOC_CAP_DMA);assert(flushed&&capture_done&&pixels);spi_bus_config_t bus={.mosi_io_num=23,.miso_io_num=-1,.sclk_io_num=18,.quadwp_io_num=-1,.quadhd_io_num=-1,.max_transfer_sz=170*320*2};ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST,&bus,SPI_DMA_CH_AUTO));esp_lcd_panel_io_handle_t io;esp_lcd_panel_io_spi_config_t cfg={.cs_gpio_num=15,.dc_gpio_num=2,.spi_mode=0,.pclk_hz=16000000,.trans_queue_depth=1,.lcd_cmd_bits=8,.lcd_param_bits=8,.on_color_trans_done=done};ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST,&cfg,&io));esp_lcd_panel_dev_config_t dev={.reset_gpio_num=4,.rgb_ele_order=LCD_RGB_ELEMENT_ORDER_RGB,.bits_per_pixel=16};ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(io,&dev,&panel));ESP_ERROR_CHECK(esp_lcd_panel_reset(panel));ESP_ERROR_CHECK(esp_lcd_panel_init(panel));apply_geometry();ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel,true));gpio_config_t led={.pin_bit_mask=1ULL<<32,.mode=GPIO_MODE_OUTPUT};ESP_ERROR_CHECK(gpio_config(&led));gpio_set_level(32,1);gpio_config_t button={.pin_bit_mask=1ULL,.mode=GPIO_MODE_INPUT,.pull_up_en=GPIO_PULLUP_ENABLE};ESP_ERROR_CHECK(gpio_config(&button));assert(xTaskCreate(screen_task,"sentinel_ui",6144,NULL,3,NULL)==pdPASS);assert(xTaskCreate(button_task,"sentinel_button",3072,NULL,3,NULL)==pdPASS);}
 void screen_page(int value){if(value>=0&&value<PAGE_COUNT){page=value;manual_until=millis()+60000;}}void screen_profile(int p,bool i){requested_profile=p;requested_invert=i;}bool screen_capture(void){while(xSemaphoreTake(capture_done,0)==pdTRUE){}capture_requested=true;return xSemaphoreTake(capture_done,pdMS_TO_TICKS(20000))==pdTRUE;}unsigned screen_frames(void){return frames;}unsigned screen_button_presses(void){return button_presses;}unsigned screen_button_holds(void){return button_holds;}int screen_button_level(void){return gpio_get_level(0);}int screen_current_page(void){return page;}int screen_current_profile(void){return applied_profile;}bool screen_current_invert(void){return applied_invert;}
+
+
 
 
