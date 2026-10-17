@@ -8,3 +8,7 @@
 - No hay teléfono conectado ni se ha realizado una prueba en emulador. Importación, persistencia, exportación y enumeración USB requieren validación en Android.
 - preview/index.html y docs/screenshots/preview-local.png son una vista previa web del diseño, no capturas de ejecución Android.
 - No se ha publicado esta iteración ni su APK.
+
+## Actualización posterior
+
+La primera instalación física y los resultados actuales de 0.2.0-dev se documentan en [VALIDATION-ANDROID.md](VALIDATION-ANDROID.md). La ausencia de teléfono y el hash anteriores corresponden a la compilación inicial.

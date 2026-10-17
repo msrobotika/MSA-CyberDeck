@@ -4,6 +4,11 @@ Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
 
 ## Implementado en el código local
 
+- Portada con acciones directas y navegación fija al desplazarse.
+- Estado real de conexión de Android: transporte, interfaz, direcciones y DNS configurados, sin escaneo ni ubicación.
+- Diagnóstico DNS/IP y conexión TCP a un puerto elegido, sin envío de cargas.
+- Revisión HTTP(S) mediante HEAD: certificado TLS, cabeceras y redirección sin seguirla automáticamente.
+- Guardado de diagnósticos JSON como evidencia con SHA-256 e inclusión en el informe.
 - Selección de archivos mediante el selector de Android.
 - Copia a almacenamiento privado y cálculo SHA-256 durante la lectura.
 - Índice persistente con identificador, nombre, tamaño y fecha de importación.
@@ -18,7 +23,7 @@ La app arranca sin registros ni dispositivos simulados. Solo muestra radio tras 
 
 ## Pendiente
 
-Pruebas de instalación/USB en Android, conector BLE, importación estructurada de resultados de otras herramientas, PDF y VPN. El sensor físico se ha probado desde el PC. La imagen antigua cyberdeck-dashboard.png es una ilustración del primer prototipo.
+Pruebas funcionales completas y enlace USB móvil–ESP en Android, conector BLE, importación estructurada de resultados de otras herramientas, PDF y VPN. El sensor físico se ha probado desde el PC. La imagen antigua cyberdeck-dashboard.png es una ilustración del primer prototipo.
 
 La vista previa web está en preview/index.html. La captura docs/screenshots/esp-radar-horizontal.png procede del framebuffer real del ESP. La mascota se guarda en app/src/main/res/drawable-nodpi/cyberdeck_robot.png; consulta docs/ROBOT-DESIGN.md.
 
@@ -34,7 +39,7 @@ Los hashes permiten comparar las copias locales; la fecha depende del reloj del 
 
 ## Compilación y pruebas
 
-JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Nueve pruebas JUnit pasan: dos de hash y siete de protocolo. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
+JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Diecinueve pruebas JUnit pasan: dos de hash, siete de protocolo y diez de diagnósticos. La versión 0.2.1-dev se ha instalado en un teléfono Android físico. La validación de funciones y capturas reales se documenta en docs/VALIDATION-ANDROID.md. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
 
 Las modificaciones de esta iteración se mantienen locales hasta completar la validación y revisión del propietario.
 

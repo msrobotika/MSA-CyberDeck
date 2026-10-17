@@ -7,7 +7,8 @@ import android.util.AtomicFile
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
-import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.ByteArrayInputStream
 import java.time.Instant
 import java.util.UUID
 
@@ -27,15 +28,21 @@ class EvidenceStore(private val context: Context) {
     }
 
     fun import(uri: Uri): List<Evidence> {
-        val id = UUID.randomUUID().toString()
         val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
             if (it.moveToFirst()) it.getString(0) else null
         } ?: "evidencia"
+        return context.contentResolver.openInputStream(uri)?.use { persist(name, it) }
+            ?: error("No se pudo leer el archivo")
+    }
+
+    fun saveBytes(name: String, bytes: ByteArray): List<Evidence> =
+        ByteArrayInputStream(bytes).use { persist(name, it) }
+
+    private fun persist(name: String, input: InputStream): List<Evidence> {
+        val id = UUID.randomUUID().toString()
         val file = File(directory, id)
         try {
-            val result = context.contentResolver.openInputStream(uri)?.use { input ->
-                file.outputStream().use { output -> EvidenceHash.copyAndHash(input, output) }
-            } ?: error("No se pudo leer el archivo")
+            val result = file.outputStream().use { output -> EvidenceHash.copyAndHash(input, output) }
             val entries = list() + Evidence(id, name, result.first, result.second, Instant.now().toString())
             val stream = index.startWrite()
             try {
@@ -65,6 +72,16 @@ class EvidenceStore(private val context: Context) {
         entries.forEach { e ->
             append("## Evidencia ${e.id}\n\nNombre: ${e.name.replace('\n', ' ').replace('\r', ' ')}\n\n")
             append("Importada: ${e.importedAt}\n\nBytes: ${e.bytes}\n\nSHA-256: ${e.sha256}\n\n")
+            val stored = File(directory, e.id)
+            if (e.name.startsWith("diagnostico-") && stored.exists() && stored.length() <= 65536) {
+                val content = stored.readText(Charsets.UTF_8)
+                val diagnostic = runCatching { JSONObject(content) }.getOrNull()
+                if (diagnostic?.optString("format") == "msa.cyberdeck.diagnostic.v1") {
+                    append("Resultado de diagnóstico (contenido guardado):\n\n```json\n")
+                    append(content.replace("```", "\\u0060\\u0060\\u0060"))
+                    append("\n```\n\n")
+                }
+            }
         }
     }
 

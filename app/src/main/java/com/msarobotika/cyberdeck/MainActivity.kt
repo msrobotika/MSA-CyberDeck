@@ -16,10 +16,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -52,7 +54,10 @@ class MainActivity : ComponentActivity() {
     @Composable private fun Deck() {
         val store = remember { EvidenceStore(this) }
         var entries by remember { mutableStateOf(emptyList<Evidence>()) }
-        var tab by remember { mutableStateOf("Resumen") }
+        var tab by rememberSaveable { mutableStateOf("Resumen") }
+        val contentScroll = rememberLazyListState()
+        LaunchedEffect(tab) { contentScroll.scrollToItem(0) }
+        var connection by remember { mutableStateOf<DiagnosticResult?>(null) }
         var message by remember { mutableStateOf("Datos locales · sin sensores enlazados") }
         var busy by remember { mutableStateOf(false) }
         var devices by remember { mutableStateOf(emptyList<UsbDevice>()) }
@@ -60,6 +65,7 @@ class MainActivity : ComponentActivity() {
         var permissionPending by remember { mutableStateOf(false) }
         val usb = remember { getSystemService(USB_SERVICE) as UsbManager }
         var report by remember { mutableStateOf("") }
+        var diagnostic by remember { mutableStateOf<DiagnosticResult?>(null) }
         fun run(action: () -> String) {
             busy = true
             worker.execute {
@@ -91,7 +97,8 @@ class MainActivity : ComponentActivity() {
         }
         LaunchedEffect(Unit) { run {
             val loaded = store.list()
-            runOnUiThread { entries = loaded }
+            val current = ConnectionDiagnostic.read(this@MainActivity)
+            runOnUiThread { entries = loaded; connection = current }
             "${loaded.size} evidencias guardadas"
         } }
         val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -110,20 +117,65 @@ class MainActivity : ComponentActivity() {
         }
         MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF071018), surface = Color(0xFF101E2D), primary = Color(0xFF5DE7FF))) {
             Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                LazyColumn(Modifier.systemBarsPadding(), contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    item { Text("MSA CyberDeck", color = MaterialTheme.colorScheme.primary, fontSize = 28.sp); Text("CUADERNO DE AUDITORÍA · Desarrollo") }
-                    item { Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("Resumen","USB","Radio","Evidencias","Informes").forEach { label ->
-                            FilterChip(selected = tab == label, onClick = { tab = label }, label = { Text(label) })
+                Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
+                    Column(Modifier.padding(horizontal = 18.dp, vertical = 8.dp)) {
+                        Text("MSA CyberDeck", color = MaterialTheme.colorScheme.primary, fontSize = 26.sp)
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("Resumen","Red","Web","USB","Radio","Evidencias","Informes").forEach { label ->
+                                FilterChip(selected = tab == label, onClick = { tab = label }, label = { Text(label) })
+                            }
                         }
-                    } }
-                    item { if(busy) LinearProgressIndicator(Modifier.fillMaxWidth()); Text(message) }
+                        if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
+                        Text(message, style = MaterialTheme.typography.bodySmall)
+                    }
+                LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = contentScroll, contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     when(tab) {
                         "Resumen" -> {
+                            item {
+                                Text("EMPIEZA AQUÍ", color = MaterialTheme.colorScheme.primary)
+                                Text("La app puede diagnosticar la conexión y revisar una web sin ESP. El sensor añade observaciones de radio.")
+                                Button(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
+                                    run {
+                                        val current = ConnectionDiagnostic.read(this@MainActivity)
+                                        runOnUiThread { connection = current }
+                                        current.summary
+                                    }
+                                }) { Text("Comprobar mi conexión") }
+                                OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Red" }) { Text("Abrir herramientas DNS / TCP") }
+                                OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Web" }) { Text("Revisar certificado y cabeceras web") }
+                                OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "USB" }) { Text("Conectar sensor ESP por OTG") }
+                            }
+                            connection?.let { current ->
+                                item { Info("CONEXIÓN DEL MÓVIL", current.summary + "\n" + current.details.joinToString("\n") { "${it.first}: ${it.second}" }) }
+                            }
                             item { RobotHero(sensor != null, sensor?.mismatches ?: 0L) }
                             item { Info("TU ESPACIO", "${entries.size} evidencias importadas · ${devices.size} periféricos USB enumerados") }
-                            item { Info("EMPIEZA AQUÍ", "Importa un archivo en Evidencias. Se conserva una copia privada y se calcula su SHA-256. Puedes verificarla y exportar un informe.") }
+                            item { Info("HERRAMIENTAS", "Red: resolución DNS y conexión TCP. Web: revisión de TLS, cabeceras y redirecciones. Guarda cada resultado como evidencia con SHA-256.") }
                             item { Info("CONECTORES", "WiFi Sentinel: lectura USB disponible, pendiente de validar con Android. BLE Scout y ChipSafe pendientes de integración.") }
+                        }
+                        "Red", "Web" -> {
+                            item {
+                                DiagnosticsPanel(tab, busy, diagnostic?.takeIf { (it.kind == "web") == (tab == "Web") },
+                                    onRun = { kind, target, action ->
+                                        diagnostic = null
+                                        run {
+                                            val result = try { action() } catch (e: Exception) {
+                                                val cause = e.cause ?: e
+                                                DiagnosticResult(kind, target, java.time.Instant.now().toString(),
+                                                    "Comprobación no completada", listOf("Error" to "${cause.javaClass.simpleName}: ${cause.message ?: "sin detalle"}"))
+                                            }
+                                            runOnUiThread { diagnostic = result }
+                                            result.summary
+                                        }
+                                    }, onSave = { result ->
+                                        run {
+                                            val loaded = store.saveBytes("diagnostico-${result.kind}-${System.currentTimeMillis()}.json",
+                                                result.toEvidenceJson().toByteArray(Charsets.UTF_8))
+                                            runOnUiThread { entries = loaded }
+                                            "Resultado guardado con SHA-256"
+                                        }
+                                    })
+                            }
                         }
                         "USB" -> {
                             item { Button(enabled = !busy, onClick = {
@@ -165,10 +217,17 @@ class MainActivity : ComponentActivity() {
                         }
                         "Informes" -> {
                             item { Info("INFORME MARKDOWN","Incluye identificador, nombre, tamaño, fecha y hash de cada copia importada.") }
-                            item { Button(enabled = !busy && entries.isNotEmpty(),onClick = { report = store.report(entries); exporter.launch("MSA-CyberDeck-informe.md") }) { Text("Guardar informe") } }
+                            item { Button(enabled = !busy && entries.isNotEmpty(),onClick = {
+                                run {
+                                    val generated = store.report(entries)
+                                    runOnUiThread { report = generated; exporter.launch("MSA-CyberDeck-informe.md") }
+                                    "Informe preparado para guardar"
+                                }
+                            }) { Text("Guardar informe") } }
                             item { Info("ALCANCE","El hash comprueba cambios; no certifica la procedencia ni constituye una cadena de custodia pericial.") }
                         }
                     }
+                }
                 }
             }
         }
