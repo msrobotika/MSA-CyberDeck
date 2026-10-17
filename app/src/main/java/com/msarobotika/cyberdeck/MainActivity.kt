@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
         var evidenceNewest by rememberSaveable { mutableStateOf(true) }
         var openedEvidence by remember { mutableStateOf<DiagnosticResult?>(null) }
         var nfcReference by remember { mutableStateOf<Pair<String, DiagnosticResult>?>(null) }
+        var pendingDelete by remember { mutableStateOf<List<Evidence>?>(null) }
         var inventorySnapshot by remember { mutableStateOf(LanSnapshot()) }
         val inventory = remember { LanInventory(this) { inventorySnapshot = it } }
         DisposableEffect(inventory) { onDispose { inventory.stop() } }
@@ -86,11 +87,16 @@ class MainActivity : ComponentActivity() {
             val loaded = store.saveBytes(name, bytes)
             runOnUiThread { entries = loaded; message = "Archivo recibido con SHA-256 verificado" }
         }) }
-        DisposableEffect(ble, nfc, peer) { onDispose { ble.stop(); nfc.close(); peer.close() } }
-        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop() } }
+        var browserState by remember { mutableStateOf(BrowserState()) }
+        val browser = remember { BrowserReceiver(this, { browserState = it }, { name, bytes ->
+            val loaded = store.saveBytes(name, bytes)
+            runOnUiThread { entries = loaded; message = "Archivo del navegador guardado con SHA-256" }
+        }) }
+        DisposableEffect(ble, nfc, peer, browser) { onDispose { ble.stop(); nfc.close(); peer.close(); browser.close() } }
+        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop(); browser.stop() } }
         LaunchedEffect(tab) { if (tab != "NFC") nfc.stop() }
-        DisposableEffect(peerState.active, nfcSnapshot.armed) {
-            if (peerState.active || nfcSnapshot.armed) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        DisposableEffect(peerState.active, nfcSnapshot.armed, browserState.active) {
+            if (peerState.active || nfcSnapshot.armed || browserState.active) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             onDispose { window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
         }
@@ -175,7 +181,7 @@ class MainActivity : ComponentActivity() {
                     Column(Modifier.padding(horizontal = 18.dp, vertical = 8.dp)) {
                         Text("MSA CyberDeck", color = MaterialTheme.colorScheme.primary, fontSize = 26.sp)
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("Resumen","Mi red","Bluetooth","NFC","Sesiones","Red","Web","USB","Radio","Evidencias","Informes").forEach { label ->
+                            listOf("Resumen","Mi red","Bluetooth","NFC","Recibir","Sesiones","Red","Web","USB","Radio","Evidencias","Informes").forEach { label ->
                                 FilterChip(selected = tab == label, onClick = { tab = label }, label = { Text(label) })
                             }
                         }
@@ -198,6 +204,7 @@ class MainActivity : ComponentActivity() {
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "Bluetooth" }) { Text("Inspeccionar Bluetooth LE") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "NFC" }) { Text("Leer una etiqueta NFC") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "Sesiones" }) { Text("Transferir entre móviles") }
+                                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "Recibir" }) { Text("Recibir sin instalar app en el otro móvil") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Mi red" }) { Text("Descubrir servicios de mi red") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Red" }) { Text("Abrir herramientas DNS / TCP") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Web" }) { Text("Revisar certificado y cabeceras web") }
@@ -225,7 +232,7 @@ class MainActivity : ComponentActivity() {
                                 stop = { nfc.stop() }, save = { saveDiagnostic(it) }) }
                         }
                         "Sesiones" -> {
-                            item { PeerPanel(peerState, receive = { peer.receive() }, stop = { peer.stop() }, decide = { peer.decide(it) },
+                            item { PeerPanel(peerState, receive = { browser.stop(); peer.receive() }, stop = { peer.stop() }, decide = { peer.decide(it) },
                                 copy = { invitation ->
                                     val clip = android.content.ClipData.newPlainText("Invitación temporal CyberDeck", invitation)
                                     if (Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply {
@@ -243,6 +250,17 @@ class MainActivity : ComponentActivity() {
                                         runOnUiThread { runCatching { peer.send(invitation, "informe-CyberDeck.md", bytes) }.onFailure { message = "Envío: ${it.message}" } }
                                         "Informe preparado para la sesión local"
                                     }
+                                }) }
+                        }
+                        "Recibir" -> {
+                            item { BrowserReceiverPanel(browserState, start = { peer.stop(); browser.start() },
+                                stop = { browser.stop() }, decide = { browser.decide(it) }, copy = { address ->
+                                    val clip = android.content.ClipData.newPlainText("Recepción temporal CyberDeck", address)
+                                    if (Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply {
+                                        putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
+                                    }
+                                    (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(clip)
+                                    message = "Dirección copiada · HTTP local sin cifrar"
                                 }) }
                         }
                         "Mi red" -> {
@@ -319,8 +337,12 @@ class MainActivity : ComponentActivity() {
                             item { EvidenceControls(evidenceQuery, evidenceFilter, evidenceNewest, filtered.size, entries.size,
                                 queryChanged = { evidenceQuery = it }, filterChanged = { evidenceFilter = it },
                                 orderChanged = { evidenceNewest = !evidenceNewest }) }
+                            item { Text("Copias privadas: ${entries.sumOf { it.bytes }} bytes · visibles: ${filtered.sumOf { it.bytes }} bytes") }
                             item { Button(enabled = !busy,onClick = { importer.launch(arrayOf("*/*")) }) { Text("Importar archivo") } }
                             item { OutlinedButton(enabled = !busy && entries.isNotEmpty(),onClick = { run { store.verify(entries) } }) { Text("Verificar copias") } }
+                            item { OutlinedButton(enabled = !busy && filtered.isNotEmpty(), onClick = { pendingDelete = filtered.toList() }) {
+                                Text("Borrar resultados visibles", color = MaterialTheme.colorScheme.error)
+                            } }
                             nfcReference?.let { reference -> item {
                                 Info("REFERENCIA NFC", reference.second.checkedAt + "\nElige otra lectura para comparar. Coincidir no demuestra autenticidad.")
                                 TextButton(onClick = { nfcReference = null }) { Text("Quitar referencia NFC") }
@@ -328,6 +350,9 @@ class MainActivity : ComponentActivity() {
                             if(filtered.isEmpty()) item { Info("SIN RESULTADOS", if(entries.isEmpty()) "Todavía no hay evidencias guardadas." else "Cambia la búsqueda o el filtro.") }
                             items(filtered,key = { it.id }) { entry ->
                                 Info(entry.name,"${entry.bytes} bytes\n${entry.importedAt}\nSHA-256\n${entry.sha256}")
+                                TextButton(enabled = !busy, onClick = { pendingDelete = listOf(entry) }) {
+                                    Text("Borrar esta copia", color = MaterialTheme.colorScheme.error)
+                                }
                                 if (entry.name.startsWith("diagnostico-")) {
                                     OutlinedButton(enabled = !busy, onClick = { run {
                                         val result = store.diagnostic(entry)
@@ -373,6 +398,24 @@ class MainActivity : ComponentActivity() {
                 }
             }
             openedEvidence?.let { result -> DiagnosticDialog("INFORME GUARDADO", result) { openedEvidence = null } }
+            pendingDelete?.let { selected -> AlertDialog(onDismissRequest = { pendingDelete = null },
+                title = { Text("¿Borrar ${selected.size} copias?") },
+                text = { Text("Se eliminarán ${selected.sumOf { it.bytes }} bytes de evidencias privadas y sus entradas del informe. No hay papelera. Los archivos originales del móvil y las exportaciones anteriores se conservan.") },
+                confirmButton = { TextButton(onClick = {
+                    pendingDelete = null
+                    run {
+                        try { selected.forEach { store.delete(it.id) } }
+                        finally {
+                            val loaded = store.list()
+                            runOnUiThread {
+                                entries = loaded; openedEvidence = null
+                                if (loaded.none { it.id == nfcReference?.first }) nfcReference = null
+                            }
+                        }
+                        "${selected.size} copias eliminadas · almacenamiento liberado"
+                    }
+                }) { Text("Borrar definitivamente", color = MaterialTheme.colorScheme.error) } },
+                dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text("Conservar copias") } }) }
         }
     }
 }

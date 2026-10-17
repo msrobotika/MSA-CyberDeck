@@ -22,10 +22,20 @@ class EvidenceStore(private val context: Context) {
     fun list(): List<Evidence> = synchronized(STORE_LOCK) {
         if (!index.baseFile.exists()) return@synchronized emptyList()
         val array = JSONArray(index.openRead().bufferedReader().use { it.readText() })
-        (0 until array.length()).map { i ->
+        val entries = (0 until array.length()).map { i ->
             val o = array.getJSONObject(i)
             Evidence(o.getString("id"), o.getString("name"), o.getString("sha256"), o.getLong("bytes"), o.getString("importedAt"))
         }
+        directory.listFiles()?.filter { it.name.startsWith(".deleted-") }?.forEach { staged ->
+            val id = staged.name.removePrefix(".deleted-")
+            if (runCatching { UUID.fromString(id) }.isSuccess) {
+                if (entries.any { it.id == id }) {
+                    val original = File(directory, id)
+                    if (!original.exists()) check(staged.renameTo(original)) { "No se pudo recuperar un borrado interrumpido" }
+                } else check(staged.delete()) { "No se pudo completar un borrado interrumpido" }
+            }
+        }
+        entries
     }
 
     fun import(uri: Uri): List<Evidence> {
@@ -38,6 +48,35 @@ class EvidenceStore(private val context: Context) {
 
     fun saveBytes(name: String, bytes: ByteArray): List<Evidence> =
         ByteArrayInputStream(bytes).use { persist(name, it) }
+
+    /** Only removes app-private copies. The originally selected file is never modified. */
+    fun delete(id: String): List<Evidence> = synchronized(STORE_LOCK) {
+        val before = list()
+        val entry = before.firstOrNull { it.id == id } ?: error("La evidencia ya no está en el índice")
+        val source = File(directory, entry.id)
+        val staged = File(directory, ".deleted-${entry.id}")
+        val hadFile = source.exists()
+        if (hadFile) check(source.renameTo(staged)) { "No se pudo preparar el borrado" }
+        val remaining = before.filterNot { it.id == id }
+        try {
+            writeIndex(remaining)
+        } catch (error: Exception) {
+            if (hadFile) check(staged.renameTo(source)) { "No se pudo restaurar la copia; permanece en ${staged.name}" }
+            throw error
+        }
+        if (hadFile && !staged.delete()) {
+            check(staged.renameTo(source)) { "No se pudo eliminar la copia; permanece en ${staged.name}" }
+            writeIndex(before)
+            error("No se pudo liberar el archivo; se conserva la evidencia")
+        }
+        remaining
+    }
+
+    private fun writeIndex(entries: List<Evidence>) {
+        val stream = index.startWrite()
+        try { stream.write(json(entries).toString(2).toByteArray(Charsets.UTF_8)); index.finishWrite(stream) }
+        catch (error: Exception) { index.failWrite(stream); throw error }
+    }
 
     fun diagnostic(entry: Evidence): DiagnosticResult = synchronized(STORE_LOCK) {
         require(list().any { it == entry }) { "La evidencia no pertenece al índice local" }

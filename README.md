@@ -16,6 +16,8 @@ Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
 - Guardado de diagnósticos JSON como evidencia con SHA-256 e inclusión en el informe.
 - Archivo de evidencias con búsqueda por nombre, fecha o hash, filtros y orden de guardado.
 - Reapertura de informes guardados con verificación SHA-256 y comparación de dos observaciones NFC.
+- Borrado confirmado de copias privadas, individual o de los resultados del filtro, con tamaño ocupado.
+- Recepción temporal desde navegador sin instalar CyberDeck en el remitente: HTTP local opcional, selección de un archivo y aprobación del receptor. Consulta [uso y límites](docs/FILES-AND-CLEANUP.md).
 - Selección de archivos mediante el selector de Android.
 - Copia a almacenamiento privado y cálculo SHA-256 durante la lectura.
 - Índice persistente con identificador, nombre, tamaño y fecha de importación.
@@ -48,7 +50,7 @@ Los hashes permiten comparar las copias locales; la fecha depende del reloj del 
 
 ## Compilación y pruebas
 
-JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Treinta y siete pruebas JUnit pasan: dos de hash, siete de protocolo del sensor, diez de diagnósticos, doce de protocolo de transferencia local y seis de archivo y comparación NFC. La versión 0.2.1-dev se ha instalado en un teléfono Android físico. La validación de funciones y capturas reales se documenta en docs/VALIDATION-ANDROID.md. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
+JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Cuarenta y cinco pruebas JUnit pasan: dos de hash, siete de protocolo del sensor, diez de diagnósticos, doce de protocolo de transferencia local, seis de archivo y comparación NFC y ocho del protocolo HTTP local. La versión 0.2.1-dev se ha instalado en un teléfono Android físico. La validación de funciones y capturas reales se documenta en docs/VALIDATION-ANDROID.md. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
 
 Las modificaciones de esta iteración se mantienen locales hasta completar la validación y revisión del propietario.
 
@@ -56,3 +58,5 @@ Las modificaciones de esta iteración se mantienen locales hasta completar la va
 ## Radios y transferencia local · 0.4.0-dev
 
 Consulta [RADIOS-AND-PEER.md](docs/RADIOS-AND-PEER.md) para uso y límites, y [VALIDATION-RADIOS.md](docs/VALIDATION-RADIOS.md) para las pruebas. Esta versión permanece local.
+
+La versión local 0.5.0-dev añade recepción desde navegador y limpieza de evidencias. Consulta [validación de archivos](docs/VALIDATION-FILES.md).
