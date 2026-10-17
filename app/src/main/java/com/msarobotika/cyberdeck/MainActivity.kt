@@ -33,6 +33,7 @@ class MainActivity : ComponentActivity() {
     private val permissionAction get() = "$packageName.USB_PERMISSION"
     private var permissionResult: (UsbDevice?) -> Unit = {}
     private var detached: () -> Unit = {}
+    private var stopDiscovery: () -> Unit = {}
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == UsbManager.ACTION_USB_DEVICE_DETACHED) { detached(); return }
@@ -49,6 +50,7 @@ class MainActivity : ComponentActivity() {
         }, ContextCompat.RECEIVER_NOT_EXPORTED)
         setContent { Deck() }
     }
+    override fun onStop() { stopDiscovery(); super.onStop() }
     override fun onDestroy() { unregisterReceiver(receiver); worker.shutdown(); super.onDestroy() }
 
     @Composable private fun Deck() {
@@ -66,6 +68,10 @@ class MainActivity : ComponentActivity() {
         val usb = remember { getSystemService(USB_SERVICE) as UsbManager }
         var report by remember { mutableStateOf("") }
         var diagnostic by remember { mutableStateOf<DiagnosticResult?>(null) }
+        var inventorySnapshot by remember { mutableStateOf(LanSnapshot()) }
+        val inventory = remember { LanInventory(this) { inventorySnapshot = it } }
+        DisposableEffect(inventory) { onDispose { inventory.stop() } }
+        SideEffect { stopDiscovery = { inventory.stop() } }
         fun run(action: () -> String) {
             busy = true
             worker.execute {
@@ -121,7 +127,7 @@ class MainActivity : ComponentActivity() {
                     Column(Modifier.padding(horizontal = 18.dp, vertical = 8.dp)) {
                         Text("MSA CyberDeck", color = MaterialTheme.colorScheme.primary, fontSize = 26.sp)
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("Resumen","Red","Web","USB","Radio","Evidencias","Informes").forEach { label ->
+                            listOf("Resumen","Mi red","Red","Web","USB","Radio","Evidencias","Informes").forEach { label ->
                                 FilterChip(selected = tab == label, onClick = { tab = label }, label = { Text(label) })
                             }
                         }
@@ -141,6 +147,7 @@ class MainActivity : ComponentActivity() {
                                         current.summary
                                     }
                                 }) { Text("Comprobar mi conexión") }
+                                OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Mi red" }) { Text("Descubrir servicios de mi red") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Red" }) { Text("Abrir herramientas DNS / TCP") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Web" }) { Text("Revisar certificado y cabeceras web") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "USB" }) { Text("Conectar sensor ESP por OTG") }
@@ -152,6 +159,18 @@ class MainActivity : ComponentActivity() {
                             item { Info("TU ESPACIO", "${entries.size} evidencias importadas · ${devices.size} periféricos USB enumerados") }
                             item { Info("HERRAMIENTAS", "Red: resolución DNS y conexión TCP. Web: revisión de TLS, cabeceras y redirecciones. Guarda cada resultado como evidencia con SHA-256.") }
                             item { Info("CONECTORES", "WiFi Sentinel: lectura USB disponible, pendiente de validar con Android. BLE Scout y ChipSafe pendientes de integración.") }
+                        }
+                        "Mi red" -> {
+                            item { LanInventoryPanel(inventorySnapshot, busy,
+                                start = { inventory.start() }, stop = { inventory.stop() },
+                                save = { result ->
+                                    run {
+                                        val loaded = store.saveBytes("diagnostico-lan-${System.currentTimeMillis()}.json",
+                                            result.toEvidenceJson().toByteArray(Charsets.UTF_8))
+                                        runOnUiThread { entries = loaded }
+                                        "Inventario guardado con SHA-256"
+                                    }
+                                }) }
                         }
                         "Red", "Web" -> {
                             item {

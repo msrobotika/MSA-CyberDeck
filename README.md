@@ -4,6 +4,8 @@ Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
 
 ## Implementado en el código local
 
+- Mi red: descubrimiento manual de servicios DNS-SD/mDNS, resolución de anuncios y guardado como evidencia.
+- Distribución gráfica de servicios web, impresión, multimedia y estaciones de trabajo observados.
 - Portada con acciones directas y navegación fija al desplazarse.
 - Estado real de conexión de Android: transporte, interfaz, direcciones y DNS configurados, sin escaneo ni ubicación.
 - Diagnóstico DNS/IP y conexión TCP a un puerto elegido, sin envío de cargas.
@@ -20,6 +22,8 @@ Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
 - Firmware ESP32 complementario con cinco pantallas horizontales de 240 × 135 y controles BOOT.
 
 La app arranca sin registros ni dispositivos simulados. Solo muestra radio tras una respuesta compatible del sensor. La pestaña Radio representa una lectura, no un flujo continuo; vuelve a leer desde USB para actualizar. El ángulo del radar es decorativo: no se estima dirección ni distancia.
+
+Mi red utiliza anuncios de servicios, no una lista completa de clientes del router. Las pruebas físicas y límites se documentan en [VALIDATION-LAN.md](docs/VALIDATION-LAN.md).
 
 ## Pendiente
 

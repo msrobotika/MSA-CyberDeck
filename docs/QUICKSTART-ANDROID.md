@@ -17,3 +17,7 @@ El enlace físico teléfono–ESP sigue pendiente de validación. BLE, VPN y det
 ## Pruebas locales
 
 Las evidencias de validación apuntan a 127.0.0.1 y contienen consultas contra un servidor temporal de prueba. Ese servidor se cierra al terminar: volver a consultar su puerto después puede dar conexión rechazada. No indica un fallo de Internet.
+
+## Inventario local
+
+En **Mi red**, inicia una búsqueda manual de 15 segundos para descubrir servicios anunciados. Consulta [MI-RED.md](MI-RED.md) para interpretar resultados y límites.

@@ -12,13 +12,13 @@ object ConnectionDiagnostic {
         val network = manager.activeNetwork
         val capabilities = network?.let(manager::getNetworkCapabilities)
         val properties = network?.let(manager::getLinkProperties)
-        val transports = listOf(
+        val transports = (listOf(
             NetworkCapabilities.TRANSPORT_WIFI to "Wi-Fi",
             NetworkCapabilities.TRANSPORT_CELLULAR to "Datos móviles",
             NetworkCapabilities.TRANSPORT_ETHERNET to "Ethernet",
-            NetworkCapabilities.TRANSPORT_VPN to "VPN",
-            NetworkCapabilities.TRANSPORT_USB to "USB"
-        ).filter { capabilities?.hasTransport(it.first) == true }.map { it.second }
+            NetworkCapabilities.TRANSPORT_VPN to "VPN"
+        ) + if (android.os.Build.VERSION.SDK_INT >= 31)
+            listOf(NetworkCapabilities.TRANSPORT_USB to "USB") else emptyList()).filter { capabilities?.hasTransport(it.first) == true }.map { it.second }
         val validated = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
         val captive = capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_CAPTIVE_PORTAL) == true
         return DiagnosticResult("connection", "Red activa de Android", Instant.now().toString(),
