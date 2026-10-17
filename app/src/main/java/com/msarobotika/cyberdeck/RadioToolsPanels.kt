@@ -57,8 +57,14 @@ import androidx.compose.ui.unit.dp
     start: () -> Unit, stop: () -> Unit, save: (DiagnosticResult) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("NFC · INSPECTOR DE ETIQUETAS", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        Text(hardware)
-        Text("Acerca una etiqueta NFC propia. La lectura muestra las tecnologías y, si está disponible, contenido NDEF. No clona tarjetas ni explora áreas protegidas.")
+        if (snapshot.result == null) {
+            Text(hardware)
+            Text("Acerca una etiqueta NFC propia. La lectura muestra las tecnologías y, si está disponible, contenido NDEF. No clona tarjetas ni explora áreas protegidas.")
+        } else {
+            Text("LECTURA TERMINADA · resultado disponible", color = MaterialTheme.colorScheme.primary)
+            Text("El lector se detiene tras detectar una tarjeta. La app sigue abierta; el resultado está debajo.")
+            snapshot.result.details.firstOrNull { it.first == "Tecnologías" }?.let { Text("Tecnologías: ${it.second}") }
+        }
         Text(snapshot.status)
         if (snapshot.armed) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
