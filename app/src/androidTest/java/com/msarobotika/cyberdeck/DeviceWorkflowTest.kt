@@ -25,11 +25,11 @@ class DeviceWorkflowTest {
     @Test fun connectionDnsWebEvidenceAndPersistentNavigation() {
         ui.waitUntil(10000) { ui.onAllNodesWithText("0 evidencias guardadas").fetchSemanticsNodes().isNotEmpty() ||
             ui.onAllNodesWithText("Comprobar mi conexión").fetchSemanticsNodes().isNotEmpty() }
-        ui.onNodeWithText("Comprobar mi conexión").performClick()
+        ui.onNodeWithText("Comprobar mi conexión").performScrollTo().performClick()
         ui.waitForIdle()
-        ui.onNodeWithText("CONEXIÓN DEL MÓVIL").performScrollTo().assertIsDisplayed()
+        ui.onNodeWithText("Tu conexión").performScrollTo().assertIsDisplayed()
         shot("android-connection")
-        ui.onNodeWithText("Red", useUnmergedTree = false).performScrollTo().performClick()
+        ui.openDeck("Red")
         ui.onNodeWithText("Dominio o IP").performTextInput("127.0.0.1")
         ui.onNodeWithText("Resolver DNS / IP").performClick()
         ui.waitUntil(10000) { ui.onAllNodesWithText("1 direcciones resueltas").fetchSemanticsNodes().isNotEmpty() }
@@ -64,7 +64,7 @@ class DeviceWorkflowTest {
                         "X-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n").toByteArray())
                 }
             }
-            ui.onNodeWithText("Web").performScrollTo().performClick()
+            ui.openDeck("Web")
             ui.onNodeWithText("URL http:// o https://").performTextInput("http://127.0.0.1:${server.localPort}/cyberdeck-test")
             ui.onNodeWithText("Revisar URL").performClick()
             fixture.join(15000)
@@ -76,8 +76,9 @@ class DeviceWorkflowTest {
             shot("android-web-evidence")
         }
         // Tabs remain reachable after a long result is scrolled to the bottom.
-        ui.onNodeWithText("Evidencias").performScrollTo().performClick()
-        ui.onNodeWithText("Verificar copias").performClick()
+        ui.openDeck("Evidencias")
+        ui.onNodeWithText("Gestionar").performScrollTo().performClick()
+        ui.onNodeWithText("Verificar copias").performScrollTo().performClick()
         ui.waitUntil(10000) { ui.onAllNodes(hasText("copias verificadas con SHA-256", substring = true)).fetchSemanticsNodes().isNotEmpty() }
         shot("android-evidence-verification")
         val store = EvidenceStore(ui.activity)
@@ -88,8 +89,8 @@ class DeviceWorkflowTest {
         ui.activityRule.scenario.recreate()
         ui.waitForIdle()
         assertEquals(saved.size, EvidenceStore(ui.activity).list().size)
-        ui.onNodeWithText("Resumen").performScrollTo().performClick()
-        ui.onNodeWithText("EMPIEZA AQUÍ").assertIsDisplayed()
+        ui.openDeck("Resumen")
+        ui.onNodeWithText("TU LABORATORIO").assertIsDisplayed()
         shot("android-home-actions")
     }
 }

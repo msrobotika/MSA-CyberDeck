@@ -40,7 +40,7 @@ class EvidenceDeleteDeviceTest {
         val entry = store.saveBytes("$suffix.txt","fixture".toByteArray()).last()
         try {
             ui.activityRule.scenario.recreate()
-            ui.onNodeWithText("Evidencias").performScrollTo().performClick()
+            ui.openDeck("Evidencias")
             ui.onNodeWithText("Buscar por nombre, fecha o hash").performTextInput(suffix)
             ui.runOnUiThread {
                 ui.activity.currentFocus?.let { focused ->
@@ -50,6 +50,7 @@ class EvidenceDeleteDeviceTest {
                 }
             }
             ui.waitForIdle()
+            ui.onNodeWithText("Gestionar").performScrollTo().performClick()
             ui.onNodeWithText("Borrar resultados visibles").performScrollTo()
             ui.onNodeWithText("Borrar resultados visibles").performSemanticsAction(SemanticsActions.OnClick) { it() }
             ui.onNodeWithText("Conservar copias").performClick()

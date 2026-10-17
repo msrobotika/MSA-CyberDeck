@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
     var confirmAddress by remember { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("BLUETOOTH · INSPECTOR BLE", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        Text("Búsqueda manual de 10 segundos. Los anuncios pueden usar nombres y direcciones cambiantes; no acreditan identidad ni distancia.")
+        Text("Observa anuncios cercanos durante 10 segundos.",style=MaterialTheme.typography.bodyMedium)
         Text(snapshot.status)
         if (!permissionGranted) Button(onClick = permissions) { Text("Conceder permisos Bluetooth") }
         if (snapshot.running || snapshot.gattBusy) {
@@ -56,29 +56,31 @@ import androidx.compose.ui.unit.dp
 @Composable fun NfcPanel(snapshot: NfcSnapshot, hardware: String, saveBusy: Boolean,
     start: () -> Unit, stop: () -> Unit, save: (DiagnosticResult) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("NFC · INSPECTOR DE ETIQUETAS", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        if (snapshot.result == null) {
-            Text(hardware)
-            Text("Acerca una etiqueta NFC propia. La lectura muestra las tecnologías y, si está disponible, contenido NDEF. No clona tarjetas ni explora áreas protegidas.")
-        } else {
-            Text("LECTURA TERMINADA · resultado disponible", color = MaterialTheme.colorScheme.primary)
-            Text("El lector se detiene tras detectar una tarjeta. La app sigue abierta; el resultado está debajo.")
-            snapshot.result.details.firstOrNull { it.first == "Tecnologías" }?.let { Text("Tecnologías: ${it.second}") }
-        }
-        Text(snapshot.status)
-        if (snapshot.armed) {
-            LinearProgressIndicator(Modifier.fillMaxWidth())
-            Button(onClick = stop) { Text("Detener lector NFC") }
-        } else Button(onClick = start) { Text("Leer etiqueta NFC · 30 s") }
-        snapshot.result?.let { result ->
-            Button(enabled = !saveBusy && !snapshot.armed, onClick = { save(result) }) { Text("Guardar informe NFC") }
-            Text("Guarda un informe en Evidencias. Para fichar con el móvil necesitas una credencial compatible emitida por el sistema de fichaje.", style = MaterialTheme.typography.bodySmall)
-            result.details.forEach { (key, value) ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp)) { Text(key, color = MaterialTheme.colorScheme.primary); Text(value) }
-                }
+        Text("NFC · INSPECTOR DE ETIQUETAS",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
+        val result=snapshot.result
+        if(result==null) {
+            Text(hardware,style=MaterialTheme.typography.bodyMedium)
+            Text("Acerca tu etiqueta después de iniciar la lectura.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        } else Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                Text("Lectura terminada",style=MaterialTheme.typography.labelLarge,color=DeckCyan)
+                Text(result.summary,style=MaterialTheme.typography.titleMedium)
+                result.details.firstOrNull{it.first=="Tecnologías"}?.let{Text(it.second,style=MaterialTheme.typography.bodyMedium)}
+                Button(enabled=!saveBusy && !snapshot.armed,onClick={save(result)},modifier=Modifier.fillMaxWidth()){Text("Guardar informe NFC")}
             }
         }
-        Text("Los enlaces se muestran como texto y no se abren. No hay escritura de etiquetas ni comandos personalizados de tarjetas.", style = MaterialTheme.typography.bodySmall)
+        if(snapshot.armed) {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
+            Text(snapshot.status)
+            OutlinedButton(onClick=stop,modifier=Modifier.fillMaxWidth()){Text("Detener lector NFC")}
+        } else Button(onClick=start,modifier=Modifier.fillMaxWidth()){Text(if(result==null)"Leer etiqueta NFC · 30 s" else "Leer otra etiqueta · 30 s")}
+        if(result==null && !snapshot.armed)Text(snapshot.status,style=MaterialTheme.typography.bodySmall)
+        result?.details?.filterNot{it.first in listOf("Alcance","Guardar informe","Tarjetas de acceso o fichaje","Tecnologías")}?.forEach{(key,value)->
+            Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
+                Text(key,color=MaterialTheme.colorScheme.primary,style=MaterialTheme.typography.labelLarge)
+                androidx.compose.foundation.text.selection.SelectionContainer{Text(value,style=MaterialTheme.typography.bodyMedium)}
+            }}
+        }
+        DeckDisclosure("Qué puedo leer y guardar","Se observan identificador, tecnologías y NDEF disponible. Guardar conserva un informe, no una credencial utilizable para fichar o pagar. No se escriben datos, exploran sectores ni envían comandos personalizados. Los enlaces se muestran como texto y no se abren. El identificador no acredita identidad ni autenticidad.")
     }
 }

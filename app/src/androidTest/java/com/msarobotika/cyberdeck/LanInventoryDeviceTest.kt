@@ -38,7 +38,7 @@ class LanInventoryDeviceTest {
                 manager.registerService(info, NsdManager.PROTOCOL_DNS_SD, listener)
                 assertTrue("Local mDNS fixture registration timed out", registered.await(12, TimeUnit.SECONDS))
                 assertNull("Registration failure: $failure", failure)
-                ui.onNodeWithText("Mi red").performScrollTo().performClick()
+                ui.openDeck("Mi red")
                 ui.onNodeWithText("Sin búsqueda iniciada. No se consulta la red automáticamente.").assertExists()
                 ui.onNodeWithText("Descubrir servicios · 15 s").performClick()
                 ui.waitUntil(14000) { ui.onAllNodesWithText(name).fetchSemanticsNodes().isNotEmpty() }

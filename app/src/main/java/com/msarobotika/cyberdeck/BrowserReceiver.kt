@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 data class BrowserOffer(val name: String, val size: Int)
 data class BrowserState(val active: Boolean = false, val status: String = "Recepción desde navegador detenida",
-    val url: String = "", val offer: BrowserOffer? = null)
+    val url: String = "", val offer: BrowserOffer? = null, val expiresAt:Long=0)
 
 /** Opt-in HTTP on one local Wi-Fi/Ethernet address. No remote directory or download endpoints. */
 class BrowserReceiver(private val context: Context, private val changed: (BrowserState) -> Unit,
@@ -54,8 +54,8 @@ class BrowserReceiver(private val context: Context, private val changed: (Browse
                 val secret = ByteArray(24).also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
                 val route = "/s/$secret"
                 val url = "http://$authority$route"
-                post(token, BrowserState(true, "Abre la dirección en el navegador del otro móvil · caduca en 2 min", url))
                 val expires = System.currentTimeMillis() + 120000
+                post(token, BrowserState(true, "Recepción lista · abre el QR en el otro móvil", url,expiresAt=expires))
                 var attempts = 0
                 var finished = false
                 while (token == epoch && !finished && System.currentTimeMillis() < expires && attempts < 64) {
@@ -72,21 +72,21 @@ class BrowserReceiver(private val context: Context, private val changed: (Browse
                         } else if (request.method == "POST" && request.path == "$route/upload") {
                             val (name, length) = BrowserProtocol.upload(request, authority, route)
                             val latch = CountDownLatch(1); decision = latch; approved.set(false)
-                            post(token, BrowserState(true, "Confirma el archivo elegido en el otro móvil", url, BrowserOffer(name, length)))
+                            post(token, BrowserState(true, "Confirma el archivo elegido en el otro móvil", url, BrowserOffer(name, length),expires))
                             val accepted = latch.await(45, TimeUnit.SECONDS) && approved.get() && token == epoch
                             decision = null
                             finished = true
                             if (!accepted) {
-                                post(token, BrowserState(status = "Archivo rechazado · sesión cerrada"))
                                 runCatching { response(connection, 403, "Archivo rechazado o aprobación caducada. No se ha guardado.") }
+                                post(token, BrowserState(status = "Archivo rechazado · sesión cerrada"))
                             } else {
                                 val bytes = ByteArray(length)
                                 DataInputStream(input).readFully(bytes)
                                 check(token == epoch) { "Sesión cerrada" }
                                 val hash = PeerProtocol.sha256(bytes)
                                 received(name, bytes)
-                                post(token, BrowserState(status = "Archivo recibido y guardado · $length bytes · SHA-256 $hash"))
                                 runCatching { response(connection, 200, "Archivo guardado en CyberDeck.\n$length bytes\nSHA-256 calculado en el receptor:\n$hash") }
+                                post(token, BrowserState(status = "Archivo recibido y guardado · $length bytes · SHA-256 $hash"))
                             }
                         } else response(connection, 404, "Sesión o ruta no disponible")
                     } } catch (error: Exception) {

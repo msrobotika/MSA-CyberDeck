@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
     onRun: (String, String, () -> DiagnosticResult) -> Unit,
     onSave: (DiagnosticResult) -> Unit
 ) {
+    val focus=androidx.compose.ui.platform.LocalFocusManager.current
     var host by rememberSaveable { mutableStateOf("") }
     var port by rememberSaveable { mutableStateOf("443") }
     var url by rememberSaveable { mutableStateOf("") }
@@ -26,7 +27,7 @@ import androidx.compose.ui.unit.dp
             Text("Se consulta HEAD sobre esta URL. No se siguen redirecciones. TLS conserva la validación del sistema.",
                 style = MaterialTheme.typography.bodySmall)
             Button(enabled = !busy && url.isNotBlank(), onClick = {
-                onRun("web", url) { Diagnostics.web(url) }
+                focus.clearFocus(); onRun("web", url) { Diagnostics.web(url) }
             }) { Text("Revisar URL") }
         } else {
             Text("DIAGNÓSTICO DE RED", color = MaterialTheme.colorScheme.primary)
@@ -34,13 +35,13 @@ import androidx.compose.ui.unit.dp
                 placeholder = { Text("servidor de tu laboratorio") }, singleLine = true,
                 enabled = !busy, modifier = Modifier.fillMaxWidth())
             Button(enabled = !busy && host.isNotBlank(), onClick = {
-                onRun("dns", host) { Diagnostics.dns(host) }
+                focus.clearFocus(); onRun("dns", host) { Diagnostics.dns(host) }
             }) { Text("Resolver DNS / IP") }
             OutlinedTextField(port, { port = it }, label = { Text("Puerto TCP") },
                 singleLine = true, enabled = !busy, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth())
             Button(enabled = !busy && host.isNotBlank() && (port.toIntOrNull() ?: 0) in 1..65535,
-                onClick = { onRun("tcp", "$host:$port") { Diagnostics.tcp(host, port.toInt()) } }) {
+                onClick = { focus.clearFocus(); onRun("tcp", "$host:$port") { Diagnostics.tcp(host, port.toInt()) } }) {
                 Text("Comprobar puerto")
             }
             Text("Consulta solo equipos de tu ámbito autorizado. Una conexión aceptada no identifica el servicio.",
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.dp
             Text(observation.summary, style = MaterialTheme.typography.titleMedium)
             Text(observation.target)
             Text(observation.checkedAt, style = MaterialTheme.typography.bodySmall)
+            Button(enabled = !busy, onClick = { onSave(observation) },modifier=Modifier.fillMaxWidth()) { Text("Guardar resultado como evidencia") }
             observation.details.forEach { (key, value) ->
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
@@ -59,7 +61,6 @@ import androidx.compose.ui.unit.dp
                     }
                 }
             }
-            Button(enabled = !busy, onClick = { onSave(observation) }) { Text("Guardar resultado como evidencia") }
         }
     }
 }

@@ -1,6 +1,14 @@
 # MSA CyberDeck — en desarrollo
 
-Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
+Kit Android local para observar, comprobar y documentar auditorías autorizadas. Versión de trabajo 0.6.0-dev; pendiente de revisión del propietario y sin publicar.
+
+## Experiencia 0.6
+
+Cuatro destinos permanentes: Inicio, Herramientas, Evidencias e Informe. El catálogo agrupa nueve herramientas con búsqueda. La portada Robotika muestra actividad real, acciones rápidas y efectos pausables. Las tarjetas de archivos priorizan abrir, exportar y gestionar; los detalles técnicos se despliegan cuando hacen falta.
+
+El informe admite un borrador privado con nombre, alcance y notas del trabajo. Comprueba las copias antes de incluir diagnósticos y marca las alteradas como no verificadas. El borrador no es un gestor de casos ni una certificación de integridad.
+
+La recepción HTTP local puede continuar al cambiar de aplicación durante su sesión limitada de dos minutos. Se aprueba cada archivo desde la app; detenerla, cerrar desde recientes o agotar el plazo cierra el receptor. Las notificaciones son opcionales. Consulta [archivos y límites](docs/FILES-AND-CLEANUP.md), [revisión de producto](docs/PRODUCT-AND-UX-REVIEW.md) y [validación de la experiencia](docs/VALIDATION-UX.md).
 
 ## Implementado en el código local
 
@@ -51,7 +59,7 @@ Los hashes permiten comparar las copias locales; la fecha depende del reloj del 
 
 ## Compilación y pruebas
 
-JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Cuarenta y cinco pruebas JUnit pasan: dos de hash, siete de protocolo del sensor, diez de diagnósticos, doce de protocolo de transferencia local, seis de archivo y comparación NFC y ocho del protocolo HTTP local. La versión 0.2.1-dev se ha instalado en un teléfono Android físico. La validación de funciones y capturas reales se documenta en docs/VALIDATION-ANDROID.md. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
+JDK 17, Gradle 8.9 y Android SDK 35. Las pruebas de lógica de 0.6 suman cincuenta casos: hash, sensor, diagnósticos, transferencia, archivo/NFC, recepción HTTP, QR y contexto del informe. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutan directamente con JUnitCore tras compilar los tests. La validación Android y sus límites se conserva en los documentos `docs/VALIDATION-*.md`; las pruebas del sensor están en [VALIDATION-SENSOR.md](docs/VALIDATION-SENSOR.md).
 
 Las modificaciones de esta iteración se mantienen locales hasta completar la validación y revisión del propietario.
 

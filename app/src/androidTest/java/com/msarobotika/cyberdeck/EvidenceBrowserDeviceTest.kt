@@ -31,9 +31,10 @@ class EvidenceBrowserDeviceTest {
             listOf("Tecnologías" to "NfcA", "Identificador observado" to "LAB-FIXTURE"))
         EvidenceStore(ui.activity).saveBytes(name, result.toEvidenceJson().toByteArray())
         ui.activityRule.scenario.recreate()
-        ui.onNodeWithText("NFC").performScrollTo().performClick()
+        ui.openDeck("NFC")
         ui.onNodeWithText("Historial NFC guardado").performScrollTo().performClick()
         ui.onNodeWithText("Buscar por nombre, fecha o hash").performTextInput(suffix)
+        ui.onNodeWithText("Buscar por nombre, fecha o hash").performImeAction()
         ui.onNodeWithText(name).performScrollTo().assertIsDisplayed()
         ui.onNodeWithText("Abrir informe guardado").performScrollTo().performClick()
         ui.waitUntil(5000) { ui.onAllNodesWithText(result.summary).fetchSemanticsNodes().isNotEmpty() }

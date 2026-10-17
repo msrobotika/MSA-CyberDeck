@@ -12,9 +12,8 @@ import androidx.compose.ui.unit.dp
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("MI RED · SERVICIOS ANUNCIADOS", style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary)
-        Text("Explora tu red o una red autorizada. Busca durante 15 segundos servicios web, impresión, multimedia y estaciones de trabajo publicados mediante mDNS/DNS-SD.")
-        Text("No es una lista completa de equipos conectados. Un equipo puede publicar varios servicios; otros pueden no anunciar nada.",
-            style = MaterialTheme.typography.bodySmall)
+        Text("Descubre servicios anunciados en tu red durante 15 segundos.",style=MaterialTheme.typography.bodyMedium)
+        DeckDisclosure("Cómo interpretar esta búsqueda","Usa mDNS/DNS-SD. No es una lista completa de equipos: un dispositivo puede anunciar varios servicios y otros permanecer silenciosos. No se consultan archivos ni conversaciones.")
         if (snapshot.running) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
             Button(onClick = stop, modifier = Modifier.fillMaxWidth()) { Text("Detener descubrimiento") }

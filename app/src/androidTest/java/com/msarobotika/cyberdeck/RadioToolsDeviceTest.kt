@@ -15,15 +15,15 @@ class RadioToolsDeviceTest {
         File(folder, "$name.png").outputStream().use { ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
     @Test fun newModulesHaveExplicitActionsAndNoAutomaticScans() {
-        ui.onNodeWithText("Bluetooth").performScrollTo().performClick()
+        ui.openDeck("Bluetooth")
         ui.onNodeWithText("BLUETOOTH · INSPECTOR BLE").assertIsDisplayed()
         ui.onNodeWithText("Sin búsqueda iniciada").assertExists()
         shot("android-bluetooth-idle")
-        ui.onNodeWithText("NFC").performScrollTo().performClick()
+        ui.openDeck("NFC")
         ui.onNodeWithText("NFC · INSPECTOR DE ETIQUETAS").assertIsDisplayed()
         ui.onNodeWithText("Lector NFC detenido").assertExists()
         shot("android-nfc-idle")
-        ui.onNodeWithText("Sesiones").performScrollTo().performClick()
+        ui.openDeck("Sesiones")
         ui.onNodeWithText("MÓVIL A MÓVIL · SESIÓN LOCAL").assertIsDisplayed()
         ui.onNodeWithText("Sin sesión iniciada").assertExists()
         ui.onNodeWithText("Elegir archivo y enviar").performScrollTo().assertIsNotEnabled()

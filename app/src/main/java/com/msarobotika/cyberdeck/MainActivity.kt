@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.testTag
 import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
@@ -34,6 +35,7 @@ class MainActivity : ComponentActivity() {
     private var permissionResult: (UsbDevice?) -> Unit = {}
     private var detached: () -> Unit = {}
     private var stopDiscovery: () -> Unit = {}
+    private var receiverRequested by mutableStateOf(false)
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == UsbManager.ACTION_USB_DEVICE_DETACHED) { detached(); return }
@@ -45,20 +47,33 @@ class MainActivity : ComponentActivity() {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        receiverRequested=intent?.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false)==true
         ContextCompat.registerReceiver(this, receiver, IntentFilter(permissionAction).apply {
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
         }, ContextCompat.RECEIVER_NOT_EXPORTED)
         setContent { Deck() }
     }
     override fun onStop() { stopDiscovery(); super.onStop() }
+    override fun onNewIntent(intent:Intent) {
+        super.onNewIntent(intent);setIntent(intent)
+        if(intent.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false))receiverRequested=true
+    }
     override fun onDestroy() { unregisterReceiver(receiver); worker.shutdown(); super.onDestroy() }
 
     @Composable private fun Deck() {
         val store = remember { EvidenceStore(this) }
+        val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
+        val draftStore = remember { ReportDraftStore(this) }
+        var reportContext by rememberSaveable(stateSaver=androidx.compose.runtime.saveable.listSaver(
+            save={listOf(it.name,it.scope,it.notes)},restore={ReportContext(it[0],it[1],it[2])})) { mutableStateOf(draftStore.read()) }
+        var reportSelection by rememberSaveable { mutableStateOf(arrayListOf<String>()) }
+        var toolQuery by rememberSaveable { mutableStateOf("") }
+        var manageEvidence by rememberSaveable { mutableStateOf(false) }
         var entries by remember { mutableStateOf(emptyList<Evidence>()) }
         var tab by rememberSaveable { mutableStateOf("Resumen") }
-        val contentScroll = rememberLazyListState()
-        LaunchedEffect(tab) { contentScroll.scrollToItem(0) }
+        var rootNavigationEvent by remember {mutableIntStateOf(0)}
+        val screenStates=androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+        LaunchedEffect(receiverRequested){if(receiverRequested){tab="Recibir";receiverRequested=false}}
         var connection by remember { mutableStateOf<DiagnosticResult?>(null) }
         var message by remember { mutableStateOf("Datos locales · sin sensores enlazados") }
         var busy by remember { mutableStateOf(false) }
@@ -80,23 +95,31 @@ class MainActivity : ComponentActivity() {
         var bleSnapshot by remember { mutableStateOf(BleSnapshot()) }
         var blePermission by remember { mutableStateOf(BleInspector.hasPermissions(this)) }
         val ble = remember { BleInspector(this) { bleSnapshot = it } }
-        var nfcSnapshot by remember { mutableStateOf(NfcSnapshot()) }
-        val nfc = remember { NfcInspector(this) { nfcSnapshot = it } }
+        val nfcSnapshot by session.nfc.collectAsState()
+        val nfc = remember { NfcInspector(this) { session.nfc.value = it } }
         var peerState by remember { mutableStateOf(PeerState()) }
         val peer = remember { PeerSession(this, { peerState = it }, { name, bytes ->
             val loaded = store.saveBytes(name, bytes)
             runOnUiThread { entries = loaded; evidenceQuery = name; evidenceFilter = "Todas"; tab = "Evidencias";
                 message = "Archivo recibido con SHA-256 verificado · abre la copia o guárdala en el móvil" }
         }) }
-        var browserState by remember { mutableStateOf(BrowserState()) }
-        val browser = remember { BrowserReceiver(this, { browserState = it }, { name, bytes ->
-            val loaded = store.saveBytes(name, bytes)
-            runOnUiThread { entries = loaded; evidenceQuery = name; evidenceFilter = "Todas"; tab = "Evidencias";
-                message = "Archivo recibido · abre la copia o guárdala en el móvil" }
-        }) }
-        DisposableEffect(ble, nfc, peer, browser) { onDispose { ble.stop(); nfc.close(); peer.close(); browser.close() } }
-        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop();
-            browser.stop("Enlace invalidado al salir de CyberDeck · crea otra sesión y usa el QR sin salir de la app") } }
+        val browserState by BrowserTransferService.state.collectAsState()
+        val browserDelivery by BrowserTransferService.lastDelivery.collectAsState()
+        var lastBrowserDelivery by rememberSaveable{mutableStateOf("")}
+        LaunchedEffect(browserDelivery?.id) {
+            val received=browserDelivery
+            if(received!=null && received.id!=lastBrowserDelivery) {
+                lastBrowserDelivery=received.id
+                runCatching{store.list()}.onSuccess{loaded->
+                    entries=loaded
+                    if(loaded.any{it.id==received.id}){evidenceQuery=received.name;evidenceFilter="Todas";tab="Evidencias";message="Archivo recibido · abre la copia o guárdala en el móvil"}
+                }.onFailure{message="No se pudo actualizar el archivo: ${it.message}"}
+            }
+        }
+        DisposableEffect(ble, nfc, peer) { onDispose { ble.stop(); nfc.close(); peer.close() } }
+        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop() } }
+        var notificationsGranted by remember {mutableStateOf(Build.VERSION.SDK_INT<33 || ContextCompat.checkSelfPermission(this,android.Manifest.permission.POST_NOTIFICATIONS)==android.content.pm.PackageManager.PERMISSION_GRANTED)}
+        val requestNotifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){notificationsGranted=it}
         LaunchedEffect(tab) { if (tab != "NFC") nfc.stop() }
         DisposableEffect(peerState.active, nfcSnapshot.armed, browserState.active) {
             if (peerState.active || nfcSnapshot.armed || browserState.active) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -114,7 +137,7 @@ class MainActivity : ComponentActivity() {
                 runOnUiThread { message = result; busy = false }
             }
         }
-        var pendingPeerInvitation by remember { mutableStateOf("") }
+        var pendingPeerInvitation by rememberSaveable { mutableStateOf("") }
         val peerFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) {
                 val invitation = pendingPeerInvitation
@@ -214,48 +237,47 @@ class MainActivity : ComponentActivity() {
                 "Informe guardado en la ubicación elegida"
             }
         }
-        MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF071018), surface = Color(0xFF101E2D), primary = Color(0xFF5DE7FF))) {
-            Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
-                    Column(Modifier.padding(horizontal = 18.dp, vertical = 8.dp)) {
-                        Text("MSA CyberDeck", color = MaterialTheme.colorScheme.primary, fontSize = 26.sp)
-                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("Resumen","Mi red","Bluetooth","NFC","Recibir","Sesiones","Red","Web","USB","Radio","Evidencias","Informes").forEach { label ->
-                                FilterChip(selected = tab == label, onClick = { tab = label }, label = { Text(label) })
-                            }
-                        }
-                        if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                        Text(message, style = MaterialTheme.typography.bodySmall)
-                    }
-                LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = contentScroll, contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        DeckTheme {
+            DeckShell(tab,busy,message,navigate={tab=it;rootNavigationEvent++},receiving=browserState.active) {
+                screenStates.SaveableStateProvider(tab) {
+                val contentScroll=rememberLazyListState()
+                LaunchedEffect(rootNavigationEvent){if(tab in listOf("Resumen","Evidencias","Informes"))contentScroll.scrollToItem(0)}
+                LaunchedEffect(evidenceQuery,evidenceFilter){if(tab=="Evidencias")contentScroll.scrollToItem(0)}
+                LazyColumn(Modifier.fillMaxSize().testTag("deck-list"),state=contentScroll,contentPadding=PaddingValues(horizontal=18.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
                     when(tab) {
                         "Resumen" -> {
+                            item { RobotCommandHero() }
+                            item { DeckStats(entries,sensor!=null) }
+                            item { DeckSection("En campo",action="Ver herramientas",click={tab="Herramientas"}) }
+                            item { DeckQuickActions { tab=it } }
                             item {
-                                Text("EMPIEZA AQUÍ", color = MaterialTheme.colorScheme.primary)
-                                Text("La app puede diagnosticar la conexión y revisar una web sin ESP. El sensor añade observaciones de radio.")
-                                Button(enabled = !busy, modifier = Modifier.fillMaxWidth(), onClick = {
-                                    run {
-                                        val current = ConnectionDiagnostic.read(this@MainActivity)
-                                        runOnUiThread { connection = current }
+                                Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+                                    Text("Tu conexión",style=MaterialTheme.typography.titleMedium)
+                                    Text(connection?.summary ?: "Sin lectura disponible",style=MaterialTheme.typography.bodyMedium)
+                                    connection?.let{Text("Última lectura: ${displayTime(it.checkedAt)}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+                                    OutlinedButton(enabled=!busy,onClick={run {
+                                        val current=ConnectionDiagnostic.read(this@MainActivity)
+                                        runOnUiThread{connection=current}
                                         current.summary
-                                    }
-                                }) { Text("Comprobar mi conexión") }
-                                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "Bluetooth" }) { Text("Inspeccionar Bluetooth LE") }
-                                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "NFC" }) { Text("Leer una etiqueta NFC") }
-                                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "Sesiones" }) { Text("Transferir entre móviles") }
-                                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "Recibir" }) { Text("Recibir sin instalar app en el otro móvil") }
-                                OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Mi red" }) { Text("Descubrir servicios de mi red") }
-                                OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Red" }) { Text("Abrir herramientas DNS / TCP") }
-                                OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Web" }) { Text("Revisar certificado y cabeceras web") }
-                                OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "USB" }) { Text("Conectar sensor ESP por OTG") }
+                                    }}){Text("Comprobar mi conexión")}
+                                    connection?.let { DeckDisclosure("Detalles de la conexión",it.details.joinToString("\n"){field->"${field.first}: ${field.second}"}) }
+                                } }
                             }
-                            connection?.let { current ->
-                                item { Info("CONEXIÓN DEL MÓVIL", current.summary + "\n" + current.details.joinToString("\n") { "${it.first}: ${it.second}" }) }
+                            item { DeckSection("Actividad reciente",subtitle="Copias guardadas en este móvil",action="Ver archivo",click={tab="Evidencias"}) }
+                            if(entries.isEmpty())item{Info("Tu archivo empieza aquí","Guarda un diagnóstico o recibe un archivo. Después podrás revisarlo, exportarlo y comprobar su integridad.")}
+                            items(entries.takeLast(3).asReversed(),key={"recent-${it.id}"}) { entry ->
+                                DeckRecent(entry){evidenceQuery=entry.name;evidenceFilter="Todas";tab="Evidencias"}
                             }
-                            item { RobotHero(sensor != null, sensor?.mismatches ?: 0L) }
-                            item { Info("TU ESPACIO", "${entries.size} evidencias importadas · ${devices.size} periféricos USB enumerados") }
-                            item { Info("HERRAMIENTAS", "Red: resolución DNS y conexión TCP. Web: revisión de TLS, cabeceras y redirecciones. Guarda cada resultado como evidencia con SHA-256.") }
-                            item { Info("CONECTORES", "WiFi Sentinel: lectura USB disponible, pendiente de validar con Android. BLE Scout y ChipSafe pendientes de integración.") }
+                        }
+                        "Herramientas" -> {
+                            item { DeckToolSearch(toolQuery){toolQuery=it} }
+                            val matching=deckTools.filter{toolQuery.isBlank() || "${it.title} ${it.subtitle} ${it.group}".contains(toolQuery.trim(),ignoreCase=true)}
+                            if(matching.isEmpty())item{Info("Sin coincidencias","Prueba NFC, DNS, radio o archivos.")}
+                            matching.groupBy{it.group}.forEach { (group,tools) ->
+                                item { DeckSection(group) }
+                                items(tools,key={it.route}) { tool -> DeckToolCard(tool){tab=tool.route} }
+                            }
+                            item { DeckDisclosure("Acerca de este kit","Las herramientas actúan cuando las inicias. Los datos observados no acreditan identidad ni ausencia de ataques. El ESP es opcional; NFC y Bluetooth usan el móvil. VPN, acceso a archivos privados de otras apps y clonación de credenciales no están implementados.") }
                         }
                         "Bluetooth" -> {
                             item { BlePanel(bleSnapshot, blePermission, busy,
@@ -271,7 +293,7 @@ class MainActivity : ComponentActivity() {
                                 stop = { nfc.stop() }, save = { saveDiagnostic(it) }) }
                         }
                         "Sesiones" -> {
-                            item { PeerPanel(peerState, receive = { browser.stop(); peer.receive() }, stop = { peer.stop() }, decide = { peer.decide(it) },
+                            item { PeerPanel(peerState, receive = { BrowserTransferService.stop(this@MainActivity); peer.receive() }, stop = { peer.stop() }, decide = { peer.decide(it) },
                                 copy = { invitation ->
                                     val clip = android.content.ClipData.newPlainText("Invitación temporal CyberDeck", invitation)
                                     if (Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply {
@@ -285,22 +307,22 @@ class MainActivity : ComponentActivity() {
                                     }.onFailure { message = "Invitación: ${it.message}" }
                                 }, sendReport = { invitation ->
                                     run {
-                                        val bytes = store.report(entries).toByteArray(Charsets.UTF_8)
+                                        val bytes = store.report(entries,reportContext).toByteArray(Charsets.UTF_8)
                                         runOnUiThread { runCatching { peer.send(invitation, "informe-CyberDeck.md", bytes) }.onFailure { message = "Envío: ${it.message}" } }
                                         "Informe preparado para la sesión local"
                                     }
                                 }) }
                         }
                         "Recibir" -> {
-                            item { BrowserReceiverPanel(browserState, start = { peer.stop(); browser.start() },
-                                stop = { browser.stop() }, decide = { browser.decide(it) }, copy = { address ->
+                            item { BrowserReceiverPanel(browserState, start = { peer.stop();runCatching{BrowserTransferService.start(this@MainActivity)}.onFailure{message="No se pudo iniciar la recepción: ${it.message}"} },
+                                stop = { BrowserTransferService.stop(this@MainActivity) }, decide = { BrowserTransferService.decide(it) }, copy = { address ->
                                     val clip = android.content.ClipData.newPlainText("Recepción temporal CyberDeck", address)
                                     if (Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply {
                                         putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
                                     }
                                     (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(clip)
                                     message = "Dirección copiada · HTTP local sin cifrar"
-                                }) }
+                                },notificationsEnabled=notificationsGranted,requestNotifications={if(Build.VERSION.SDK_INT>=33)requestNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)}) }
                         }
                         "Mi red" -> {
                             item { LanInventoryPanel(inventorySnapshot, busy,
@@ -371,70 +393,60 @@ class MainActivity : ComponentActivity() {
                             else item { RadioDashboard(current) }
                         }
                         "Evidencias" -> {
-                            val filtered = entries.filter { evidenceMatches(it, evidenceQuery, evidenceFilter) }
-                                .let { if (evidenceNewest) it.asReversed() else it }
-                            item { EvidenceControls(evidenceQuery, evidenceFilter, evidenceNewest, filtered.size, entries.size,
-                                queryChanged = { evidenceQuery = it }, filterChanged = { evidenceFilter = it },
-                                orderChanged = { evidenceNewest = !evidenceNewest }) }
-                            item { Text("Copias privadas: ${entries.sumOf { it.bytes }} bytes · visibles: ${filtered.sumOf { it.bytes }} bytes") }
-                            item { Button(enabled = !busy,onClick = { importer.launch(arrayOf("*/*")) }) { Text("Importar archivo") } }
-                            item { OutlinedButton(enabled = !busy && entries.isNotEmpty(),onClick = { run { store.verify(entries) } }) { Text("Verificar copias") } }
-                            item { OutlinedButton(enabled = !busy && filtered.isNotEmpty(), onClick = { pendingDelete = filtered.toList() }) {
-                                Text("Borrar resultados visibles", color = MaterialTheme.colorScheme.error)
+                            val filtered=entries.filter{evidenceMatches(it,evidenceQuery,evidenceFilter)}.let{if(evidenceNewest)it.asReversed() else it}
+                            item { EvidenceControls(evidenceQuery,evidenceFilter,evidenceNewest,filtered.size,entries.size,
+                                queryChanged={evidenceQuery=it},filterChanged={evidenceFilter=it},orderChanged={evidenceNewest=!evidenceNewest}) }
+                            item { Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                                FilledTonalButton(enabled=!busy,onClick={importer.launch(arrayOf("*/*"))},modifier=Modifier.weight(1f)){Text("Importar archivo")}
+                                OutlinedButton(enabled=!busy,onClick={manageEvidence=!manageEvidence},modifier=Modifier.weight(1f)){Text(if(manageEvidence)"Cerrar gestión" else "Gestionar")}
                             } }
+                            item { Text("${displayBytes(entries.sumOf{it.bytes})} en copias privadas · ${displayBytes(filtered.sumOf{it.bytes})} visibles",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+                            if(manageEvidence) {
+                                item { OutlinedButton(enabled=!busy && entries.isNotEmpty(),onClick={run{store.verify(entries)}}){Text("Verificar copias")} }
+                                item { OutlinedButton(enabled=!busy && filtered.isNotEmpty(),onClick={pendingDelete=filtered.toList()}){Text("Borrar resultados visibles",color=MaterialTheme.colorScheme.error)} }
+                                item { OutlinedButton(enabled=!busy && filtered.isNotEmpty(),onClick={reportSelection=ArrayList(filtered.map{it.id});tab="Informes"}){Text("Informe de estos resultados")} }
+                            }
                             nfcReference?.let { reference -> item {
-                                Info("REFERENCIA NFC", reference.second.checkedAt + "\nElige otra lectura para comparar. Coincidir no demuestra autenticidad.")
-                                TextButton(onClick = { nfcReference = null }) { Text("Quitar referencia NFC") }
+                                Info("Referencia NFC",reference.second.checkedAt+"\nElige otra lectura para comparar.")
+                                TextButton(onClick={nfcReference=null}){Text("Quitar referencia NFC")}
                             } }
-                            if(filtered.isEmpty()) item { Info("SIN RESULTADOS", if(entries.isEmpty()) "Todavía no hay evidencias guardadas." else "Cambia la búsqueda o el filtro.") }
-                            items(filtered,key = { it.id }) { entry ->
-                                Info(entry.name,"${entry.bytes} bytes\n${entry.importedAt}\nSHA-256\n${entry.sha256}")
-                                OutlinedButton(enabled = !busy, onClick = { openEvidence(entry) }) { Text("Abrir archivo") }
-                                OutlinedButton(enabled = !busy, onClick = {
-                                    exportingEvidenceId = entry.id; fileExporter.launch(entry.name)
-                                }) { Text("Guardar en el móvil") }
-                                TextButton(enabled = !busy, onClick = { pendingDelete = listOf(entry) }) {
-                                    Text("Borrar esta copia", color = MaterialTheme.colorScheme.error)
-                                }
-                                if (entry.name.startsWith("diagnostico-")) {
-                                    OutlinedButton(enabled = !busy, onClick = { run {
-                                        val result = store.diagnostic(entry)
-                                        runOnUiThread { openedEvidence = result }
+                            if(filtered.isEmpty())item{Info("Sin resultados",if(entries.isEmpty())"Guarda un diagnóstico o importa un archivo para empezar." else "Pulsa Ver todas o cambia la búsqueda.")}
+                            items(filtered,key={it.id}) { entry ->
+                                EvidenceFileCard(entry,busy,
+                                    open={openEvidence(entry)},export={exportingEvidenceId=entry.id;fileExporter.launch(entry.name)},
+                                    delete={pendingDelete=listOf(entry)},report={run{
+                                        val result=store.diagnostic(entry)
+                                        runOnUiThread{openedEvidence=result}
                                         "Informe abierto · SHA-256 verificado"
-                                    } }) { Text("Abrir informe guardado") }
-                                }
-                                if (entry.name.startsWith("diagnostico-nfc-")) {
-                                    OutlinedButton(enabled = !busy && entry.id != nfcReference?.first, onClick = { run {
-                                        val result = store.diagnostic(entry)
-                                        check(result.kind == "nfc") { "El contenido no es NFC" }
-                                        val reference = nfcReference
-                                        if (reference == null) {
-                                            runOnUiThread { nfcReference = entry.id to result }
-                                            "Referencia NFC seleccionada"
-                                        } else {
-                                            val referenceEntry = store.list().first { it.id == reference.first }
-                                            val referenceResult = store.diagnostic(referenceEntry)
-                                            val comparison = DiagnosticResult("nfc-comparison", "Dos lecturas guardadas",
-                                                "${referenceResult.checkedAt} / ${result.checkedAt}",
-                                                "Comparación de observaciones · no acredita autenticidad ni compara memoria no leída",
-                                                compareNfc(referenceResult, result))
-                                            runOnUiThread { openedEvidence = comparison }
-                                            "Comparación NFC preparada · ambas copias verificadas al abrir"
+                                    }},reference={run{
+                                        val result=store.diagnostic(entry)
+                                        check(result.kind=="nfc"){"El contenido no es NFC"}
+                                        val reference=nfcReference
+                                        if(reference==null){runOnUiThread{nfcReference=entry.id to result};"Referencia NFC seleccionada"}
+                                        else {
+                                            val baseline=store.diagnostic(store.list().first{it.id==reference.first})
+                                            val comparison=DiagnosticResult("nfc-comparison","Dos lecturas guardadas","${baseline.checkedAt} / ${result.checkedAt}",
+                                                "Comparación de observaciones · no acredita autenticidad",compareNfc(baseline,result))
+                                            runOnUiThread{openedEvidence=comparison};"Comparación NFC preparada · copias verificadas"
                                         }
-                                    } }) { Text(if (nfcReference == null) "Usar como referencia NFC" else "Comparar con referencia NFC") }
-                                }
+                                    }},referenceLabel=if(nfcReference==null)"Usar como referencia NFC" else "Comparar con referencia NFC",referenceEnabled=entry.id!=nfcReference?.first)
                             }
                         }
                         "Informes" -> {
-                            item { Info("INFORME MARKDOWN","Incluye identificador, nombre, tamaño, fecha y hash de cada copia importada.") }
-                            item { Button(enabled = !busy && entries.isNotEmpty(),onClick = {
+                            val selectedEntries=if(reportSelection.isEmpty())entries else entries.filter{it.id in reportSelection}
+                            item { Info("De la observación al informe","${selectedEntries.size} copias · ${displayBytes(selectedEntries.sumOf{it.bytes})}. ${if(reportSelection.isEmpty())"Incluye tu archivo actual." else "Selección preparada desde Evidencias."}") }
+                            if(reportSelection.isNotEmpty())item{TextButton(onClick={reportSelection=arrayListOf()}){Text("Usar todas las evidencias")}}
+                            item { ReportContextPanel(reportContext,changed={reportContext=it},save={val snapshot=reportContext;run{draftStore.save(snapshot);"Contexto guardado en este móvil"}}) }
+                            item { Button(enabled=!busy && selectedEntries.isNotEmpty(),modifier=Modifier.fillMaxWidth(),onClick={
+                                val snapshot=reportContext
                                 run {
-                                    val generated = store.report(entries)
-                                    runOnUiThread { report = generated; exporter.launch("MSA-CyberDeck-informe.md") }
+                                    draftStore.save(snapshot)
+                                    val generated=store.report(selectedEntries,snapshot)
+                                    runOnUiThread{report=generated;exporter.launch("MSA-CyberDeck-informe.md")}
                                     "Informe preparado para guardar"
                                 }
-                            }) { Text("Guardar informe") } }
-                            item { Info("ALCANCE","El hash comprueba cambios; no certifica la procedencia ni constituye una cadena de custodia pericial.") }
+                            }){Text("Guardar informe")} }
+                            item { DeckDisclosure("Qué incluye y qué acredita","El informe contiene contexto, metadatos, SHA-256 y diagnósticos compatibles. Comprueba las copias al prepararlo. La fecha depende del móvil y el hash no certifica procedencia ni una cadena de custodia. Tu contexto es un borrador único; no asigna automáticamente evidencias a proyectos.") }
                         }
                     }
                 }

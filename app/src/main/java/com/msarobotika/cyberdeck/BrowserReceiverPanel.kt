@@ -10,25 +10,25 @@ import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asImageBitmap
 
 @Composable fun BrowserReceiverPanel(state: BrowserState, start: () -> Unit, stop: () -> Unit,
-    decide: (Boolean) -> Unit, copy: (String) -> Unit) {
+    decide: (Boolean) -> Unit, copy: (String) -> Unit,notificationsEnabled:Boolean=true,requestNotifications:()->Unit={}) {
     var confirm by remember { mutableStateOf(false) }
+    var showAddress by remember { mutableStateOf(false) }
+    var seconds by remember(state.expiresAt){mutableStateOf(0L)}
+    LaunchedEffect(state.expiresAt,state.active) {
+        while(state.active && state.expiresAt>0) {
+            seconds=((state.expiresAt-System.currentTimeMillis()+999)/1000).coerceAtLeast(0)
+            if(seconds==0L)break
+            kotlinx.coroutines.delay(1000)
+        }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("RECIBIR SIN INSTALAR APP", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        if (!state.active) Text("Usa este móvil como receptor principal. En el otro, abre el QR con la cámara y elige un archivo en su navegador. Ambos deben estar en la misma Wi-Fi.")
+        Text("DESDE OTRO NAVEGADOR", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        if (!state.active) Text("Trae un archivo sin instalar CyberDeck en el otro móvil. Ambos necesitan la misma Wi-Fi.",style=MaterialTheme.typography.bodyMedium)
         Text(state.status)
+        if(state.active && state.expiresAt>0)Text("Enlace activo · %02d:%02d".format(seconds/60,seconds%60),style=MaterialTheme.typography.titleMedium,color=DeckMint)
         if (state.active) {
             Button(onClick = stop) { Text("Cerrar recepción de navegador") }
         } else Button(onClick = { confirm = true }) { Text("Preparar recepción desde navegador") }
-        if (state.url.isNotBlank()) {
-            Text("Mantén CyberDeck abierto en este móvil. Si sales a Telegram o bloqueas la pantalla, el enlace se cierra. Escanea con la cámara del otro móvil y abre en su navegador.")
-            val qr = remember(state.url) {
-                Bitmap.createBitmap(receiverQrPixels(state.url), 512, 512, Bitmap.Config.ARGB_8888).asImageBitmap()
-            }
-            Image(qr, contentDescription = "QR de recepción temporal", modifier = Modifier.size(240.dp))
-            OutlinedTextField(state.url, {}, readOnly = true, label = { Text("Dirección temporal · HTTP sin cifrar") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { copy(state.url) }) { Text("Copiar dirección · mantener CyberDeck abierto") }
-            Text("Es una dirección http:// local: no funciona usando datos móviles ni fuera de esta red. Crea un enlace nuevo si la sesión anterior se cerró.", style = MaterialTheme.typography.bodySmall)
-        }
         state.offer?.let { offer ->
             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp)) {
                 Text("${offer.name}\n${offer.size} bytes\n¿Guardar este archivo en tus evidencias?")
@@ -36,7 +36,18 @@ import androidx.compose.ui.graphics.asImageBitmap
                 TextButton(onClick = { decide(false) }) { Text("Rechazar envío del navegador") }
             } }
         }
-        Text("HTTP local sin cifrar, solo para una red propia de confianza. Un archivo de hasta 16 MiB por sesión de 2 minutos. Se cierra al salir de la app. El SHA-256 se calcula al recibir; no autentica al remitente. Para archivos confidenciales usa Sesiones TLS.", style = MaterialTheme.typography.bodySmall)
+        if (state.url.isNotBlank() && state.offer==null) {
+            Text("Escanea con la cámara del otro móvil. La sesión sigue activa si cambias de app.",style=MaterialTheme.typography.bodyMedium)
+            val qr = remember(state.url) {
+                Bitmap.createBitmap(receiverQrPixels(state.url), 512, 512, Bitmap.Config.ARGB_8888).asImageBitmap()
+            }
+            Image(qr, contentDescription = "QR de recepción temporal", modifier = Modifier.size(240.dp))
+            OutlinedButton(onClick = { copy(state.url) },modifier=Modifier.fillMaxWidth()) { Text("Copiar dirección temporal") }
+            TextButton(onClick={showAddress=!showAddress}){Text(if(showAddress)"Ocultar dirección" else "Ver dirección")}
+            if(showAddress)OutlinedTextField(state.url, {}, readOnly = true, label = { Text("Dirección temporal · HTTP sin cifrar") }, modifier = Modifier.fillMaxWidth())
+        }
+        if(!notificationsEnabled)OutlinedButton(onClick=requestNotifications){Text("Activar avisos de recepción")}
+        DeckDisclosure("Conexión y privacidad","HTTP local sin cifrar: usa una red propia de confianza. Máximo 16 MiB y 2 minutos. Android mantiene la sesión como tarea temporal al cambiar de app. Puedes detenerla aquí o desde su notificación; cerrar CyberDeck desde recientes también la detiene. Activa avisos para ver cuándo debes aceptar un archivo. El hash se calcula al recibir y no autentica al remitente. Para documentos confidenciales usa Sesiones TLS. No funciona fuera de esta red ni se reinicia sola.")
     }
     if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Abrir receptor HTTP local") },
         text = { Text("El archivo y la dirección temporal viajarán sin cifrar por la red local. Usa una Wi-Fi propia y de confianza. El otro móvil seleccionará el archivo y tú confirmarás su guardado.") },

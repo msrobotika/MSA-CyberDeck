@@ -125,14 +125,17 @@ class EvidenceStore(private val context: Context) {
         return if (changed.isEmpty()) "${entries.size} copias verificadas con SHA-256" else "ATENCIÓN: ${changed.size} copias ausentes o modificadas"
     }
 
-    fun report(entries: List<Evidence>): String = buildString {
+    fun report(entries: List<Evidence>, context: ReportContext = ReportContext()): String = buildString {
         append("# MSA CyberDeck — Informe local\n\nGenerado: ${Instant.now()}\n\n")
+        append(context.markdown())
         append("SHA-256 permite comparar la integridad de la copia importada. La fecha procede del dispositivo; no constituye un sellado de tiempo certificado.\n\n")
         entries.forEach { e ->
             append("## Evidencia ${e.id}\n\nNombre: ${e.name.replace('\n', ' ').replace('\r', ' ')}\n\n")
             append("Importada: ${e.importedAt}\n\nBytes: ${e.bytes}\n\nSHA-256: ${e.sha256}\n\n")
+            val verified = runCatching { verifiedFile(e) }.isSuccess
+            append("Integridad de la copia al preparar el informe: ${if(verified) "SHA-256 verificado" else "NO VERIFICADA: archivo ausente, modificado o fuera del índice"}\n\n")
             val stored = File(directory, e.id)
-            if (e.name.startsWith("diagnostico-") && stored.exists() && stored.length() <= 65536) {
+            if (verified && e.name.startsWith("diagnostico-") && stored.exists() && stored.length() <= 65536) {
                 val content = stored.readText(Charsets.UTF_8)
                 val diagnostic = runCatching { JSONObject(content) }.getOrNull()
                 if (diagnostic?.optString("format") == "msa.cyberdeck.diagnostic.v1") {
