@@ -93,7 +93,8 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { entries = loaded; message = "Archivo del navegador guardado con SHA-256" }
         }) }
         DisposableEffect(ble, nfc, peer, browser) { onDispose { ble.stop(); nfc.close(); peer.close(); browser.close() } }
-        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop(); browser.stop() } }
+        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop();
+            browser.stop("Enlace invalidado al salir de CyberDeck · crea otra sesión y usa el QR sin salir de la app") } }
         LaunchedEffect(tab) { if (tab != "NFC") nfc.stop() }
         DisposableEffect(peerState.active, nfcSnapshot.armed, browserState.active) {
             if (peerState.active || nfcSnapshot.armed || browserState.active) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

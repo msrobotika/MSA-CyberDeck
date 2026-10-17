@@ -12,10 +12,16 @@ El borrado elimina el archivo privado y su entrada del índice. No modifica el o
 
 1. Conecta ambos a una Wi-Fi propia de confianza que permita comunicación entre clientes.
 2. En el OPPO abre Recibir → Preparar recepción desde navegador. Lee y acepta la indicación de HTTP sin cifrar.
-3. Abre la dirección temporal en el navegador del otro móvil. Allí elige un archivo mediante el selector del sistema y pulsa Proponer archivo al receptor.
+3. Mantén CyberDeck abierto en el receptor. Desde la versión 0.5.1, escanea su QR con la cámara del otro móvil y abre el enlace en su navegador. Allí elige un archivo mediante el selector del sistema y pulsa Proponer archivo al receptor.
 4. En el OPPO revisa nombre y tamaño y acepta o rechaza. Si aceptas, se guarda una copia en Evidencias y se calcula su SHA-256.
 
 Un archivo de hasta 16 MiB por sesión. La dirección lleva un secreto aleatorio, caduca a los dos minutos y la aprobación espera hasta 45 segundos. Mantén ambos dispositivos abiertos. Al salir de CyberDeck se cierra el receptor. No hay un servidor externo ni un listado web de tus evidencias. El receptor no expone descargas ni rutas del almacenamiento.
+
+### Si la dirección no abre
+
+Abrir Telegram en el receptor para enviar el enlace hace que CyberDeck pase a segundo plano y cierre la sesión. Volver a abrir la app no reactiva esa dirección: prepara una nueva y utiliza el QR sin salir de CyberDeck. No hay servicio de recepción en segundo plano en esta versión. La interfaz avisa de que el enlace anterior se ha invalidado.
+
+Los dos móviles deben estar en la misma red local, con acceso entre clientes. Conserva el esquema `http://`; no lo cambies por HTTPS. Los enlaces caducados, una dirección antigua, usar solo datos móviles o el aislamiento del router pueden impedir abrirla. El QR se genera dentro de la app con ZXing core 3.5.4, sin enviar el enlace a un generador externo.
 
 Este modo usa HTTP sin cifrar: una red hostil puede observar o alterar tráfico y la dirección temporal. El SHA-256 se calcula en el receptor, no demuestra la identidad del remitente ni autentica el trayecto. Para documentos confidenciales utiliza la transferencia TLS entre dos CyberDeck. No se abre el servicio en la interfaz de datos móviles. La misma Wi-Fi puede tener aislamiento entre clientes e impedir la transferencia.
 

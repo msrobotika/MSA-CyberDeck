@@ -25,3 +25,13 @@ Los registros completos se guardan en `.private/android-validation/`; las direcc
 Resultado final: tres pruebas de borrado correctas en el A15, incluidas cancelación y confirmación en la interfaz. Tres pruebas del receptor correctas en el OPPO. Compilación y lint de la app completados, y paquete instrumentado final compilado. APK 0.5.0-dev instalada en ambos equipos; receptor del OPPO dejado en reposo, sin servidor abierto.
 
 SHA-256 de `dist/MSA-CyberDeck-debug.apk`: `4f44dc65af545a6e2def7fdb375298719c5cf5929376eb1e7e59cd186154d4f2`.
+
+## Corrección del enlace · 0.5.1-dev
+
+Se identificó que compartir desde Telegram en el receptor invalida el enlace al pasar CyberDeck a segundo plano. Se añadió QR local y aviso explícito de invalidación, manteniendo el cierre al salir.
+
+Prueba física entre los dos teléfonos: una sesión del OPPO se abrió directamente con ACTION_VIEW en Chrome del A15. La interfaz web mostró el selector y Proponer archivo al receptor. No se utilizó un túnel ADB ni CyberDeck como cliente en el A15. Esto confirma alcance de la dirección por la red entre ambos, no un envío físico completo ni el escaneo óptico del QR.
+
+46 pruebas JVM correctas, incluida una que genera y decodifica el QR y exige recuperar exactamente la dirección temporal. Compilación y lint correctos; instalada 0.5.1-dev en ambos móviles. El archivo generado para la prueba de selección se retiró del A15 sin tocar otros archivos. El envío físico de extremo a extremo desde el navegador del A15 queda pendiente.
+
+SHA-256 del APK 0.5.1-dev local: `d43737eed9859680e7a0a443a2fa978246091a80f1d2c2ad7f15eef87efdf1b1`.

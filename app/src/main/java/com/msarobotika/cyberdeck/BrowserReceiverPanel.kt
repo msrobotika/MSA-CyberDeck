@@ -5,20 +5,29 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.Image
+import android.graphics.Bitmap
+import androidx.compose.ui.graphics.asImageBitmap
 
 @Composable fun BrowserReceiverPanel(state: BrowserState, start: () -> Unit, stop: () -> Unit,
     decide: (Boolean) -> Unit, copy: (String) -> Unit) {
     var confirm by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("RECIBIR SIN INSTALAR APP", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        Text("Usa este móvil como receptor principal. En el otro, abre la dirección en su navegador y elige un archivo con su selector de Android. No se expone su almacenamiento completo.")
+        if (!state.active) Text("Usa este móvil como receptor principal. En el otro, abre el QR con la cámara y elige un archivo en su navegador. Ambos deben estar en la misma Wi-Fi.")
         Text(state.status)
         if (state.active) {
             Button(onClick = stop) { Text("Cerrar recepción de navegador") }
         } else Button(onClick = { confirm = true }) { Text("Preparar recepción desde navegador") }
         if (state.url.isNotBlank()) {
+            Text("Mantén CyberDeck abierto en este móvil. Si sales a Telegram o bloqueas la pantalla, el enlace se cierra. Escanea con la cámara del otro móvil y abre en su navegador.")
+            val qr = remember(state.url) {
+                Bitmap.createBitmap(receiverQrPixels(state.url), 512, 512, Bitmap.Config.ARGB_8888).asImageBitmap()
+            }
+            Image(qr, contentDescription = "QR de recepción temporal", modifier = Modifier.size(240.dp))
             OutlinedTextField(state.url, {}, readOnly = true, label = { Text("Dirección temporal · HTTP sin cifrar") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { copy(state.url) }) { Text("Copiar dirección temporal") }
+            OutlinedButton(onClick = { copy(state.url) }) { Text("Copiar dirección · mantener CyberDeck abierto") }
+            Text("Es una dirección http:// local: no funciona usando datos móviles ni fuera de esta red. Crea un enlace nuevo si la sesión anterior se cerró.", style = MaterialTheme.typography.bodySmall)
         }
         state.offer?.let { offer ->
             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp)) {

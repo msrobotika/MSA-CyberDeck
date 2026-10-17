@@ -108,10 +108,10 @@ class BrowserReceiver(private val context: Context, private val changed: (Browse
         socket.getOutputStream().apply { write(headers.toByteArray(Charsets.US_ASCII)); write(bytes); flush() }
     }
     fun decide(accept: Boolean) { approved.set(accept); decision?.countDown() }
-    fun stop() {
+    fun stop(reason: String = "Recepción desde navegador cerrada · el enlace anterior ya no funciona") {
         epoch++; main.removeCallbacks(deadline); approved.set(false); decision?.countDown(); decision = null
         runCatching { client?.close() }; runCatching { listener?.close() }; client = null; listener = null
-        if (state.active) { state = BrowserState(status = "Recepción desde navegador cerrada"); changed(state) }
+        if (state.active) { state = BrowserState(status = reason); changed(state) }
     }
     fun close() { stop(); worker.shutdown() }
 }
