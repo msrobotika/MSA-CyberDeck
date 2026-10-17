@@ -14,3 +14,9 @@ La app no ataca redes ni automatiza intrusiones. Su objetivo es observación, do
 ## Compilar
 
 Abrir el proyecto en Android Studio y ejecutar el módulo `app`. Requiere Android SDK 35 y JDK 17.
+
+
+## Captura de interfaz
+
+![CyberDeck dashboard](docs/screenshots/cyberdeck-dashboard.png)
+
