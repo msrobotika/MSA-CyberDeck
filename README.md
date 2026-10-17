@@ -1,22 +1,26 @@
-# MSA CyberDeck
+# MSA CyberDeck — en desarrollo
 
-Aplicación Android offline-first para profesionales de ciberseguridad: centraliza sensores ESP32, evidencias verificables e informes de auditorías autorizadas.
+Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
 
-## MVP
+## Implementado en el código local
 
-- Panel local de postura de seguridad.
-- Conectores para WiFi Sentinel, RogueWatch y ChipSafe.
-- Cadena de custodia con hashes y exportación JSON/Markdown.
-- Base preparada para USB host, BLE y una VPN local opcional.
+- Selección de archivos mediante el selector de Android.
+- Copia a almacenamiento privado y cálculo SHA-256 durante la lectura.
+- Índice persistente con identificador, nombre, tamaño y fecha de importación.
+- Verificación posterior de las copias guardadas.
+- Exportación de un informe Markdown mediante el selector de destino.
+- Enumeración USB con VID, PID, clase e interfaces.
 
-La app no ataca redes ni automatiza intrusiones. Su objetivo es observación, documentación y aprendizaje en entornos autorizados.
+La app arranca sin registros ni dispositivos simulados. La enumeración USB no establece una conexión de telemetría con los ESP32.
 
-## Compilar
+## Pendiente
 
-Abrir el proyecto en Android Studio y ejecutar el módulo `app`. Requiere Android SDK 35 y JDK 17.
+Pruebas en Android, conectores serie/BLE, importación estructurada de resultados de otras herramientas, PDF y VPN. La imagen antigua de docs/screenshots es una ilustración del prototipo y no representa una ejecución verificada de esta versión.
 
+Los hashes permiten comparar las copias locales; la fecha depende del reloj del teléfono. No se afirma una cadena de custodia certificada. Al desinstalar la app se borran sus copias privadas: exporta previamente lo que necesites conservar.
 
-## Captura de interfaz
+## Compilación y pruebas
 
-![CyberDeck dashboard](docs/screenshots/cyberdeck-dashboard.png)
+JDK 17, Gradle 8.9 y Android SDK 35. Ejecutar las tareas :app:assembleDebug y :app:testDebugUnitTest. La prueba del hash cubre el vector SHA-256 de abc, copia exacta, varios bloques y detección de cambios.
 
+Las modificaciones de esta iteración se mantienen locales hasta completar la validación y revisión del propietario.
