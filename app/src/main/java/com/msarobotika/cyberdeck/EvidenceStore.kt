@@ -88,6 +88,15 @@ class EvidenceStore(private val context: Context) {
         diagnosticFromJson(raw.toString(Charsets.UTF_8))
     }
 
+    fun verifiedFile(entry: Evidence): File = synchronized(STORE_LOCK) {
+        require(list().any { it == entry }) { "La evidencia ya no está en el índice" }
+        val file = File(directory, entry.id)
+        require(file.isFile && file.length() == entry.bytes) { "La copia no está disponible o su tamaño ha cambiado" }
+        val hash = file.inputStream().use { EvidenceHash.copyAndHash(it, OutputStreamSink).first }
+        require(hash.equals(entry.sha256, ignoreCase = true)) { "SHA-256 no coincide: no se abre ni exporta la copia" }
+        file
+    }
+
     private fun persist(name: String, input: InputStream): List<Evidence> = synchronized(STORE_LOCK) {
         val id = UUID.randomUUID().toString()
         val file = File(directory, id)

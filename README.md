@@ -17,6 +17,7 @@ Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
 - Archivo de evidencias con búsqueda por nombre, fecha o hash, filtros y orden de guardado.
 - Reapertura de informes guardados con verificación SHA-256 y comparación de dos observaciones NFC.
 - Borrado confirmado de copias privadas, individual o de los resultados del filtro, con tamaño ocupado.
+- Apertura de copias verificadas con un visor del móvil y exportación mediante el selector de destino; recepción visible en Evidencias al terminar.
 - Recepción temporal desde navegador sin instalar CyberDeck en el remitente: HTTP local opcional, selección de un archivo y aprobación del receptor. Consulta [uso y límites](docs/FILES-AND-CLEANUP.md).
 - Selección de archivos mediante el selector de Android.
 - Copia a almacenamiento privado y cálculo SHA-256 durante la lectura.

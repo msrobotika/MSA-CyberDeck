@@ -85,12 +85,14 @@ class MainActivity : ComponentActivity() {
         var peerState by remember { mutableStateOf(PeerState()) }
         val peer = remember { PeerSession(this, { peerState = it }, { name, bytes ->
             val loaded = store.saveBytes(name, bytes)
-            runOnUiThread { entries = loaded; message = "Archivo recibido con SHA-256 verificado" }
+            runOnUiThread { entries = loaded; evidenceQuery = name; evidenceFilter = "Todas"; tab = "Evidencias";
+                message = "Archivo recibido con SHA-256 verificado · abre la copia o guárdala en el móvil" }
         }) }
         var browserState by remember { mutableStateOf(BrowserState()) }
         val browser = remember { BrowserReceiver(this, { browserState = it }, { name, bytes ->
             val loaded = store.saveBytes(name, bytes)
-            runOnUiThread { entries = loaded; message = "Archivo del navegador guardado con SHA-256" }
+            runOnUiThread { entries = loaded; evidenceQuery = name; evidenceFilter = "Todas"; tab = "Evidencias";
+                message = "Archivo recibido · abre la copia o guárdala en el móvil" }
         }) }
         DisposableEffect(ble, nfc, peer, browser) { onDispose { ble.stop(); nfc.close(); peer.close(); browser.close() } }
         SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop();
@@ -165,8 +167,44 @@ class MainActivity : ComponentActivity() {
         val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) run {
                 val loaded = store.import(uri)
-                runOnUiThread { entries = loaded }
+                runOnUiThread { entries = loaded; evidenceFilter = "Todas"; evidenceQuery = loaded.lastOrNull()?.name.orEmpty() }
                 "Archivo copiado y SHA-256 calculado"
+            }
+        }
+        var exportingEvidenceId by rememberSaveable { mutableStateOf("") }
+        val fileExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
+            val id = exportingEvidenceId
+            exportingEvidenceId = ""
+            if (uri != null && id.isNotBlank()) run {
+                val entry = store.list().firstOrNull { it.id == id } ?: error("La evidencia ya no está disponible")
+                val file = store.verifiedFile(entry)
+                contentResolver.openOutputStream(uri)?.use { output -> file.inputStream().use { it.copyTo(output) } }
+                    ?: error("No se pudo escribir en el destino elegido")
+                "Copia guardada en el móvil: ${entry.name}"
+            }
+        }
+        fun openEvidence(entry: Evidence) {
+            busy = true
+            worker.execute {
+                val prepared = runCatching {
+                    val file = store.verifiedFile(entry)
+                    val uri = androidx.core.content.FileProvider.getUriForFile(this@MainActivity,"$packageName.evidence",file,entry.name)
+                    val extension = entry.name.substringAfterLast('.', "").lowercase()
+                    val mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "application/octet-stream"
+                    Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri,mime)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        clipData = android.content.ClipData.newRawUri(entry.name,uri)
+                    }
+                }
+                runOnUiThread {
+                    busy = false
+                    prepared.fold(onSuccess = { intent ->
+                        runCatching { startActivity(intent) }
+                            .onSuccess { message = "Copia verificada · abierta con una aplicación del móvil" }
+                            .onFailure { message = "No se pudo abrir: usa Guardar en el móvil o instala un visor compatible" }
+                    }, onFailure = { message = "No se pudo abrir: ${it.message}" })
+                }
             }
         }
         val exporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
@@ -351,6 +389,10 @@ class MainActivity : ComponentActivity() {
                             if(filtered.isEmpty()) item { Info("SIN RESULTADOS", if(entries.isEmpty()) "Todavía no hay evidencias guardadas." else "Cambia la búsqueda o el filtro.") }
                             items(filtered,key = { it.id }) { entry ->
                                 Info(entry.name,"${entry.bytes} bytes\n${entry.importedAt}\nSHA-256\n${entry.sha256}")
+                                OutlinedButton(enabled = !busy, onClick = { openEvidence(entry) }) { Text("Abrir archivo") }
+                                OutlinedButton(enabled = !busy, onClick = {
+                                    exportingEvidenceId = entry.id; fileExporter.launch(entry.name)
+                                }) { Text("Guardar en el móvil") }
                                 TextButton(enabled = !busy, onClick = { pendingDelete = listOf(entry) }) {
                                     Text("Borrar esta copia", color = MaterialTheme.colorScheme.error)
                                 }

@@ -2,6 +2,14 @@
 
 El OPPO es el equipo principal elegido para estas pruebas. Puedes usar las mismas funciones en otro Android compatible; no se fija un identificador personal en el código.
 
+## Encontrar y utilizar un archivo recibido
+
+Desde 0.5.2, al terminar una recepción se abre Evidencias, se quita el filtro anterior y se busca el nombre recibido. Una importación manual también deja visibles sus resultados aunque hubiera otro filtro activo.
+
+Las copias se guardan dentro de CyberDeck; no aparecen automáticamente en Música, Galería o Descargas. Abrir archivo comprueba tamaño y SHA-256 y entrega acceso temporal de solo lectura a la aplicación compatible que Android elija. No reproduce ni ejecuta archivos automáticamente. Guardar en el móvil abre el selector de destino Android para crear una copia con su nombre original, por ejemplo en Descargas. Conserva la evidencia privada y los originales.
+
+Si no hay una aplicación compatible para abrirlo, utiliza Guardar en el móvil. Las exportaciones son copias independientes: borrarlas o borrar la evidencia no elimina la otra copia.
+
 ## Borrar copias
 
 Evidencias muestra el tamaño total de las copias privadas y el de los resultados del filtro. Borrar esta copia afecta a una entrada. Borrar resultados visibles afecta a las entradas que coinciden con la búsqueda y filtro actuales; una confirmación indica cantidad y bytes antes de proceder. Conservar copias cancela.

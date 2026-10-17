@@ -35,3 +35,13 @@ Prueba física entre los dos teléfonos: una sesión del OPPO se abrió directam
 46 pruebas JVM correctas, incluida una que genera y decodifica el QR y exige recuperar exactamente la dirección temporal. Compilación y lint correctos; instalada 0.5.1-dev en ambos móviles. El archivo generado para la prueba de selección se retiró del A15 sin tocar otros archivos. El envío físico de extremo a extremo desde el navegador del A15 queda pendiente.
 
 SHA-256 del APK 0.5.1-dev local: `d43737eed9859680e7a0a443a2fa978246091a80f1d2c2ad7f15eef87efdf1b1`.
+
+## Uso de archivos recibidos · 0.5.2-dev
+
+Se verificó en el índice privado del OPPO la presencia del MP3 seleccionado por el propietario: 2.974.632 bytes, con SHA-256 del archivo coincidente con el índice. No se copia su contenido al repositorio.
+
+Añadidos Abrir archivo mediante FileProvider no exportado y permiso temporal de lectura, y Guardar en el móvil mediante ACTION_CREATE_DOCUMENT. Se comprueba tamaño e integridad antes de preparar la apertura o exportación. Al recibir o importar se elimina el filtro anterior y se busca el nombre recibido.
+
+Compilación y lint correctos, APK instalada en ambos móviles. Dos pruebas nuevas correctas en el OPPO: nombre original y bytes conservados al abrir el URI de una copia generada, y rechazo de una copia alterada manteniendo su tamaño. Las pruebas eliminan solo sus propios archivos de laboratorio.
+
+Durante la comprobación física apareció el reproductor Música con su propio diálogo de permiso para fotos y vídeos; no se aceptó ese permiso mediante las herramientas. No se afirma una reproducción audible verificada ni una exportación física a Descargas completada.
