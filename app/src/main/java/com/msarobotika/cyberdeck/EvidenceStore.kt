@@ -39,6 +39,16 @@ class EvidenceStore(private val context: Context) {
     fun saveBytes(name: String, bytes: ByteArray): List<Evidence> =
         ByteArrayInputStream(bytes).use { persist(name, it) }
 
+    fun diagnostic(entry: Evidence): DiagnosticResult = synchronized(STORE_LOCK) {
+        require(list().any { it == entry }) { "La evidencia no pertenece al índice local" }
+        require(entry.name.startsWith("diagnostico-") && entry.bytes <= 65536) { "No es un diagnóstico compatible" }
+        val source = File(directory, entry.id)
+        require(source.length() == entry.bytes) { "Tamaño de evidencia modificado" }
+        val raw = source.readBytes()
+        require(PeerProtocol.sha256(raw).equals(entry.sha256, ignoreCase = true)) { "SHA-256 no coincide: no se abre la evidencia" }
+        diagnosticFromJson(raw.toString(Charsets.UTF_8))
+    }
+
     private fun persist(name: String, input: InputStream): List<Evidence> = synchronized(STORE_LOCK) {
         val id = UUID.randomUUID().toString()
         val file = File(directory, id)

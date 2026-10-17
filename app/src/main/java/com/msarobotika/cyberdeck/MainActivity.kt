@@ -68,6 +68,11 @@ class MainActivity : ComponentActivity() {
         val usb = remember { getSystemService(USB_SERVICE) as UsbManager }
         var report by remember { mutableStateOf("") }
         var diagnostic by remember { mutableStateOf<DiagnosticResult?>(null) }
+        var evidenceQuery by rememberSaveable { mutableStateOf("") }
+        var evidenceFilter by rememberSaveable { mutableStateOf("Todas") }
+        var evidenceNewest by rememberSaveable { mutableStateOf(true) }
+        var openedEvidence by remember { mutableStateOf<DiagnosticResult?>(null) }
+        var nfcReference by remember { mutableStateOf<Pair<String, DiagnosticResult>?>(null) }
         var inventorySnapshot by remember { mutableStateOf(LanSnapshot()) }
         val inventory = remember { LanInventory(this) { inventorySnapshot = it } }
         DisposableEffect(inventory) { onDispose { inventory.stop() } }
@@ -213,6 +218,9 @@ class MainActivity : ComponentActivity() {
                                 stop = { ble.stop() }, inspect = { ble.inspect(it) }, save = { saveDiagnostic(it) }) }
                         }
                         "NFC" -> {
+                            item { OutlinedButton(onClick = {
+                                evidenceFilter = "NFC"; evidenceQuery = ""; tab = "Evidencias"
+                            }) { Text("Historial NFC guardado") } }
                             item { NfcPanel(nfcSnapshot, nfc.hardwareStatus(), busy, start = { nfc.start() },
                                 stop = { nfc.stop() }, save = { saveDiagnostic(it) }) }
                         }
@@ -306,10 +314,48 @@ class MainActivity : ComponentActivity() {
                             else item { RadioDashboard(current) }
                         }
                         "Evidencias" -> {
+                            val filtered = entries.filter { evidenceMatches(it, evidenceQuery, evidenceFilter) }
+                                .let { if (evidenceNewest) it.asReversed() else it }
+                            item { EvidenceControls(evidenceQuery, evidenceFilter, evidenceNewest, filtered.size, entries.size,
+                                queryChanged = { evidenceQuery = it }, filterChanged = { evidenceFilter = it },
+                                orderChanged = { evidenceNewest = !evidenceNewest }) }
                             item { Button(enabled = !busy,onClick = { importer.launch(arrayOf("*/*")) }) { Text("Importar archivo") } }
                             item { OutlinedButton(enabled = !busy && entries.isNotEmpty(),onClick = { run { store.verify(entries) } }) { Text("Verificar copias") } }
-                            if(entries.isEmpty()) item { Info("SIN EVIDENCIAS","Todavía no has importado archivos.") }
-                            items(entries,key = { it.id }) { Info(it.name,"${it.bytes} bytes\n${it.importedAt}\nSHA-256\n${it.sha256}") }
+                            nfcReference?.let { reference -> item {
+                                Info("REFERENCIA NFC", reference.second.checkedAt + "\nElige otra lectura para comparar. Coincidir no demuestra autenticidad.")
+                                TextButton(onClick = { nfcReference = null }) { Text("Quitar referencia NFC") }
+                            } }
+                            if(filtered.isEmpty()) item { Info("SIN RESULTADOS", if(entries.isEmpty()) "Todavía no hay evidencias guardadas." else "Cambia la búsqueda o el filtro.") }
+                            items(filtered,key = { it.id }) { entry ->
+                                Info(entry.name,"${entry.bytes} bytes\n${entry.importedAt}\nSHA-256\n${entry.sha256}")
+                                if (entry.name.startsWith("diagnostico-")) {
+                                    OutlinedButton(enabled = !busy, onClick = { run {
+                                        val result = store.diagnostic(entry)
+                                        runOnUiThread { openedEvidence = result }
+                                        "Informe abierto · SHA-256 verificado"
+                                    } }) { Text("Abrir informe guardado") }
+                                }
+                                if (entry.name.startsWith("diagnostico-nfc-")) {
+                                    OutlinedButton(enabled = !busy && entry.id != nfcReference?.first, onClick = { run {
+                                        val result = store.diagnostic(entry)
+                                        check(result.kind == "nfc") { "El contenido no es NFC" }
+                                        val reference = nfcReference
+                                        if (reference == null) {
+                                            runOnUiThread { nfcReference = entry.id to result }
+                                            "Referencia NFC seleccionada"
+                                        } else {
+                                            val referenceEntry = store.list().first { it.id == reference.first }
+                                            val referenceResult = store.diagnostic(referenceEntry)
+                                            val comparison = DiagnosticResult("nfc-comparison", "Dos lecturas guardadas",
+                                                "${referenceResult.checkedAt} / ${result.checkedAt}",
+                                                "Comparación de observaciones · no acredita autenticidad ni compara memoria no leída",
+                                                compareNfc(referenceResult, result))
+                                            runOnUiThread { openedEvidence = comparison }
+                                            "Comparación NFC preparada · ambas copias verificadas al abrir"
+                                        }
+                                    } }) { Text(if (nfcReference == null) "Usar como referencia NFC" else "Comparar con referencia NFC") }
+                                }
+                            }
                         }
                         "Informes" -> {
                             item { Info("INFORME MARKDOWN","Incluye identificador, nombre, tamaño, fecha y hash de cada copia importada.") }
@@ -326,6 +372,7 @@ class MainActivity : ComponentActivity() {
                 }
                 }
             }
+            openedEvidence?.let { result -> DiagnosticDialog("INFORME GUARDADO", result) { openedEvidence = null } }
         }
     }
 }

@@ -18,6 +18,14 @@ Para fichar con el móvil hace falta que el proveedor del sistema permita emitir
 
 Los informes pueden contener identificadores o texto sensible. Revisa lo que exportas. No se suben automáticamente.
 
+### Historial y comparación
+
+En NFC, Historial NFC guardado abre Evidencias filtradas por NFC. Busca por nombre, fecha o parte del SHA-256; puedes alternar el orden de guardado. Los filtros clasifican por nombre de archivo, no certifican su contenido.
+
+Abrir informe guardado comprueba tamaño y SHA-256 y recupera el diagnóstico privado, también después de cerrar la app. Un archivo externo no se ejecuta ni se abre como una web. Solo se interpretan diagnósticos de formato compatible de hasta 64 KiB.
+
+En una lectura NFC guardada, pulsa Usar como referencia NFC; después, en otra, Comparar con referencia NFC. Compara identificador observado, tecnologías y SHA-256 NDEF disponible. Si falta un campo, muestra No comparable. La referencia se mantiene mientras la actividad siga abierta; puedes quitarla o volver a seleccionarla. Coincidir no prueba autenticidad, no revela sectores que no se hayan leído y no determina si se puede usar la tarjeta en otro equipo.
+
 ## Sesiones entre dos móviles
 
 1. Conecta ambos a una red local de confianza que permita comunicación entre clientes y abre CyberDeck en ambos.

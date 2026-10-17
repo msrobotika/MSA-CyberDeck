@@ -14,6 +14,8 @@ Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
 - Diagnóstico DNS/IP y conexión TCP a un puerto elegido, sin envío de cargas.
 - Revisión HTTP(S) mediante HEAD: certificado TLS, cabeceras y redirección sin seguirla automáticamente.
 - Guardado de diagnósticos JSON como evidencia con SHA-256 e inclusión en el informe.
+- Archivo de evidencias con búsqueda por nombre, fecha o hash, filtros y orden de guardado.
+- Reapertura de informes guardados con verificación SHA-256 y comparación de dos observaciones NFC.
 - Selección de archivos mediante el selector de Android.
 - Copia a almacenamiento privado y cálculo SHA-256 durante la lectura.
 - Índice persistente con identificador, nombre, tamaño y fecha de importación.
@@ -46,7 +48,7 @@ Los hashes permiten comparar las copias locales; la fecha depende del reloj del 
 
 ## Compilación y pruebas
 
-JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Treinta y una pruebas JUnit pasan: dos de hash, siete de protocolo del sensor, diez de diagnósticos y doce de protocolo de transferencia local. La versión 0.2.1-dev se ha instalado en un teléfono Android físico. La validación de funciones y capturas reales se documenta en docs/VALIDATION-ANDROID.md. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
+JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Treinta y siete pruebas JUnit pasan: dos de hash, siete de protocolo del sensor, diez de diagnósticos, doce de protocolo de transferencia local y seis de archivo y comparación NFC. La versión 0.2.1-dev se ha instalado en un teléfono Android físico. La validación de funciones y capturas reales se documenta en docs/VALIDATION-ANDROID.md. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
 
 Las modificaciones de esta iteración se mantienen locales hasta completar la validación y revisión del propietario.
 

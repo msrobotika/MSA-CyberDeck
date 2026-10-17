@@ -22,6 +22,12 @@ Instalada en ambos teléfonos la revisión que conserva los metadatos si falla N
 
 La prueba BLE entre teléfonos se intentó, pero OPPO rechazó la concesión de permisos desde ADB antes de iniciar el escaneo. No se desactivaron protecciones del sistema y no se considera una prueba BLE aprobada. El permiso temporal ADVERTISE concedido al A15 se revocó.
 
-APK debug local: SHA-256 `0416d14bc14c0639953f7c0b3195406ee62ad74734341fce0440741bd7b3e6a2`.
+APK debug local: SHA-256 `211dddc35242e5afc2147f8428bbf8feb4a1fa3c19426c35eb8de1c854d28843`.
 
 Capturas reales en reposo: [Bluetooth](screenshots/android-bluetooth-idle.png), [NFC](screenshots/android-nfc-idle.png), [Sesiones](screenshots/android-peer-idle.png). No muestran la lectura de una tarjeta ni una transferencia en curso.
+
+## Archivo de evidencias e historial NFC
+
+37 pruebas JVM correctas tras añadir seis casos: ida y vuelta de JSON, campos ausentes, comparación separada de identificador y contenido, filtros, formato desconocido y tamaño excesivo. Dos pruebas instrumentadas en A15 correctas: reapertura de un informe NFC tras recrear la actividad usando el historial y la búsqueda; rechazo de un archivo de prueba alterado conservando su tamaño. El archivo alterado se restaura al terminar la prueba. Se utilizan evidencias de laboratorio identificadas como tales y se conserva el informe real del llavero.
+
+La comparación no es una prueba de clonación ni autenticidad. No compara sectores no leídos. Los filtros clasifican por nombre; antes de abrir el diagnóstico se verifica su copia y formato.
