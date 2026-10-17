@@ -71,12 +71,55 @@ class MainActivity : ComponentActivity() {
         var inventorySnapshot by remember { mutableStateOf(LanSnapshot()) }
         val inventory = remember { LanInventory(this) { inventorySnapshot = it } }
         DisposableEffect(inventory) { onDispose { inventory.stop() } }
-        SideEffect { stopDiscovery = { inventory.stop() } }
+        var bleSnapshot by remember { mutableStateOf(BleSnapshot()) }
+        var blePermission by remember { mutableStateOf(BleInspector.hasPermissions(this)) }
+        val ble = remember { BleInspector(this) { bleSnapshot = it } }
+        var nfcSnapshot by remember { mutableStateOf(NfcSnapshot()) }
+        val nfc = remember { NfcInspector(this) { nfcSnapshot = it } }
+        var peerState by remember { mutableStateOf(PeerState()) }
+        val peer = remember { PeerSession(this, { peerState = it }, { name, bytes ->
+            val loaded = store.saveBytes(name, bytes)
+            runOnUiThread { entries = loaded; message = "Archivo recibido con SHA-256 verificado" }
+        }) }
+        DisposableEffect(ble, nfc, peer) { onDispose { ble.stop(); nfc.close(); peer.close() } }
+        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop() } }
+        LaunchedEffect(tab) { if (tab != "NFC") nfc.stop() }
+        DisposableEffect(peerState.active, nfcSnapshot.armed) {
+            if (peerState.active || nfcSnapshot.armed) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            onDispose { window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+        }
+        val bluetoothPermissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            blePermission = BleInspector.hasPermissions(this)
+            message = if (blePermission) "Permisos Bluetooth concedidos; puedes iniciar una búsqueda" else "Bluetooth necesita los permisos solicitados"
+        }
         fun run(action: () -> String) {
             busy = true
             worker.execute {
                 val result = try { action() } catch (e: Exception) { "Error: ${e.message}" }
                 runOnUiThread { message = result; busy = false }
+            }
+        }
+        var pendingPeerInvitation by remember { mutableStateOf("") }
+        val peerFilePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                val invitation = pendingPeerInvitation
+                run {
+                    val name = contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)?.use {
+                        if (it.moveToFirst()) it.getString(0) else null
+                    } ?: "archivo.bin"
+                    val bytes = contentResolver.openInputStream(uri)?.use { PeerProtocol.readSelectedFile(it) }
+                        ?: error("No se pudo leer el archivo seleccionado")
+                    runOnUiThread { runCatching { peer.send(invitation, name, bytes) }.onFailure { message = "Envío: ${it.message}" } }
+                    "Archivo seleccionado preparado para la sesión local"
+                }
+            }
+        }
+        fun saveDiagnostic(result: DiagnosticResult) {
+            run {
+                val loaded = store.saveBytes("diagnostico-${result.kind}-${System.currentTimeMillis()}.json", result.toEvidenceJson().toByteArray(Charsets.UTF_8))
+                runOnUiThread { entries = loaded }
+                "Resultado guardado con SHA-256"
             }
         }
         fun readSensor(device: UsbDevice) {
@@ -127,7 +170,7 @@ class MainActivity : ComponentActivity() {
                     Column(Modifier.padding(horizontal = 18.dp, vertical = 8.dp)) {
                         Text("MSA CyberDeck", color = MaterialTheme.colorScheme.primary, fontSize = 26.sp)
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("Resumen","Mi red","Red","Web","USB","Radio","Evidencias","Informes").forEach { label ->
+                            listOf("Resumen","Mi red","Bluetooth","NFC","Sesiones","Red","Web","USB","Radio","Evidencias","Informes").forEach { label ->
                                 FilterChip(selected = tab == label, onClick = { tab = label }, label = { Text(label) })
                             }
                         }
@@ -147,6 +190,9 @@ class MainActivity : ComponentActivity() {
                                         current.summary
                                     }
                                 }) { Text("Comprobar mi conexión") }
+                                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "Bluetooth" }) { Text("Inspeccionar Bluetooth LE") }
+                                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "NFC" }) { Text("Leer una etiqueta NFC") }
+                                OutlinedButton(modifier = Modifier.fillMaxWidth(), onClick = { tab = "Sesiones" }) { Text("Transferir entre móviles") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Mi red" }) { Text("Descubrir servicios de mi red") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Red" }) { Text("Abrir herramientas DNS / TCP") }
                                 OutlinedButton(modifier = Modifier.fillMaxWidth(), enabled = !busy, onClick = { tab = "Web" }) { Text("Revisar certificado y cabeceras web") }
@@ -159,6 +205,37 @@ class MainActivity : ComponentActivity() {
                             item { Info("TU ESPACIO", "${entries.size} evidencias importadas · ${devices.size} periféricos USB enumerados") }
                             item { Info("HERRAMIENTAS", "Red: resolución DNS y conexión TCP. Web: revisión de TLS, cabeceras y redirecciones. Guarda cada resultado como evidencia con SHA-256.") }
                             item { Info("CONECTORES", "WiFi Sentinel: lectura USB disponible, pendiente de validar con Android. BLE Scout y ChipSafe pendientes de integración.") }
+                        }
+                        "Bluetooth" -> {
+                            item { BlePanel(bleSnapshot, blePermission, busy,
+                                permissions = { bluetoothPermissions.launch(BleInspector.permissions()) },
+                                start = { blePermission = BleInspector.hasPermissions(this@MainActivity); ble.start() },
+                                stop = { ble.stop() }, inspect = { ble.inspect(it) }, save = { saveDiagnostic(it) }) }
+                        }
+                        "NFC" -> {
+                            item { NfcPanel(nfcSnapshot, nfc.hardwareStatus(), busy, start = { nfc.start() },
+                                stop = { nfc.stop() }, save = { saveDiagnostic(it) }) }
+                        }
+                        "Sesiones" -> {
+                            item { PeerPanel(peerState, receive = { peer.receive() }, stop = { peer.stop() }, decide = { peer.decide(it) },
+                                copy = { invitation ->
+                                    val clip = android.content.ClipData.newPlainText("Invitación temporal CyberDeck", invitation)
+                                    if (Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply {
+                                        putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
+                                    }
+                                    (getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(clip)
+                                    message = "Invitación copiada; compártela solo con la persona autorizada"
+                                }, selectFile = { invitation ->
+                                    runCatching { PeerProtocol.invite(invitation) }.onSuccess {
+                                        pendingPeerInvitation = invitation; peerFilePicker.launch(arrayOf("*/*"))
+                                    }.onFailure { message = "Invitación: ${it.message}" }
+                                }, sendReport = { invitation ->
+                                    run {
+                                        val bytes = store.report(entries).toByteArray(Charsets.UTF_8)
+                                        runOnUiThread { runCatching { peer.send(invitation, "informe-CyberDeck.md", bytes) }.onFailure { message = "Envío: ${it.message}" } }
+                                        "Informe preparado para la sesión local"
+                                    }
+                                }) }
                         }
                         "Mi red" -> {
                             item { LanInventoryPanel(inventorySnapshot, busy,

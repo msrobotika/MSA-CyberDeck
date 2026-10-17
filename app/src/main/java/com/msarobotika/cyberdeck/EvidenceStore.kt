@@ -15,13 +15,14 @@ import java.util.UUID
 data class Evidence(val id: String, val name: String, val sha256: String, val bytes: Long, val importedAt: String)
 
 class EvidenceStore(private val context: Context) {
+    private companion object { val STORE_LOCK = Any() }
     private val directory = File(context.filesDir, "evidence").apply { mkdirs() }
     private val index = AtomicFile(File(directory, "index.json"))
 
-    fun list(): List<Evidence> {
-        if (!index.baseFile.exists()) return emptyList()
+    fun list(): List<Evidence> = synchronized(STORE_LOCK) {
+        if (!index.baseFile.exists()) return@synchronized emptyList()
         val array = JSONArray(index.openRead().bufferedReader().use { it.readText() })
-        return (0 until array.length()).map { i ->
+        (0 until array.length()).map { i ->
             val o = array.getJSONObject(i)
             Evidence(o.getString("id"), o.getString("name"), o.getString("sha256"), o.getLong("bytes"), o.getString("importedAt"))
         }
@@ -38,7 +39,7 @@ class EvidenceStore(private val context: Context) {
     fun saveBytes(name: String, bytes: ByteArray): List<Evidence> =
         ByteArrayInputStream(bytes).use { persist(name, it) }
 
-    private fun persist(name: String, input: InputStream): List<Evidence> {
+    private fun persist(name: String, input: InputStream): List<Evidence> = synchronized(STORE_LOCK) {
         val id = UUID.randomUUID().toString()
         val file = File(directory, id)
         try {
@@ -49,7 +50,7 @@ class EvidenceStore(private val context: Context) {
                 stream.write(json(entries).toString(2).toByteArray(Charsets.UTF_8))
                 index.finishWrite(stream)
             } catch (e: Exception) { index.failWrite(stream); throw e }
-            return entries
+            entries
         } catch (e: Exception) { file.delete(); throw e }
     }
 

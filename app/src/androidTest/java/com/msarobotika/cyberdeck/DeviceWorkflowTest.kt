@@ -29,7 +29,7 @@ class DeviceWorkflowTest {
         ui.waitForIdle()
         ui.onNodeWithText("CONEXIÓN DEL MÓVIL").performScrollTo().assertIsDisplayed()
         shot("android-connection")
-        ui.onNodeWithText("Red", useUnmergedTree = false).performClick()
+        ui.onNodeWithText("Red", useUnmergedTree = false).performScrollTo().performClick()
         ui.onNodeWithText("Dominio o IP").performTextInput("127.0.0.1")
         ui.onNodeWithText("Resolver DNS / IP").performClick()
         ui.waitUntil(10000) { ui.onAllNodesWithText("1 direcciones resueltas").fetchSemanticsNodes().isNotEmpty() }
@@ -64,7 +64,7 @@ class DeviceWorkflowTest {
                         "X-Content-Type-Options: nosniff\r\nConnection: close\r\n\r\n").toByteArray())
                 }
             }
-            ui.onNodeWithText("Web").performClick()
+            ui.onNodeWithText("Web").performScrollTo().performClick()
             ui.onNodeWithText("URL http:// o https://").performTextInput("http://127.0.0.1:${server.localPort}/cyberdeck-test")
             ui.onNodeWithText("Revisar URL").performClick()
             fixture.join(15000)

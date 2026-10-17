@@ -4,6 +4,9 @@ Cuaderno Android local para recopilar evidencias de auditorías autorizadas.
 
 ## Implementado en el código local
 
+- Bluetooth: búsqueda BLE manual, RSSI y descubrimiento de servicios GATT autorizados, sin leer ni escribir características.
+- NFC: identificador, tecnologías y contenido NDEF disponible; guardado de un informe, sin emulación de credenciales.
+- Sesiones: transferencia directa entre móviles por TLS local, invitación temporal, aprobación y SHA-256.
 - Mi red: descubrimiento manual de servicios DNS-SD/mDNS, resolución de anuncios y guardado como evidencia.
 - Distribución gráfica de servicios web, impresión, multimedia y estaciones de trabajo observados.
 - Portada con acciones directas y navegación fija al desplazarse.
@@ -27,7 +30,7 @@ Mi red utiliza anuncios de servicios, no una lista completa de clientes del rout
 
 ## Pendiente
 
-Pruebas funcionales completas y enlace USB móvil–ESP en Android, conector BLE, importación estructurada de resultados de otras herramientas, PDF y VPN. El sensor físico se ha probado desde el PC. La imagen antigua cyberdeck-dashboard.png es una ilustración del primer prototipo.
+Pruebas funcionales completas y enlace USB móvil–ESP en Android, validación física de etiquetas NDEF y más variantes BLE, importación estructurada de resultados de otras herramientas, PDF y VPN. El sensor físico se ha probado desde el PC. La imagen antigua cyberdeck-dashboard.png es una ilustración del primer prototipo.
 
 La vista previa web está en preview/index.html. La captura docs/screenshots/esp-radar-horizontal.png procede del framebuffer real del ESP. La mascota se guarda en app/src/main/res/drawable-nodpi/cyberdeck_robot.png; consulta docs/ROBOT-DESIGN.md.
 
@@ -43,7 +46,11 @@ Los hashes permiten comparar las copias locales; la fecha depende del reloj del 
 
 ## Compilación y pruebas
 
-JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Diecinueve pruebas JUnit pasan: dos de hash, siete de protocolo y diez de diagnósticos. La versión 0.2.1-dev se ha instalado en un teléfono Android físico. La validación de funciones y capturas reales se documenta en docs/VALIDATION-ANDROID.md. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
+JDK 17, Gradle 8.9 y Android SDK 35. Tareas :app:assembleDebug y :app:compileDebugUnitTestKotlin completadas. Treinta y una pruebas JUnit pasan: dos de hash, siete de protocolo del sensor, diez de diagnósticos y doce de protocolo de transferencia local. La versión 0.2.1-dev se ha instalado en un teléfono Android físico. La validación de funciones y capturas reales se documenta en docs/VALIDATION-ANDROID.md. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutaron directamente con JUnitCore. Consulta docs/VALIDATION-SENSOR.md.
 
 Las modificaciones de esta iteración se mantienen locales hasta completar la validación y revisión del propietario.
 
+
+## Radios y transferencia local · 0.4.0-dev
+
+Consulta [RADIOS-AND-PEER.md](docs/RADIOS-AND-PEER.md) para uso y límites, y [VALIDATION-RADIOS.md](docs/VALIDATION-RADIOS.md) para las pruebas. Esta versión permanece local.

@@ -12,7 +12,7 @@ La app tiene funciones propias aunque no haya un ESP conectado.
 
 **USB** necesita el ESP enchufado directamente al móvil mediante un cable/adaptador OTG de datos. Tener ambos conectados al PC no crea ese enlace. Pulsa **Actualizar USB**, **Leer WiFi Sentinel** y concede el permiso. **Radio** utiliza esa lectura, no inventa redes ni hace un escaneo autónomo desde el teléfono.
 
-El enlace físico teléfono–ESP sigue pendiente de validación. BLE, VPN y detección avanzada de intrusiones no están implementados en esta app.
+El enlace físico teléfono–ESP sigue pendiente de validación. VPN y detección avanzada de intrusiones no están implementadas en esta app. Bluetooth funciona desde el propio móvil.
 
 ## Pruebas locales
 
@@ -21,3 +21,7 @@ Las evidencias de validación apuntan a 127.0.0.1 y contienen consultas contra u
 ## Inventario local
 
 En **Mi red**, inicia una búsqueda manual de 15 segundos para descubrir servicios anunciados. Consulta [MI-RED.md](MI-RED.md) para interpretar resultados y límites.
+
+## Bluetooth, NFC y otro móvil
+
+Consulta [RADIOS-AND-PEER.md](RADIOS-AND-PEER.md). NFC guarda un informe, no una copia utilizable de una tarjeta de fichaje. Sesiones permite intercambiar archivos seleccionados con aprobación y TLS local.
