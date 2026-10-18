@@ -66,6 +66,7 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
         val s=size.width; val w=(s*.065f).coerceAtLeast(1f)
         fun line(x:Float,y:Float,a:Float,b:Float)=drawLine(tint,Offset(s*x,s*y),Offset(s*a,s*b),w)
         when(kind) {
+            "menu" -> {line(.15f,.25f,.85f,.25f);line(.15f,.5f,.85f,.5f);line(.15f,.75f,.85f,.75f)}
             "home" -> { line(.12f,.45f,.5f,.14f);line(.5f,.14f,.88f,.45f);line(.24f,.4f,.24f,.86f);line(.24f,.86f,.76f,.86f);line(.76f,.86f,.76f,.4f);line(.43f,.86f,.43f,.6f);line(.43f,.6f,.59f,.6f) }
             "files","report" -> { val p=Path().apply{moveTo(s*.24f,s*.12f);lineTo(s*.63f,s*.12f);lineTo(s*.8f,s*.3f);lineTo(s*.8f,s*.88f);lineTo(s*.24f,s*.88f);close()};drawPath(p,tint,style=Stroke(w));line(.36f,.43f,.66f,.43f);line(.36f,.59f,.66f,.59f);if(kind=="report")line(.36f,.73f,.56f,.73f) }
             "back" -> { line(.7f,.15f,.3f,.5f);line(.3f,.5f,.7f,.85f) }
@@ -84,6 +85,7 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
     val tool=deckTools.firstOrNull { it.route==route }
     fun go(target:String){focus.clearFocus();navigate(target)}
     BackHandler(enabled=route!="Resumen") { go(if(tool!=null) "Herramientas" else "Resumen") }
+    DeckNavigationDrawer(route,navigate) { openMenu ->
     Surface(Modifier.fillMaxSize(),color=MaterialTheme.colorScheme.background) {
         Row(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
             if(wide) NavigationRail(containerColor=MaterialTheme.colorScheme.background,windowInsets=WindowInsets(0,0,0,0)) {
@@ -93,11 +95,11 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
             }
             Column(Modifier.weight(1f).fillMaxHeight()) {
                 Row(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=10.dp),verticalAlignment=Alignment.CenterVertically) {
+                    IconButton(onClick={focus.clearFocus();openMenu()},modifier=Modifier.semantics{contentDescription="Abrir menú"}){DeckGlyph("menu")}
                     if(tool!=null) IconButton(onClick={go("Herramientas")},modifier=Modifier.semantics{contentDescription="Volver a herramientas"}) { DeckGlyph("back") }
-                    else DeckGlyph(if(route=="Resumen") "radio" else deckRoots.firstOrNull{it.route==route}?.glyph ?: "tools",Modifier.size(32.dp))
                     Column(Modifier.weight(1f).padding(start=12.dp)) {
                         Text("MSA ROBOTIKA",fontFamily=FontFamily.Monospace,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary,letterSpacing=1.sp)
-                        Text(tool?.title ?: when(route){"Resumen"->"CyberDeck";"Herramientas"->"Tu kit de campo";"Evidencias"->"Archivo de evidencias";else->"Informe de trabajo"},style=MaterialTheme.typography.titleLarge)
+                        Text(tool?.title ?: when(route){"Resumen"->"SuperFlyper";"Herramientas"->"Tu kit de campo";"Evidencias"->"Archivo de evidencias";else->"Informe de trabajo"},style=MaterialTheme.typography.titleLarge)
                     }
                 }
                 if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -117,6 +119,7 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
                 }
             }
         }
+    }
     }
 }
 

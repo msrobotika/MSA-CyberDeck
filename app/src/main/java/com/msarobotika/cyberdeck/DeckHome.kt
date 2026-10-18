@@ -30,8 +30,9 @@ val deckTools=listOf(
     DeckTool("Web","Inspección web","Certificado TLS, cabeceras y redirección","Conectividad","report","HEAD"),
     DeckTool("Bluetooth","Bluetooth LE","Anuncios, señal y servicios GATT autorizados","Radio y proximidad","radio","10 s"),
     DeckTool("NFC","NFC","Inspeccionar etiquetas y comparar informes","Radio y proximidad","files","30 s"),
-    DeckTool("USB","Sensor USB","Enlazar tu ESP32 WiFi Sentinel por OTG","Radio y proximidad","tools","Requiere ESP"),
-    DeckTool("Radio","Radar Wi-Fi","Visualizar la última lectura del sensor","Radio y proximidad","radio","Requiere lectura"),
+    DeckTool("USB","USB · SuperFlyper","Identidad, capacidades y monitor serie del ESP32","Hardware y módulos","tools","OTG experimental"),
+    DeckTool("Módulos","Módulos SuperFlyper","Funciones disponibles y hardware necesario","Hardware y módulos","tools","Estado real"),
+    DeckTool("Radio","Radar Wi-Fi","Visualizar la última lectura del sensor","Hardware y módulos","radio","Requiere lectura"),
     DeckTool("Recibir","Recibir archivos","Desde el navegador del otro móvil","Archivos y colaboración","transfer","HTTP local"),
     DeckTool("Sesiones","Sesión cifrada","Transferir entre dos CyberDeck con aprobación","Archivos y colaboración","transfer","TLS local"))
 

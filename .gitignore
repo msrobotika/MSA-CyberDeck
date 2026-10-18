@@ -9,3 +9,4 @@ local.properties
 dist/
 .private/
 firmware/.pio/
+firmware/superflyper-bridge/.pio/

@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
     private var permissionResult: (UsbDevice?) -> Unit = {}
     private var detached: () -> Unit = {}
     private var stopDiscovery: () -> Unit = {}
+    private var refreshUsb: () -> Unit = {}
     private var receiverRequested by mutableStateOf(false)
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -54,6 +55,7 @@ class MainActivity : ComponentActivity() {
         setContent { Deck() }
     }
     override fun onStop() { stopDiscovery(); super.onStop() }
+    override fun onResume() {super.onResume();refreshUsb()}
     override fun onNewIntent(intent:Intent) {
         super.onNewIntent(intent);setIntent(intent)
         if(intent.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false))receiverRequested=true
@@ -63,6 +65,9 @@ class MainActivity : ComponentActivity() {
     @Composable private fun Deck() {
         val store = remember { EvidenceStore(this) }
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
+        val bridge=remember{UsbBridge(this@MainActivity)}
+        DisposableEffect(bridge){onDispose{bridge.release()}}
+        SideEffect{refreshUsb={bridge.refresh()}}
         val draftStore = remember { ReportDraftStore(this) }
         var reportContext by rememberSaveable(stateSaver=androidx.compose.runtime.saveable.listSaver(
             save={listOf(it.name,it.scope,it.notes)},restore={ReportContext(it[0],it[1],it[2])})) { mutableStateOf(draftStore.read()) }
@@ -117,7 +122,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         DisposableEffect(ble, nfc, peer) { onDispose { ble.stop(); nfc.close(); peer.close() } }
-        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop() } }
+        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop();bridge.disconnect() } }
         var notificationsGranted by remember {mutableStateOf(Build.VERSION.SDK_INT<33 || ContextCompat.checkSelfPermission(this,android.Manifest.permission.POST_NOTIFICATIONS)==android.content.pm.PackageManager.PERMISSION_GRANTED)}
         val requestNotifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){notificationsGranted=it}
         LaunchedEffect(tab) { if (tab != "NFC") nfc.stop() }
@@ -361,6 +366,15 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         "USB" -> {
+                            item { UsbBridgePanel(bridge,hostBusy=busy || permissionPending,save={
+                                val bytes=bridge.export()
+                                run{
+                                    val loaded=store.saveBytes("superflyper-usb-${System.currentTimeMillis()}.jsonl",bytes)
+                                    runOnUiThread{entries=loaded;evidenceQuery=loaded.last().name;evidenceFilter="Todas";tab="Evidencias"}
+                                    "Registro USB guardado con SHA-256"
+                                }
+                            }) }
+                            item { HorizontalDivider();Text("LECTURA COMPLETA DE WIFI SENTINEL",color=DeckCyan);Text("Detén el enlace serie anterior antes de abrir el lector de redes.",style=MaterialTheme.typography.bodySmall) }
                             item { Button(enabled = !busy, onClick = {
                                 devices = SentinelUsb.supported(usb)
                                 sensor = null
@@ -369,7 +383,7 @@ class MainActivity : ComponentActivity() {
                             if(devices.isEmpty()) item { Info("SIN PERIFÉRICOS", "Conecta un dispositivo con un cable OTG compatible y actualiza la lista.") }
                             items(devices, key = { it.deviceId }) { device ->
                                 Info("USB-SERIE", "VID %04X · PID %04X · dispositivo %d".format(device.vendorId, device.productId, device.deviceId))
-                                Button(enabled = !busy && !permissionPending, onClick = {
+                                Button(enabled = !busy && !permissionPending && !bridge.connected && !bridge.connecting, onClick = {
                                     if (usb.hasPermission(device)) readSensor(device) else {
                                         permissionPending = true
                                         val permission = PendingIntent.getBroadcast(this@MainActivity, device.deviceId,
@@ -392,6 +406,7 @@ class MainActivity : ComponentActivity() {
                             if (current == null) item { Info("SIN LECTURA DE RADIO", "Conecta el sensor en USB y pulsa Leer WiFi Sentinel para ver datos reales.") }
                             else item { RadioDashboard(current) }
                         }
+                        "Módulos" -> {item{SuperModulesPanel()}}
                         "Evidencias" -> {
                             val filtered=entries.filter{evidenceMatches(it,evidenceQuery,evidenceFilter)}.let{if(evidenceNewest)it.asReversed() else it}
                             item { EvidenceControls(evidenceQuery,evidenceFilter,evidenceNewest,filtered.size,entries.size,

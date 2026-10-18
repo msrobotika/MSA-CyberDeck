@@ -2,197 +2,157 @@ package com.msarobotika.cyberdeck
 
 import android.app.Activity
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
+import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import com.hoho.android.usbserial.driver.UsbSerialDriver
-import com.hoho.android.usbserial.driver.UsbSerialPort
-import com.hoho.android.usbserial.driver.UsbSerialProber
+import androidx.core.content.ContextCompat
+import androidx.compose.runtime.*
+import com.hoho.android.usbserial.driver.*
 import com.hoho.android.usbserial.util.SerialInputOutputManager
-import java.nio.charset.StandardCharsets
+import java.time.Instant
 import java.util.concurrent.Executors
+import org.json.JSONObject
 
-/**
- * USB Host bridge for classic ESP32 (CH340/CP210x/FTDI) and USB CDC boards.
- * No automatic probing commands and no writes except the SF1 read-only allowlist.
- */
-class UsbBridge(private val activity: Activity) {
-    private val usb = activity.getSystemService(Context.USB_SERVICE) as UsbManager
-    private val main = Handler(Looper.getMainLooper())
-    private val writer = Executors.newSingleThreadExecutor()
-    private val permissionAction = activity.packageName + ".USB_PERMISSION"
-    private val buffer = StringBuilder()
-    private val allowedCommands = setOf("HELLO", "STATUS", "CAPABILITIES", "LEGACY_STATUS")
+data class UsbLog(val at:String,val direction:String,val text:String)
 
-    var drivers by mutableStateOf<List<UsbSerialDriver>>(emptyList())
-        private set
-    var status by mutableStateOf("Sin conexión USB")
-        private set
-    var connected by mutableStateOf(false)
-        private set
-    var lastPacket by mutableStateOf("")
-        private set
-    var receivedLines by mutableStateOf<List<String>>(emptyList())
-        private set
-
-    @Volatile private var port: UsbSerialPort? = null
-    private var manager: SerialInputOutputManager? = null
-    private var pendingDeviceId: Int? = null
-    private var registered = false
-
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action != permissionAction) return
-            val id = pendingDeviceId
-            pendingDeviceId = null
-            if (id == null) return
-            val driver = drivers.firstOrNull { it.device.deviceId == id }
-            if (driver != null && usb.hasPermission(driver.device)) {
-                open(driver)
-            } else {
-                status = "Permiso USB denegado o dispositivo retirado"
+/** Explicit first consent, bounded reconnect and read-only command allowlist. Main-thread API. */
+class UsbBridge(private val activity:Activity) {
+    private val usb=activity.getSystemService(Context.USB_SERVICE) as UsbManager
+    private val main=Handler(Looper.getMainLooper())
+    private val worker=Executors.newSingleThreadExecutor()
+    private val action=activity.packageName+".SUPERFLYPER_USB_PERMISSION"
+    private val decoder=UsbFrameDecoder()
+    private var port:UsbSerialPort?=null
+    private var activeDeviceId:Int?=null
+    private var io:SerialInputOutputManager?=null
+    private var epoch=0L
+    private var seq=0L
+    private var wanted:Pair<Int,Int>?=null
+    private var wantedSerial:String?=null
+    private var pendingPermission:Int?=null
+    private var closed=false
+    private var retry=0
+    private var deadline:Runnable?=null
+    private var reconnect:Runnable?=null
+    private var pending:Triple<String,Long,UsbDialect>?=null
+    var drivers by mutableStateOf<List<UsbSerialDriver>>(emptyList());private set
+    var status by mutableStateOf("Sin sesión USB · conecta el ESP32 al teléfono por OTG");private set
+    var connected by mutableStateOf(false);private set
+    var connecting by mutableStateOf(false);private set
+    var observation by mutableStateOf<UsbObservation?>(null);private set
+    var logs by mutableStateOf<List<UsbLog>>(emptyList());private set
+    var dropped by mutableIntStateOf(0);private set
+    var busy by mutableStateOf(false);private set
+    var adapter by mutableStateOf("");private set
+    private fun log(direction:String,text:String){if(logs.size>=300)dropped++;logs=(logs+UsbLog(Instant.now().toString(),direction,text.take(4096))).takeLast(300)}
+    private val receiver=object:BroadcastReceiver(){override fun onReceive(context:Context,intent:Intent){
+        if(closed)return
+        @Suppress("DEPRECATION") val device=intent.getParcelableExtra<UsbDevice>(UsbManager.EXTRA_DEVICE)
+        when(intent.action){
+            action->{
+                if(pendingPermission==null)return
+                if(device?.deviceId!=pendingPermission)return
+                pendingPermission=null;connecting=false
+                if(device!=null && usb.hasPermission(device))drivers.firstOrNull{it.device.deviceId==device.deviceId}?.let{open(it)}
+                else{wanted=null;status="Permiso USB denegado o dispositivo retirado";log("EVENT",status)}
             }
+            UsbManager.ACTION_USB_DEVICE_DETACHED->{
+                if(device?.deviceId==activeDeviceId || device?.deviceId==pendingPermission){closePort();status="Cable retirado · esperando el mismo adaptador";log("EVENT",status)}
+                refresh()
+            }
+            UsbManager.ACTION_USB_DEVICE_ATTACHED->{retry=0;refresh();scheduleReconnect()}
         }
-    }
-
+    }}
     init {
-        val filter = IntentFilter(permissionAction)
-        if (Build.VERSION.SDK_INT >= 33) {
-            activity.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            @Suppress("DEPRECATION")
-            activity.registerReceiver(receiver, filter)
-        }
-        registered = true
+        ContextCompat.registerReceiver(activity,receiver,IntentFilter(action).apply{
+            addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
+        },ContextCompat.RECEIVER_NOT_EXPORTED)
         refresh()
     }
-
-    fun refresh() {
-        drivers = UsbSerialProber.getDefaultProber().findAllDrivers(usb)
-        if (!connected) {
-            status = if (drivers.isEmpty()) {
-                "No hay adaptadores USB serie compatibles"
-            } else {
-                "Detectados " + drivers.size + " adaptadores · selecciona uno"
-            }
-        }
+    fun refresh(){if(!closed){drivers=UsbSerialProber.getDefaultProber().findAllDrivers(usb);if(!connected && !connecting && wanted==null)status=if(drivers.isEmpty())"Sin adaptadores USB serie en el teléfono" else "${drivers.size} adaptadores · selecciona el tuyo"}}
+    fun connect(driver:UsbSerialDriver){
+        if(closed)return
+        disconnect();wanted=driver.device.vendorId to driver.device.productId;retry=0
+        requestOrOpen(driver)
     }
-
-    fun connect(driver: UsbSerialDriver) {
-        disconnect()
-        if (!usb.hasPermission(driver.device)) {
-            pendingDeviceId = driver.device.deviceId
-            val intent = Intent(permissionAction).setPackage(activity.packageName)
-            val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-            val pending = PendingIntent.getBroadcast(activity, 0, intent, flags)
-            status = "Solicitando autorización USB"
-            usb.requestPermission(driver.device, pending)
-            return
-        }
-        open(driver)
+    private fun requestOrOpen(driver:UsbSerialDriver){
+        if(usb.hasPermission(driver.device)){open(driver);return}
+        connecting=true;pendingPermission=driver.device.deviceId;status="Autoriza el adaptador en Android"
+        val pi=PendingIntent.getBroadcast(activity,driver.device.deviceId,Intent(action).setPackage(activity.packageName),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+        runCatching{usb.requestPermission(driver.device,pi)}.onFailure{pendingPermission=null;connecting=false;wanted=null;status="No se pudo solicitar permiso: ${it.message}";log("ERROR",status)}
     }
-
-    private fun open(driver: UsbSerialDriver) {
-        writer.execute {
-            try {
-                val connection = usb.openDevice(driver.device)
-                    ?: error("Android no ha podido abrir el dispositivo USB")
-                val serial = driver.ports.firstOrNull()
-                    ?: error("Dispositivo sin puertos serie")
-                try {
-                    serial.open(connection)
-                    serial.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE)
-                } catch (e: Exception) {
-                    connection.close()
-                    throw e
+    private fun open(driver:UsbSerialDriver){
+        if(closed || connected || connecting && pendingPermission!=null)return
+        connecting=true;val generation=++epoch;status="Abriendo USB · 115200 8N1"
+        worker.execute{
+            try{
+                val connection=usb.openDevice(driver.device)?:error("No se pudo abrir el adaptador")
+                val serial=driver.ports.firstOrNull()?:run{connection.close();error("Sin puerto serie")}
+                try{serial.open(connection);serial.setParameters(115200,8,UsbSerialPort.STOPBITS_1,UsbSerialPort.PARITY_NONE);serial.dtr=false;serial.rts=false}
+                catch(e:Exception){runCatching{serial.close()};connection.close();throw e}
+                main.post{
+                    if(closed || generation!=epoch){runCatching{serial.close()};return@post}
+                    port=serial;activeDeviceId=driver.device.deviceId;connected=true;connecting=false;decoder.clear()
+                    wantedSerial=runCatching{driver.device.serialNumber}.getOrNull()
+                    adapter="VID %04X · PID %04X · %s".format(driver.device.vendorId,driver.device.productId,driver.javaClass.simpleName)
+                    log("EVENT","Conectado · $adapter · 115200 8N1");status="Puerto abierto; consultando firmware"
+                    io=SerialInputOutputManager(serial,object:SerialInputOutputManager.Listener{
+                        override fun onNewData(data:ByteArray){main.post{if(generation==epoch && !closed)decoder.accept(data).forEach{line->receive(line)}}}
+                        override fun onRunError(e:Exception){main.post{if(generation==epoch && !closed){closePort();status="Enlace interrumpido: ${e.message}";log("ERROR",status);scheduleReconnect()}}}
+                    }).also{it.start()}
+                    send("LEGACY_STATUS")
                 }
-                port = serial
-                val io = SerialInputOutputManager(serial, object : SerialInputOutputManager.Listener {
-                    override fun onNewData(data: ByteArray) = receive(data)
-                    override fun onRunError(e: Exception) {
-                        main.post {
-                            if (port === serial) {
-                                disconnect()
-                                status = "USB interrumpido: " + (e.message ?: "error de lectura")
-                            }
-                        }
-                    }
-                })
-                manager = io
-                io.start()
-                main.post {
-                    connected = true
-                    status = "USB serie conectado · 115200 baudios"
-                }
-            } catch (e: Exception) {
-                main.post { status = "Error de conexión: " + (e.message ?: "desconocido") }
-            }
+            }catch(e:Exception){main.post{if(generation==epoch && !closed){connecting=false;status="Error USB: ${e.message}";log("ERROR",status);scheduleReconnect()}}}
         }
     }
-
-    fun send(command: String) {
-        if (command !in allowedCommands) {
-            status = "Comando no permitido"
-            return
+    private fun receive(line:String){
+        log("RX",line)
+        val request=pending?:return
+        if(!UsbProtocol.matches(line,request.first,request.second,request.third))return
+        deadline?.let{main.removeCallbacks(it)};deadline=null;pending=null;busy=false
+        UsbProtocol.identity(line)?.let{observation=it;retry=0}
+        if(request.first=="CAPABILITIES"){
+            val caps=runCatching{JSONObject(line).getJSONArray("capabilities")}.getOrNull()
+            if(caps!=null)observation=observation?.copy(capabilities=(0 until minOf(caps.length(),32)).map{caps.optString(it).take(80)})
         }
-        writer.execute {
-            try {
-                val active = port ?: error("No hay ESP32 conectado")
-                val frame = if (command == "LEGACY_STATUS") "{\"cmd\":\"status\"}\n" else "SF1 " + command + "\n"
-                active.write(frame.toByteArray(StandardCharsets.US_ASCII), 2000)
-            } catch (e: Exception) {
-                main.post { status = "Error USB al enviar: " + (e.message ?: "desconocido") }
-            }
-        }
+        status=observation?.let{"Firmware anunciado: ${it.firmware} · ${it.dialect}"}?:"Respuesta recibida; identidad no disponible"
+        if((request.first=="HELLO" || request.first=="LEGACY_STATUS") && observation?.dialect in listOf(UsbDialect.SF1,UsbDialect.JSON))send("CAPABILITIES")
     }
-
-    private fun receive(bytes: ByteArray) {
-        val lines = mutableListOf<String>()
-        synchronized(buffer) {
-            for (b in bytes) {
-                val c = (b.toInt() and 0xff).toChar()
-                when {
-                    c == '\n' -> {
-                        lines.add(buffer.toString().trimEnd('\r'))
-                        buffer.setLength(0)
-                    }
-                    buffer.length < 4096 -> buffer.append(c)
-                    else -> buffer.setLength(0) // discard oversize frame
-                }
-            }
-        }
-        if (lines.isNotEmpty()) main.post {
-            for (line in lines.filter { it.isNotBlank() }) {
-                lastPacket = line
-                receivedLines = (receivedLines + line).takeLast(25)
-            }
-        }
+    fun send(command:String){
+        if(closed || !connected || busy)return
+        if(command !in UsbProtocol.commands){status="Solo consultas permitidas";return}
+        if(command in setOf("STATUS","CAPABILITIES") && observation==null){status="Identifica primero un firmware compatible";return}
+        if(observation?.dialect==UsbDialect.LEGACY && command!="LEGACY_STATUS"){status="Este firmware solo admite la consulta heredada";return}
+        val dialect=observation?.dialect?:if(command=="HELLO")UsbDialect.SF1 else UsbDialect.UNKNOWN
+        val id=++seq;val frame=UsbProtocol.request(command,id,dialect)
+        val active=port?:return;val generation=epoch
+        busy=true;pending=Triple(command,id,dialect);log("TX",frame.trimEnd())
+        worker.execute{try{active.write(frame.toByteArray(Charsets.UTF_8),2000)}catch(e:Exception){main.post{if(generation==epoch && !closed){closePort();status="Error de envío: ${e.message}";log("ERROR",status);scheduleReconnect()}}}}
+        deadline=Runnable{
+            if(generation==epoch && pending?.second==id){pending=null;busy=false;status="Sin respuesta a $command · puerto abierto no equivale a ESP32 identificado";log("TIMEOUT",status)
+                if(command=="LEGACY_STATUS" && observation==null)send("HELLO")}
+        }.also{main.postDelayed(it,5000)}
     }
-
-    fun disconnect() {
-        manager?.stop()
-        manager = null
-        try { port?.close() } catch (_: Exception) { }
-        port = null
-        connected = false
-        status = "Sin conexión USB"
-        synchronized(buffer) { buffer.setLength(0) }
+    private fun closePort(){
+        epoch++;deadline?.let{main.removeCallbacks(it)};deadline=null;pending=null;busy=false
+        pendingPermission=null;connecting=false;connected=false;observation=null;decoder.clear()
+        runCatching{io?.stop()};io=null;val old=port;port=null;activeDeviceId=null
+        if(old!=null)worker.execute{runCatching{old.close()}}
     }
-
-    fun release() {
-        disconnect()
-        if (registered) {
-            activity.unregisterReceiver(receiver)
-            registered = false
-        }
-        writer.shutdownNow()
+    private fun scheduleReconnect(){
+        if(closed || wanted==null || connected || connecting || reconnect!=null || retry>=6)return
+        val delay=minOf(30000L,1000L shl retry);retry++
+        reconnect=Runnable{
+            reconnect=null;refresh()
+            val matches=drivers.filter{(it.device.vendorId to it.device.productId)==wanted && (wantedSerial==null || runCatching{it.device.serialNumber}.getOrNull()==wantedSerial)}
+            if(matches.size==1){status="Reconectando adaptador autorizado · intento $retry";log("EVENT",status);requestOrOpen(matches.single())}
+            else{status=if(matches.size>1)"Varios adaptadores iguales: selecciona uno" else "Esperando adaptador autorizado · intento $retry/6";scheduleReconnect()}
+        }.also{main.postDelayed(it,delay)}
     }
+    fun disconnect(){wanted=null;wantedSerial=null;reconnect?.let{main.removeCallbacks(it)};reconnect=null;closePort();status="Sesión detenida";log("EVENT",status)}
+    fun clearLog(){logs=emptyList();dropped=0}
+    fun export():ByteArray=(logs.joinToString("\n"){JSONObject().put("format","msrobotika.usb.log.v1").put("at",it.at).put("direction",it.direction).put("data",it.text).toString()}+"\n").toByteArray(Charsets.UTF_8)
+    fun release(){if(!closed){disconnect();closed=true;activity.unregisterReceiver(receiver);worker.shutdown()}}
 }

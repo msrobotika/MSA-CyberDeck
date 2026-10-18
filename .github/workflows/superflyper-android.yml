@@ -19,8 +19,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Build unsigned debug candidate
-        run: gradle :app:assembleDebug --no-daemon
+      - name: Test protocol and existing modules; build debug candidate
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon
       - uses: actions/upload-artifact@v4
         if: success()
         with:

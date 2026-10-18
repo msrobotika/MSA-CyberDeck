@@ -1,4 +1,16 @@
-# MSA CyberDeck — en desarrollo
+# SUPERFLYPER — MS ROBOTIKA
+
+Continuación de MSA CyberDeck en Kotlin/Compose, conservando sus funciones y su identidad visual. Desarrollo en `feature/superflyper-usb-v0-1`, [PR #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1); sin fusionar en main.
+
+La versión candidata 0.7.0-superflyper-dev añade menú lateral con áreas desplegables, monitor USB serie, consultas de identidad y capacidades, registros JSONL y recuperación limitada del enlace. El registro de módulos distingue funciones implementadas, experimentales y pendientes. RF externo, IR, GPIO, MQTT/Modbus/PLC e IA todavía no se ejecutan: no se muestran lecturas ficticias.
+
+[Estado y continuidad](docs/SUPERFLYPER_WORK_HANDOFF.md) · [Contrato y límites USB](docs/SUPERFLYPER-USB-PROTOCOL.md). La placa real conserva WiFi Sentinel; no se ha instalado el firmware genérico candidato. PC→ESP32 y PC→OPPO se han comprobado por separado y no equivalen a una validación OTG.
+
+Capturas reales del OPPO: menú organizado y panel USB sin periférico OTG conectado. No muestran una conexión simulada.
+
+<img src="docs/screenshots/superflyper-menu.png" width="280" alt="Menú lateral con áreas desplegables"> <img src="docs/screenshots/superflyper-usb.png" width="280" alt="Monitor USB sin periférico conectado directamente al teléfono">
+
+## Base CyberDeck conservada
 
 Kit Android local para observar, comprobar y documentar auditorías autorizadas. Versión de trabajo 0.6.0-dev; pendiente de revisión del propietario y sin publicar.
 
