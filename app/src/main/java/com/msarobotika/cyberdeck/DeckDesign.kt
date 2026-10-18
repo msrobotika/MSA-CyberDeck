@@ -114,7 +114,7 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
                 if(!wide && !keyboard) NavigationBar(containerColor=MaterialTheme.colorScheme.background,tonalElevation=0.dp,windowInsets=WindowInsets(0,0,0,0)) {
                     deckRoots.forEach { root -> NavigationBarItem(selected=selected==root.route,onClick={go(root.route)},
                         modifier=Modifier.testTag("navigate-${root.route}"),icon={DeckGlyph(root.glyph,tint=if(selected==root.route) DeckCyan else MaterialTheme.colorScheme.onSurfaceVariant)},
-                        label={Text(root.title,fontSize=11.sp,lineHeight=14.sp,maxLines=2,textAlign=TextAlign.Center)},
+                        label={Text(if(root.route=="Herramientas")"Kit" else root.title,fontSize=11.sp,lineHeight=14.sp,maxLines=1,softWrap=false,overflow=TextOverflow.Ellipsis,textAlign=TextAlign.Center)},
                         colors=NavigationBarItemDefaults.colors(indicatorColor=MaterialTheme.colorScheme.primaryContainer)) }
                 }
             }

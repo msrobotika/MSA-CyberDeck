@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
     @Composable private fun Deck() {
         val store = remember { EvidenceStore(this) }
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
+        val apkSnapshot by session.apk.collectAsState()
         val phoneSnapshot by session.phone.collectAsState()
         val resourceSamples by session.samples.collectAsState()
         val phoneLive by session.phoneLive.collectAsState()
@@ -148,6 +149,13 @@ class MainActivity : ComponentActivity() {
             worker.execute {
                 val result = try { action() } catch (e: Exception) { "Error: ${e.message}" }
                 runOnUiThread { message = result; busy = false }
+            }
+        }
+        val apkPicker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->
+            if(uri!=null)run{
+                val result=ApkInspector.fromUri(this@MainActivity,uri)
+                runOnUiThread{session.apk.value=result}
+                "APK inspeccionado sin instalar ni ejecutar"
             }
         }
         var pendingPeerInvitation by rememberSaveable { mutableStateOf("") }
@@ -285,6 +293,10 @@ class MainActivity : ComponentActivity() {
                                 DeckRecent(entry){evidenceQuery=entry.name;evidenceFilter="Todas";tab="Evidencias"}
                             }
                         }
+                        "APK" -> {item{ApkInspectorPanel(apkSnapshot,busy,
+                            pick={apkPicker.launch(arrayOf("application/vnd.android.package-archive","application/octet-stream"))},
+                            self={run{val result=ApkInspector.inspectFile(this@MainActivity,java.io.File(applicationInfo.sourceDir));runOnUiThread{session.apk.value=result};"CiberDeck inspeccionada desde su APK instalado"}},
+                            save={saveDiagnostic(it)})}}
                         "Llamadas" -> {item{CallGuardPanel(save={saveDiagnostic(it)})}}
                         "Enlaces" -> {item{LinkInspectionPanel(save={saveDiagnostic(it)})}}
                         "Móvil" -> {item { PhoneAuditPanel(phoneSnapshot,busy,refresh={run{

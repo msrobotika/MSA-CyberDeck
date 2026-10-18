@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 
 data class DeckTool(val route:String,val title:String,val subtitle:String,val group:String,val glyph:String,val badge:String)
 val deckTools=listOf(
+    DeckTool("APK","Inspector APK","Firma, permisos y manifiesto sin instalar","Protección personal","files","Análisis local"),
     DeckTool("Llamadas","Llamadas","Verificación del operador y avisos locales","Protección personal","report","Activación opcional"),
     DeckTool("Enlaces","Analizar enlace","Señales de riesgo sin abrir la dirección","Protección personal","report","Sin conexión"),
     DeckTool("Móvil","Mi móvil","Seguridad, conexión, recursos y hardware","En este móvil","report","Sin periféricos"),

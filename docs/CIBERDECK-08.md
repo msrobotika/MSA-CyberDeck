@@ -49,3 +49,15 @@ USB serie Android→ESP mediante OTG sigue pendiente de cableado físico y permi
 - Cinco pantallas del ESP revisadas a partir del framebuffer real; configuración NVS intacta después del cambio de interfaz.
 
 Los resultados nativos y capturas detalladas se conservan en `.private/android-validation/` y `.private/ux-review/`, ignorados por Git. El respaldo de firmware está en `.private/backups/esp32-ciberdeck-ui-20261018/`, con metadatos, comandos y comprobación SHA-256. No incluye un compromiso de validación de radio externo, GPIO, IA, VPN o interceptación de tráfico, que siguen fuera de esta candidata.
+
+## Ampliación 0.8.1: inspector de APK y Samsung A15
+
+Se añade Inspector APK al área Protección personal, sin solicitar permisos de instalación ni inventario completo de aplicaciones. El usuario selecciona un APK con el selector Android, o inspecciona el APK de la propia CiberDeck. Límite 128 MiB, lectura por bloques, copia temporal privada eliminada al terminar, también ante errores. No se descomprime, instala, carga código ni sube el archivo.
+
+Se calcula SHA-256 sobre todos los bytes; Android interpreta paquete, nombre declarado, versión, API mínima/objetivo, certificados firmantes actuales, permisos y componentes exportados del manifiesto. Se distingue un permiso declarado de uno concedido. Las banderas depurable, solo-pruebas y texto-claro son datos del manifiesto; no equivalen a malware, riesgo confirmado o tráfico observado. No se analiza XML de seguridad de red, reputación del editor, bytecode, comportamiento en ejecución ni APK divididos/APKS/XAPK. Las huellas deben compararse con una fuente independiente de confianza.
+
+La inspección se conserva en memoria al girar el móvil, permite guardar un informe como evidencia y deja el original intacto. Permisos mostrados: máximo 500; componentes exportados: primeros 40 y recuento total. Los componentes pueden tener restricciones declaradas o controles dentro del código; exportado no implica vulnerable.
+
+Samsung SM-A155F/A15, Android 16/API 36, detectado y actualizado sobre 0.5.2 conservando sus datos. Las pruebas de enlaces, servicio de llamadas y recursos reales pasaron en 0.8.0. El OPPO dejó de estar conectado por USB al cambiar al A15: no se asume que ambos sigan conectados.
+
+Referencia: [PackageManager y metadatos de archivos APK](https://developer.android.com/reference/android/content/pm/PackageManager).
