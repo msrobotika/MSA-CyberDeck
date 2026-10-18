@@ -30,7 +30,7 @@ class UsbBridge(private val activity: Activity) {
     private val writer = Executors.newSingleThreadExecutor()
     private val permissionAction = activity.packageName + ".USB_PERMISSION"
     private val buffer = StringBuilder()
-    private val allowedCommands = setOf("HELLO", "STATUS", "CAPABILITIES")
+    private val allowedCommands = setOf("HELLO", "STATUS", "CAPABILITIES", "LEGACY_STATUS")
 
     var drivers by mutableStateOf<List<UsbSerialDriver>>(emptyList())
         private set
@@ -146,7 +146,8 @@ class UsbBridge(private val activity: Activity) {
         writer.execute {
             try {
                 val active = port ?: error("No hay ESP32 conectado")
-                active.write(("SF1 " + command + "\n").toByteArray(StandardCharsets.US_ASCII), 2000)
+                val frame = if (command == "LEGACY_STATUS") "{\"cmd\":\"status\"}\n" else "SF1 " + command + "\n"
+                active.write(frame.toByteArray(StandardCharsets.US_ASCII), 2000)
             } catch (e: Exception) {
                 main.post { status = "Error USB al enviar: " + (e.message ?: "desconocido") }
             }
