@@ -13,6 +13,7 @@ Complemento ESP32 por USB-C OTG: inicialmente protocolo de solo consulta SF1, 11
 - Permisos USB solicitados cuando el usuario elige un dispositivo.
 - Comunicación en serie con tres comandos de solo lectura: SF1 HELLO, SF1 STATUS y SF1 CAPABILITIES.
 - Tramas reales visualizadas en la app, últimas 25 líneas en memoria.
+- Botón de prueba explícita para consultar el estado de firmwares MSA-BLE-Scout y MSA-WiFi-Sentinel existentes mediante JSON {\"cmd\":\"status\" sin actualizar su firmware.
 - Conservación manual de evidencias JSONL con UTC y SHA-256, en directorio privado del teléfono.
 - Firmware demostrador genérico para ESP32 clásico con PlatformIO, sin Wi-Fi ni funciones de transmisión RF.
 
