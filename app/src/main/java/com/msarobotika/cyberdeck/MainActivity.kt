@@ -156,6 +156,8 @@ private fun UsbPanel(bridge: UsbBridge, evidence: EvidenceStore) {
         }
         OutlinedButton(onClick = { bridge.send("CAPABILITIES") },
             enabled = bridge.connected) { Text("CAPACIDADES") }
+        OutlinedButton(onClick = { bridge.send("LEGACY_STATUS") },
+            enabled = bridge.connected) { Text("DETECTAR FIRMWARE MSA ANTERIOR") }
         InfoCard("ÚLTIMA RESPUESTA REAL",
             bridge.lastPacket.ifBlank { "Aún no hay respuesta del firmware." }, Cyan)
         Button(onClick = { evidence.save(bridge.lastPacket) },
