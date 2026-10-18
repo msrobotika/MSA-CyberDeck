@@ -1,0 +1,47 @@
+# Validación de archivos y limpieza · 0.5.0-dev
+
+Trabajo local, sin publicación. OPPO CPH2743 elegido como principal y A15 conservado como segundo equipo de prueba.
+
+## Protocolo y navegador
+
+45 pruebas JVM correctas, incluidas ocho nuevas de HTTP: separación de cabeceras y cuerpo, cabeceras duplicadas, Transfer-Encoding, origen ajeno, dirección de sesión distinta, tamaño máximo, cabeceras excesivas y petición incompleta.
+
+Tres pruebas instrumentadas correctas en el OPPO:
+
+- Página real servida por BrowserReceiver, cargada en Android WebView: selecciona programáticamente un archivo generado de laboratorio y ejecuta el fetch de la página. El receptor confirma y recibe los bytes esperados.
+- Rechazo explícito sin invocar el guardado.
+- Envío aprobado con contenido esperado y respuesta que contiene SHA-256 calculado en el receptor. Antes se envía una petición con origen ajeno que no guarda datos.
+
+El cliente TCP de pruebas se corrigió para leer Content-Length y no esperar EOF después de una respuesta HTTP completa. No se cambió la validación de orígenes ni se relajó la aprobación.
+
+Estas pruebas usan extremos de navegador y receptor en el OPPO; no sustituyen una prueba manual desde el navegador del A15 al OPPO. No se ha implementado ni probado acceso remoto a todo el almacenamiento, USB MTP ni datos privados de otras apps. El modo navegador es HTTP local sin cifrar con confirmación previa; no se presenta como equivalente a TLS.
+
+## Borrado
+
+Las pruebas de almacenamiento en el A15 verifican que se elimina solo la copia privada, se conserva un original generado y las demás evidencias, el índice persiste y un borrado interrumpido antes de confirmar el índice se restaura. El flujo de interfaz comprueba cancelar y después confirmar sobre un único archivo de prueba filtrado. No se utiliza una evidencia personal para probar el borrado.
+
+Los registros completos se guardan en `.private/android-validation/`; las direcciones temporales no se publican.
+
+Resultado final: tres pruebas de borrado correctas en el A15, incluidas cancelación y confirmación en la interfaz. Tres pruebas del receptor correctas en el OPPO. Compilación y lint de la app completados, y paquete instrumentado final compilado. APK 0.5.0-dev instalada en ambos equipos; receptor del OPPO dejado en reposo, sin servidor abierto.
+
+SHA-256 de `dist/MSA-CyberDeck-debug.apk`: `4f44dc65af545a6e2def7fdb375298719c5cf5929376eb1e7e59cd186154d4f2`.
+
+## Corrección del enlace · 0.5.1-dev
+
+Se identificó que compartir desde Telegram en el receptor invalida el enlace al pasar CyberDeck a segundo plano. Se añadió QR local y aviso explícito de invalidación, manteniendo el cierre al salir.
+
+Prueba física entre los dos teléfonos: una sesión del OPPO se abrió directamente con ACTION_VIEW en Chrome del A15. La interfaz web mostró el selector y Proponer archivo al receptor. No se utilizó un túnel ADB ni CyberDeck como cliente en el A15. Esto confirma alcance de la dirección por la red entre ambos, no un envío físico completo ni el escaneo óptico del QR.
+
+46 pruebas JVM correctas, incluida una que genera y decodifica el QR y exige recuperar exactamente la dirección temporal. Compilación y lint correctos; instalada 0.5.1-dev en ambos móviles. El archivo generado para la prueba de selección se retiró del A15 sin tocar otros archivos. El envío físico de extremo a extremo desde el navegador del A15 queda pendiente.
+
+SHA-256 del APK 0.5.1-dev local: `d43737eed9859680e7a0a443a2fa978246091a80f1d2c2ad7f15eef87efdf1b1`.
+
+## Uso de archivos recibidos · 0.5.2-dev
+
+Se verificó en el índice privado del OPPO la presencia del MP3 seleccionado por el propietario: 2.974.632 bytes, con SHA-256 del archivo coincidente con el índice. No se copia su contenido al repositorio.
+
+Añadidos Abrir archivo mediante FileProvider no exportado y permiso temporal de lectura, y Guardar en el móvil mediante ACTION_CREATE_DOCUMENT. Se comprueba tamaño e integridad antes de preparar la apertura o exportación. Al recibir o importar se elimina el filtro anterior y se busca el nombre recibido.
+
+Compilación y lint correctos, APK instalada en ambos móviles. Dos pruebas nuevas correctas en el OPPO: nombre original y bytes conservados al abrir el URI de una copia generada, y rechazo de una copia alterada manteniendo su tamaño. Las pruebas eliminan solo sus propios archivos de laboratorio.
+
+Durante la comprobación física apareció el reproductor Música con su propio diálogo de permiso para fotos y vídeos; no se aceptó ese permiso mediante las herramientas. No se afirma una reproducción audible verificada ni una exportación física a Descargas completada.

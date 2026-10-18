@@ -1,22 +1,71 @@
-# MSA CyberDeck
+# MSA CyberDeck — en desarrollo
 
-Aplicación Android offline-first para profesionales de ciberseguridad: centraliza sensores ESP32, evidencias verificables e informes de auditorías autorizadas.
+Kit Android local para observar, comprobar y documentar auditorías autorizadas. Versión de trabajo 0.6.0-dev; pendiente de revisión del propietario y sin publicar.
 
-## MVP
+## Experiencia 0.6
 
-- Panel local de postura de seguridad.
-- Conectores para WiFi Sentinel, RogueWatch y ChipSafe.
-- Cadena de custodia con hashes y exportación JSON/Markdown.
-- Base preparada para USB host, BLE y una VPN local opcional.
+Cuatro destinos permanentes: Inicio, Herramientas, Evidencias e Informe. El catálogo agrupa nueve herramientas con búsqueda. La portada Robotika muestra actividad real, acciones rápidas y efectos pausables. Las tarjetas de archivos priorizan abrir, exportar y gestionar; los detalles técnicos se despliegan cuando hacen falta.
 
-La app no ataca redes ni automatiza intrusiones. Su objetivo es observación, documentación y aprendizaje en entornos autorizados.
+El informe admite un borrador privado con nombre, alcance y notas del trabajo. Comprueba las copias antes de incluir diagnósticos y marca las alteradas como no verificadas. El borrador no es un gestor de casos ni una certificación de integridad.
 
-## Compilar
+La recepción HTTP local puede continuar al cambiar de aplicación durante su sesión limitada de dos minutos. Se aprueba cada archivo desde la app; detenerla, cerrar desde recientes o agotar el plazo cierra el receptor. Las notificaciones son opcionales. Consulta [archivos y límites](docs/FILES-AND-CLEANUP.md), [revisión de producto](docs/PRODUCT-AND-UX-REVIEW.md) y [validación de la experiencia](docs/VALIDATION-UX.md).
 
-Abrir el proyecto en Android Studio y ejecutar el módulo `app`. Requiere Android SDK 35 y JDK 17.
+## Implementado en el código local
+
+- Bluetooth: búsqueda BLE manual, RSSI y descubrimiento de servicios GATT autorizados, sin leer ni escribir características.
+- NFC: identificador, tecnologías y contenido NDEF disponible; guardado de un informe, sin emulación de credenciales.
+- Sesiones: transferencia directa entre móviles por TLS local, invitación temporal, aprobación y SHA-256.
+- Mi red: descubrimiento manual de servicios DNS-SD/mDNS, resolución de anuncios y guardado como evidencia.
+- Distribución gráfica de servicios web, impresión, multimedia y estaciones de trabajo observados.
+- Portada con acciones directas y navegación fija al desplazarse.
+- Estado real de conexión de Android: transporte, interfaz, direcciones y DNS configurados, sin escaneo ni ubicación.
+- Diagnóstico DNS/IP y conexión TCP a un puerto elegido, sin envío de cargas.
+- Revisión HTTP(S) mediante HEAD: certificado TLS, cabeceras y redirección sin seguirla automáticamente.
+- Guardado de diagnósticos JSON como evidencia con SHA-256 e inclusión en el informe.
+- Archivo de evidencias con búsqueda por nombre, fecha o hash, filtros y orden de guardado.
+- Reapertura de informes guardados con verificación SHA-256 y comparación de dos observaciones NFC.
+- Borrado confirmado de copias privadas, individual o de los resultados del filtro, con tamaño ocupado.
+- Apertura de copias verificadas con un visor del móvil y exportación mediante el selector de destino; recepción visible en Evidencias al terminar.
+- Recepción temporal desde navegador sin instalar CyberDeck en el remitente: HTTP local opcional, selección de un archivo y aprobación del receptor. Consulta [uso y límites](docs/FILES-AND-CLEANUP.md).
+- Selección de archivos mediante el selector de Android.
+- Copia a almacenamiento privado y cálculo SHA-256 durante la lectura.
+- Índice persistente con identificador, nombre, tamaño y fecha de importación.
+- Verificación posterior de las copias guardadas.
+- Exportación de un informe Markdown mediante el selector de destino.
+- Conector USB-serie para WiFi Sentinel: permiso Android, identificación del firmware, estado y redes observadas.
+- Radar RSSI animado y distribución de redes por canal a partir de la última lectura USB.
+- Mascota original MSA Robotika con respiración, luces pulsantes e icono Android adaptativo.
+- Firmware ESP32 complementario con cinco pantallas horizontales de 240 × 135 y controles BOOT.
+
+La app arranca sin registros ni dispositivos simulados. Solo muestra radio tras una respuesta compatible del sensor. La pestaña Radio representa una lectura, no un flujo continuo; vuelve a leer desde USB para actualizar. El ángulo del radar es decorativo: no se estima dirección ni distancia.
+
+Mi red utiliza anuncios de servicios, no una lista completa de clientes del router. Las pruebas físicas y límites se documentan en [VALIDATION-LAN.md](docs/VALIDATION-LAN.md).
+
+## Pendiente
+
+Pruebas funcionales completas y enlace USB móvil–ESP en Android, validación física de etiquetas NDEF y más variantes BLE, importación estructurada de resultados de otras herramientas, PDF y VPN. El sensor físico se ha probado desde el PC. La imagen antigua cyberdeck-dashboard.png es una ilustración del primer prototipo.
+
+La vista previa web está en preview/index.html. La captura docs/screenshots/esp-radar-horizontal.png procede del framebuffer real del ESP. La mascota se guarda en app/src/main/res/drawable-nodpi/cyberdeck_robot.png; consulta docs/ROBOT-DESIGN.md.
+
+## Sensor físico
+
+Placa ideaspark ESP32-D0WD con CH340 y pantalla ST7789 con perfil de 135 × 240, utilizada en horizontal (240 × 135). Pines MOSI 23, SCLK 18, CS 15, DC 2, RST 4, luz 32 y BOOT 0. Firmware basado en MSA WiFi Sentinel, identidad MSA-WiFi-Sentinel-0.2.1-CyberDeck. Trabaja en recepción Wi-Fi pasiva; BLE aún no se implementa.
+
+BOOT corto: siguiente vista. Doble pulsación en Redes/Huella: siguiente red. Mantener en Radar: pausa/reanuda. Mantener en Huella abre una confirmación; otra pulsación larga guarda la referencia elegida. No guarda contraseñas. La app no modifica NVS ni flashea.
+
+La copia de seguridad de la placa y las capturas con SSID/BSSID están en .private/ y se excluyen de Git. No se publican identificadores observados.
+
+Los hashes permiten comparar las copias locales; la fecha depende del reloj del teléfono. No se afirma una cadena de custodia certificada. Al desinstalar la app se borran sus copias privadas: exporta previamente lo que necesites conservar.
+
+## Compilación y pruebas
+
+JDK 17, Gradle 8.9 y Android SDK 35. Las pruebas de lógica de 0.6 suman cincuenta casos: hash, sensor, diagnósticos, transferencia, archivo/NFC, recepción HTTP, QR y contexto del informe. El lanzador de pruebas de Gradle tiene un fallo de sockets locales en este PC; se ejecutan directamente con JUnitCore tras compilar los tests. La validación Android y sus límites se conserva en los documentos `docs/VALIDATION-*.md`; las pruebas del sensor están en [VALIDATION-SENSOR.md](docs/VALIDATION-SENSOR.md).
+
+Las modificaciones de esta iteración se mantienen locales hasta completar la validación y revisión del propietario.
 
 
-## Captura de interfaz
+## Radios y transferencia local · 0.4.0-dev
 
-![CyberDeck dashboard](docs/screenshots/cyberdeck-dashboard.png)
+Consulta [RADIOS-AND-PEER.md](docs/RADIOS-AND-PEER.md) para uso y límites, y [VALIDATION-RADIOS.md](docs/VALIDATION-RADIOS.md) para las pruebas. Esta versión permanece local.
 
+La versión local 0.5.0-dev añade recepción desde navegador y limpieza de evidencias. Consulta [validación de archivos](docs/VALIDATION-FILES.md).
