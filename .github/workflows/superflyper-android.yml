@@ -3,6 +3,8 @@ on:
   push:
     branches: [feature/superflyper-usb-v0-1]
   workflow_dispatch:
+  pull_request:
+    branches: [main]
 jobs:
   build-debug:
     runs-on: ubuntu-latest
