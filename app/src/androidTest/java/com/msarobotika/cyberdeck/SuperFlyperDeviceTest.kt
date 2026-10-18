@@ -18,18 +18,18 @@ class SuperFlyperDeviceTest {
         val file=File(ui.activity.filesDir,"validation/superflyper-menu.png").apply{parentFile?.mkdirs()}
         file.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
         ui.onNodeWithTag("drawer-tool-USB").performClick()
-        ui.onNodeWithText("SUPERFLYPER · ENLACE USB").assertIsDisplayed()
+        ui.onNodeWithText("CIBERDECK · ENLACE USB").assertIsDisplayed()
         val usb=File(ui.activity.filesDir,"validation/superflyper-usb.png")
         usb.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
     }
     @Test fun usbMonitorAndModuleStagesAreReachableWithoutMockReadings(){
         ui.onNodeWithText("TU LABORATORIO").assertIsDisplayed()
         ui.openDeck("USB")
-        ui.onNodeWithText("SUPERFLYPER · ENLACE USB").assertIsDisplayed()
+        ui.onNodeWithText("CIBERDECK · ENLACE USB").assertIsDisplayed()
         ui.onNodeWithText("Guardar registro").performScrollTo().assertIsNotEnabled()
         ui.onNodeWithText("Sin tramas recibidas. No se muestran datos de demostración.").performScrollTo().assertExists()
         ui.openDeck("Módulos")
-        ui.onNodeWithText("SUPERFLYPER · MÓDULOS").assertIsDisplayed()
+        ui.onNodeWithText("CIBERDECK · MÓDULOS").assertIsDisplayed()
         ui.onNodeWithText("Asistente IA").performScrollTo().assertExists()
         ui.onNodeWithText("Sin proveedor ni modelo configurado. No se envían evidencias a servicios de IA.").assertExists()
         ui.openDeck("NFC")

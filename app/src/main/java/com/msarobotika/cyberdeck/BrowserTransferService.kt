@@ -54,8 +54,8 @@ class BrowserTransferService:Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val stop=PendingIntent.getService(this,44,Intent(this,BrowserTransferService::class.java).setAction(STOP),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         return NotificationCompat.Builder(this,CHANNEL).setSmallIcon(R.drawable.ic_transfer_notification)
-            .setContentTitle("CyberDeck · recepción local activa")
-            .setContentText(if(pending)"Abre CyberDeck para aceptar o rechazar el archivo" else "HTTP en tu red de confianza · sesión de 2 minutos")
+            .setContentTitle("CiberDeck · recepción local activa")
+            .setContentText(if(pending)"Abre CiberDeck para aceptar o rechazar el archivo" else "HTTP en tu red de confianza · sesión de 2 minutos")
             .setContentIntent(open).setOngoing(true).setOnlyAlertOnce(true).setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .addAction(0,"Detener recepción",stop).build()
     }
@@ -72,7 +72,7 @@ class BrowserTransferService:Service() {
         }
         return START_NOT_STICKY
     }
-    override fun onTaskRemoved(rootIntent:Intent?) {receiver.stop("Recepción cerrada al cerrar CyberDeck");stopForeground(STOP_FOREGROUND_REMOVE);stopSelf()}
+    override fun onTaskRemoved(rootIntent:Intent?) {receiver.stop("Recepción cerrada al cerrar CiberDeck");stopForeground(STOP_FOREGROUND_REMOVE);stopSelf()}
     override fun onTimeout(startId:Int,fgsType:Int){receiver.stop("Recepción cerrada por el límite de Android");stopSelf()}
     override fun onDestroy() {
         destroying=true;receiver.close();instance=null;stopForeground(STOP_FOREGROUND_REMOVE)

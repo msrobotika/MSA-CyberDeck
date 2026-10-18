@@ -28,7 +28,7 @@ class BrowserServiceDeviceTest {
             ui.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
             val connection=URL(address).openConnection() as HttpURLConnection
             connection.connectTimeout=3000;connection.readTimeout=3000
-            try {assertEquals(200,connection.responseCode);assertTrue(connection.inputStream.bufferedReader().readText().contains("MSA CyberDeck"))}
+            try {assertEquals(200,connection.responseCode);assertTrue(connection.inputStream.bufferedReader().readText().contains("MSA CiberDeck"))}
             finally{connection.disconnect()}
             assertTrue(BrowserTransferService.state.value.active)
             ui.runOnUiThread{BrowserTransferService.stop(context)}

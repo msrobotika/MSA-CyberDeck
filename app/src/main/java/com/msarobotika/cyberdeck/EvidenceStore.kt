@@ -126,7 +126,7 @@ class EvidenceStore(private val context: Context) {
     }
 
     fun report(entries: List<Evidence>, context: ReportContext = ReportContext()): String = buildString {
-        append("# MSA CyberDeck — Informe local\n\nGenerado: ${Instant.now()}\n\n")
+        append("# MSA CiberDeck — Informe local\n\nGenerado: ${Instant.now()}\n\n")
         append(context.markdown())
         append("SHA-256 permite comparar la integridad de la copia importada. La fecha procede del dispositivo; no constituye un sellado de tiempo certificado.\n\n")
         entries.forEach { e ->

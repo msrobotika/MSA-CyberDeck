@@ -1,18 +1,27 @@
-# SUPERFLYPER — MS ROBOTIKA
+# CiberDeck — MS ROBOTIKA
 
-Continuación de MSA CyberDeck en Kotlin/Compose, conservando sus funciones y su identidad visual. Desarrollo en `feature/superflyper-usb-v0-1`, [PR #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1); sin fusionar en main.
+Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-La versión candidata 0.7.0-superflyper-dev añade menú lateral con áreas desplegables, monitor USB serie, consultas de identidad y capacidades, registros JSONL y recuperación limitada del enlace. El registro de módulos distingue funciones implementadas, experimentales y pendientes. RF externo, IR, GPIO, MQTT/Modbus/PLC e IA todavía no se ejecutan: no se muestran lecturas ficticias.
+## Desarrollo 0.8
 
-[Estado y continuidad](docs/SUPERFLYPER_WORK_HANDOFF.md) · [Contrato y límites USB](docs/SUPERFLYPER-USB-PROTOCOL.md). La placa real conserva WiFi Sentinel; no se ha instalado el firmware genérico candidato. PC→ESP32 y PC→OPPO se han comprobado por separado y no equivalen a una validación OTG.
+- Inicio con cuatro accesos directos y menú lateral por áreas desplegables.
+- **Mi móvil**: bloqueo, fecha del parche, depuración USB, conexión/VPN/DNS privado, RAM, almacenamiento, batería y hardware según las API públicas de Android.
+- **Gráficas reales**: RAM y batería cada dos segundos al iniciarlas; máximo 60 muestras, pausa al salir. Sin muestras ficticias ni carga artificial de CPU.
+- **Radar Wi-Fi**: canal determina el ángulo, RSSI el radio. No indica dirección física ni distancia. Usa la última lectura auténtica del ESP32; no es un flujo continuo.
+- **BLE**: barras de RSSI de anuncios recibidos, sin inventar distancia ni seguimiento de personas.
+- **Inspector de enlaces**: inspección sintáctica sin conexión; HTTP, destino tras @, Unicode/punycode, IP, puerto y lista limitada de acortadores. Sin visitar la URL ni declarar que es segura.
+- **Guardia de llamadas**, experimental: API oficial Android de filtrado con elección expresa de la app por el usuario. Registro privado limitado a 100 eventos entrantes, lista personal de revisión, avisos por coincidencia exacta o verificación de operador fallida. No consulta reputación externa, no graba ni bloquea llamadas. Sin llamada física de validación todavía.
+- ESP32 con cinco pantallas horizontales y la misma paleta/identidad: Radar, Redes, Ficha, Avisos y USB. BOOT cambia de vista; no es táctil.
 
-Capturas reales del OPPO: menú organizado y panel USB sin periférico OTG conectado. No muestran una conexión simulada.
+[Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
 
-<img src="docs/screenshots/superflyper-menu.png" width="280" alt="Menú lateral con áreas desplegables"> <img src="docs/screenshots/superflyper-usb.png" width="280" alt="Monitor USB sin periférico conectado directamente al teléfono">
+PC→ESP y PC→OPPO funcionan por separado. Esto **no valida** la conexión directa Android→ESP mediante OTG, que sigue pendiente. El firmware real conserva el protocolo WiFi Sentinel; no se ha sustituido por el firmware genérico candidato.
+
+<img src="docs/screenshots/ciberdeck-home.png" width="280" alt="Inicio real de CiberDeck en OPPO"> <img src="docs/screenshots/ciberdeck-esp-radar.png" width="480" alt="Framebuffer real del radar del ESP32, 240 por 135">
 
 ## Base CyberDeck conservada
 
-Kit Android local para observar, comprobar y documentar auditorías autorizadas. Versión de trabajo 0.6.0-dev; pendiente de revisión del propietario y sin publicar.
+Kit Android local para observar, comprobar y documentar auditorías autorizadas. Las funciones de la base 0.6 se mantienen en la candidata 0.8.
 
 ## Experiencia 0.6
 
@@ -45,23 +54,23 @@ La recepción HTTP local puede continuar al cambiar de aplicación durante su se
 - Verificación posterior de las copias guardadas.
 - Exportación de un informe Markdown mediante el selector de destino.
 - Conector USB-serie para WiFi Sentinel: permiso Android, identificación del firmware, estado y redes observadas.
-- Radar RSSI animado y distribución de redes por canal a partir de la última lectura USB.
+- Radar RSSI por canal y distribución de redes por canal a partir de la última lectura USB.
 - Mascota original MSA Robotika con respiración, luces pulsantes e icono Android adaptativo.
 - Firmware ESP32 complementario con cinco pantallas horizontales de 240 × 135 y controles BOOT.
 
-La app arranca sin registros ni dispositivos simulados. Solo muestra radio tras una respuesta compatible del sensor. La pestaña Radio representa una lectura, no un flujo continuo; vuelve a leer desde USB para actualizar. El ángulo del radar es decorativo: no se estima dirección ni distancia.
+La app arranca sin registros ni dispositivos simulados. Solo muestra radio tras una respuesta compatible del sensor. La pestaña Radio representa una lectura, no un flujo continuo; vuelve a leer desde USB para actualizar. El ángulo representa el canal observado: no se estima dirección ni distancia.
 
 Mi red utiliza anuncios de servicios, no una lista completa de clientes del router. Las pruebas físicas y límites se documentan en [VALIDATION-LAN.md](docs/VALIDATION-LAN.md).
 
 ## Pendiente
 
-Pruebas funcionales completas y enlace USB móvil–ESP en Android, validación física de etiquetas NDEF y más variantes BLE, importación estructurada de resultados de otras herramientas, PDF y VPN. El sensor físico se ha probado desde el PC. La imagen antigua cyberdeck-dashboard.png es una ilustración del primer prototipo.
+Ampliar cobertura a otros móviles y validar el enlace USB móvil–ESP mediante OTG, validación física de etiquetas NDEF y más variantes BLE, importación estructurada de resultados de otras herramientas, PDF y VPN. El sensor físico se ha probado desde el PC. La imagen antigua cyberdeck-dashboard.png es una ilustración del primer prototipo.
 
 La vista previa web está en preview/index.html. La captura docs/screenshots/esp-radar-horizontal.png procede del framebuffer real del ESP. La mascota se guarda en app/src/main/res/drawable-nodpi/cyberdeck_robot.png; consulta docs/ROBOT-DESIGN.md.
 
 ## Sensor físico
 
-Placa ideaspark ESP32-D0WD con CH340 y pantalla ST7789 con perfil de 135 × 240, utilizada en horizontal (240 × 135). Pines MOSI 23, SCLK 18, CS 15, DC 2, RST 4, luz 32 y BOOT 0. Firmware basado en MSA WiFi Sentinel, identidad MSA-WiFi-Sentinel-0.2.1-CyberDeck. Trabaja en recepción Wi-Fi pasiva; BLE aún no se implementa.
+Placa ideaspark ESP32-D0WD con CH340 y pantalla ST7789 con perfil de 135 × 240, utilizada en horizontal (240 × 135). Pines MOSI 23, SCLK 18, CS 15, DC 2, RST 4, luz 32 y BOOT 0. Firmware basado en MSA WiFi Sentinel, identidad MSA-WiFi-Sentinel-0.3.0-CiberDeck. Trabaja en recepción Wi-Fi pasiva; BLE aún no se implementa.
 
 BOOT corto: siguiente vista. Doble pulsación en Redes/Huella: siguiente red. Mantener en Radar: pausa/reanuda. Mantener en Huella abre una confirmación; otra pulsación larga guarda la referencia elegida. No guarda contraseñas. La app no modifica NVS ni flashea.
 

@@ -25,16 +25,19 @@ import androidx.compose.ui.unit.dp
 
 data class DeckTool(val route:String,val title:String,val subtitle:String,val group:String,val glyph:String,val badge:String)
 val deckTools=listOf(
+    DeckTool("Llamadas","Llamadas","Verificación del operador y avisos locales","Protección personal","report","Activación opcional"),
+    DeckTool("Enlaces","Analizar enlace","Señales de riesgo sin abrir la dirección","Protección personal","report","Sin conexión"),
+    DeckTool("Móvil","Mi móvil","Seguridad, conexión, recursos y hardware","En este móvil","report","Sin periféricos"),
     DeckTool("Mi red","Mi red","Servicios anunciados en tu red local","Conectividad","radio","15 s"),
     DeckTool("Red","DNS y puertos","Resolver un destino y comprobar un puerto TCP","Conectividad","tools","Un destino"),
     DeckTool("Web","Inspección web","Certificado TLS, cabeceras y redirección","Conectividad","report","HEAD"),
     DeckTool("Bluetooth","Bluetooth LE","Anuncios, señal y servicios GATT autorizados","Radio y proximidad","radio","10 s"),
     DeckTool("NFC","NFC","Inspeccionar etiquetas y comparar informes","Radio y proximidad","files","30 s"),
-    DeckTool("USB","USB · SuperFlyper","Identidad, capacidades y monitor serie del ESP32","Hardware y módulos","tools","OTG experimental"),
-    DeckTool("Módulos","Módulos SuperFlyper","Funciones disponibles y hardware necesario","Hardware y módulos","tools","Estado real"),
+    DeckTool("USB","ESP32 por USB","Identidad, consola y redes del sensor","Hardware y módulos","tools","OTG experimental"),
+    DeckTool("Módulos","En desarrollo","Funciones futuras y hardware necesario","Hardware y módulos","tools","Hoja de ruta"),
     DeckTool("Radio","Radar Wi-Fi","Visualizar la última lectura del sensor","Hardware y módulos","radio","Requiere lectura"),
     DeckTool("Recibir","Recibir archivos","Desde el navegador del otro móvil","Archivos y colaboración","transfer","HTTP local"),
-    DeckTool("Sesiones","Sesión cifrada","Transferir entre dos CyberDeck con aprobación","Archivos y colaboración","transfer","TLS local"))
+    DeckTool("Sesiones","Sesión cifrada","Transferir entre dos CiberDeck con aprobación","Archivos y colaboración","transfer","TLS local"))
 
 @Composable fun RobotCommandHero() {
     var motion by rememberSaveable { mutableStateOf(true) }

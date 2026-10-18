@@ -25,16 +25,17 @@ import kotlinx.coroutines.launch
                 Row(Modifier.fillMaxWidth()) {
                     Column(Modifier.weight(1f).padding(vertical=12.dp)) {
                         Text("MS ROBOTIKA",style=MaterialTheme.typography.labelSmall,color=DeckCyan)
-                        Text("SuperFlyper",style=MaterialTheme.typography.headlineSmall)
+                        Text("CiberDeck",style=MaterialTheme.typography.headlineSmall)
                         Text("MENÚ DE TRABAJO",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     IconButton(onClick={close()},modifier=Modifier.semantics{contentDescription="Cerrar menú"}){DeckGlyph("back")}
                 }
-                deckRoots.forEach { root -> NavigationDrawerItem(label={Text(root.title)},selected=route==root.route,
+                deckRoots.take(2).forEach { root -> NavigationDrawerItem(label={Text(root.title)},selected=route==root.route,
                     onClick={select(root.route)},icon={DeckGlyph(root.glyph)},modifier=Modifier.testTag("drawer-root-${root.route}")) }
+                NavigationDrawerItem(label={Text("Mi móvil")},selected=route=="Móvil",onClick={select("Móvil")},icon={DeckGlyph("report")})
                 HorizontalDivider(Modifier.padding(vertical=12.dp))
                 Text("HERRAMIENTAS POR ÁREA",style=MaterialTheme.typography.labelSmall,color=DeckCyan)
-                deckTools.groupBy{it.group}.forEach { (group,tools) ->
+                deckTools.filter{it.route !in listOf("Módulos","Móvil")}.groupBy{it.group}.forEach { (group,tools) ->
                     TextButton(onClick={expanded=if(expanded==group)"" else group},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("drawer-group-$group").semantics{stateDescription=if(expanded==group)"Desplegado" else "Plegado"}) {
                         Text(group,Modifier.weight(1f),color=MaterialTheme.colorScheme.onSurface)
                         Text(if(expanded==group)"−" else "+",color=DeckCyan)
@@ -44,7 +45,8 @@ import kotlinx.coroutines.launch
                         selected=route==tool.route,onClick={select(tool.route)},icon={DeckGlyph(tool.glyph)},modifier=Modifier.testTag("drawer-tool-${tool.route}"))}
                 }
                 Spacer(Modifier.height(12.dp))
-                Text("Local · dispositivos autorizados\nConsulta Módulos para ver qué está disponible.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick={select("Módulos")}){Text("Funciones en desarrollo")}
+                Text("Local · dispositivos autorizados",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }){content {scope.launch{drawer.open()}}}

@@ -14,61 +14,73 @@
 #include "esp_timer.h"
 #include "ui_fonts.h"
 #include "sentinel.h"
-#define BG 0x050A12
-#define CARD 0x0C1A2A
-#define EDGE 0x173750
-#define WHITE 0xE8F8FF
-#define DIM 0x7895A8
-#define CYAN 0x22E2FF
-#define GREEN 0x2BFF9B
-#define MAGENTA 0xFF42D0
+#define BG 0x090F1A
+#define CARD 0x111D2E
+#define EDGE 0x20394D
+#define WHITE 0xE9F0FC
+#define DIM 0xB4C2D8
+#define CYAN 0x71E5F4
+#define GREEN 0x8EE7BD
+#define MAGENTA 0xB6AAFF
 #define AMBER 0xFFB02E
 #define RED 0xFF315B
 static esp_lcd_panel_handle_t panel;static SemaphoreHandle_t flushed,capture_done;static uint16_t *pixels;static int width=170,height=320;static volatile int page,requested_profile,applied_profile=-1;static volatile bool requested_invert=true,applied_invert=true,capture_requested;static volatile unsigned frames,button_presses,button_holds;static volatile uint32_t manual_until;static uint32_t last_rotation;static int64_t frame_ms;static sentinel_snapshot_t view;
-static const char *titles[]={"RADAR / CANALES","REDES","HUELLA","ALERTAS","EVIDENCIAS","FIJAR REFERENCIA"};
+static const char *titles[]={"RADAR WI-FI","REDES","FICHA DE RED","OBSERVACIONES","ENLACE / DATOS","FIJAR REFERENCIA"};
 static uint32_t millis(void){return (uint32_t)(esp_timer_get_time()/1000);}static bool manual(uint32_t now){return manual_until&&(int32_t)(manual_until-now)>0;}static uint16_t rgb565(uint32_t c){return __builtin_bswap16(((c>>8)&0xf800)|((c>>5)&0x7e0)|((c>>3)&31));}
 static void pixel(int x,int y,uint32_t c){if(x>=0&&x<width&&y>=0&&y<height)pixels[y*width+x]=rgb565(c);}static void rect(int x,int y,int w,int h,uint32_t c){int l=x<0?0:x,r=x+w>width?width:x+w,t=y<0?0:y,b=y+h>height?height:y+h;uint16_t color=rgb565(c);for(int yy=t;yy<b;yy++)for(int xx=l;xx<r;xx++)pixels[yy*width+xx]=color;}
 static void line(int x0,int y0,int x1,int y1,uint32_t c){int dx=abs(x1-x0),sx=x0<x1?1:-1,dy=-abs(y1-y0),sy=y0<y1?1:-1,e=dx+dy;for(;;){pixel(x0,y0,c);if(x0==x1&&y0==y1)break;int q=2*e;if(q>=dy){e+=dy;x0+=sx;}if(q<=dx){e+=dx;y0+=sy;}}}static void outline(int x,int y,int w,int h,uint32_t c){line(x,y,x+w-1,y,c);line(x,y+h-1,x+w-1,y+h-1,c);line(x,y,x,y+h-1,c);line(x+w-1,y,x+w-1,y+h-1,c);}
 static void alpha(int x,int y,uint32_t c,uint8_t a){if(!a||x<0||x>=width||y<0||y>=height)return;uint16_t old=__builtin_bswap16(pixels[y*width+x]);int r=((old>>11)&31)*255/31,g=((old>>5)&63)*255/63,b=(old&31)*255/31;r=(r*(255-a)+((c>>16)&255)*a)/255;g=(g*(255-a)+((c>>8)&255)*a)/255;b=(b*(255-a)+(c&255)*a)/255;pixel(x,y,(r<<16)|(g<<8)|b);}
 static int tw(const char *s,const ui_font_t *f){int n=0;for(;*s;s++){unsigned c=(unsigned char)*s;if(c<32||c>126)c='?';n+=f->glyph[c-32].width;}return n;}static void text(int x,int y,const char *s,const ui_font_t *f,uint32_t color){for(;*s;s++){unsigned c=(unsigned char)*s;if(c<32||c>126)c='?';const glyph_t *g=&f->glyph[c-32];for(int yy=0;yy<f->height;yy++)for(int xx=0;xx<g->width;xx++)alpha(x+xx,y+yy,color,f->data[g->offset+yy*g->width+xx]);x+=g->width;if(x>=width)break;}}static void centered(int y,const char*s,const ui_font_t*f,uint32_t c){text((width-tw(s,f))/2,y,s,f,c);}static void clipped(int x,int y,int available,const char*s,const ui_font_t*f,uint32_t c){char small[48];strlcpy(small,s,sizeof(small));if(tw(small,f)>available){size_t n=strlen(small);while(n&&tw(small,f)+tw("..",f)>available)small[--n]=0;strlcat(small,"..",sizeof(small));}text(x,y,small,f,c);}
+static void robot(int x,int y){
+ line(x+2,y+3,x+8,y,WHITE);line(x+8,y,x+14,y+3,WHITE);
+ line(x+2,y+3,x+3,y+12,DIM);line(x+14,y+3,x+13,y+12,DIM);
+ line(x+3,y+12,x+8,y+16,DIM);line(x+8,y+16,x+13,y+12,DIM);
+ line(x+4,y+3,x+8,y+6,MAGENTA);line(x+12,y+3,x+8,y+6,MAGENTA);
+ uint32_t eye=frame_ms/900%2?CYAN:GREEN;
+ rect(x+4,y+6,3,2,eye);rect(x+10,y+6,3,2,eye);
+ line(x+6,y+12,x+10,y+12,CYAN);
+}
 static void header(void){
- text(8,2,"MSA_CYBERDECK",&font11,DIM);
- text(8,16,titles[page],&font19,WHITE);
- text(width-90,3,view.running?"PASIVO ACTIVO":"EN PAUSA",&font11,view.running?GREEN:AMBER);
+ robot(8,3);text(31,3,"CIBERDECK",&font13,WHITE);
+ text(8,22,titles[page],&font13,CYAN);
+ text(width-61,3,view.running?"PASIVO":"PAUSA",&font11,view.running?GREEN:AMBER);
+ if(page<PAGE_COUNT)text(width-61,23,"BOOT >",&font11,DIM);
  line(8,39,width-9,39,EDGE);
- rect(8,39,10+(frame_ms/35)%(width-26),1,CYAN);
  if(view.last_deauth&&view.uptime-view.last_deauth<8&&frame_ms/250%2==0)outline(1,1,width-2,height-2,RED);
 }
 static void footer(void){
  int y=height-23;line(8,y,width-9,y,EDGE);
- const char *hint=page==0?"1x: vista  |  2s: pausa":page==1?"1x: vista  2x: red  2s: huella":page==2?"1x: vista  2x: red  2s: referencia":page==3?"1x: vista  2s: olvidar ref.":page==4?"1x: vista  |  USB: CyberDeck":"1x: cancelar  |  2s: confirmar";
- text(8,height-17,hint,&font11,DIM);
- if(page<PAGE_COUNT)for(int i=0;i<PAGE_COUNT;i++)rect(width-36+i*6,height-5,4,2,i==page?CYAN:EDGE);
+ const char *labels[]={"RADAR","REDES","FICHA","AVISOS","USB"};
+ if(page<PAGE_COUNT){int step=(width-16)/PAGE_COUNT;for(int i=0;i<PAGE_COUNT;i++){
+  int x=8+i*step;if(i==page)rect(x,y+3,step-2,19,EDGE);
+  text(x+(step-2-tw(labels[i],&font11))/2,y+5,labels[i],&font11,i==page?CYAN:DIM);
+ }}else text(8,y+5,"1x: cancelar | 2s: confirmar",&font11,AMBER);
 }
 static unsigned channel_aps(unsigned c){unsigned n=0;for(unsigned i=0;i<view.count;i++)if(view.aps[i].channel==c)n++;return n;}
 static void spectrum(void){
- const int compact=height<150; const int cx=compact?46:64,cy=compact?79:91,rad=compact?29:42; const int sx=compact?88:126,base=compact?96:116,step=compact?10:13;
+ const int compact=height<150; const int cx=compact?46:64,cy=compact?79:91,rad=compact?29:42; const int sx=compact?88:126,base=compact?94:116,step=compact?10:13;
  for(int ring=1;ring<=3;ring++)for(int step=0;step<48;step++){
   float a=step*6.283185f/48,b=(step+1)*6.283185f/48;int r=rad*ring/3;
   line(cx+(int)(cosf(a)*r),cy+(int)(sinf(a)*r),cx+(int)(cosf(b)*r),cy+(int)(sinf(b)*r),EDGE);
  }
  line(cx-rad,cy,cx+rad,cy,EDGE);line(cx,cy-rad,cx,cy+rad,EDGE);
- float sweep=(frame_ms%4000)*6.283185f/4000;
+ float sweep=-1.570796f+(view.channel-1)*6.283185f/13;
  line(cx,cy,cx+(int)(cosf(sweep)*rad),cy+(int)(sinf(sweep)*rad),CYAN);
  for(unsigned i=0;i<view.count;i++){
-  float r=(-view.aps[i].rssi-30)/70.0f;if(r<0.12f)r=0.12f;if(r>1)r=1;
-  float a=i*2.399963f;int x=cx+(int)(cosf(a)*r*rad),y=cy+(int)(sinf(a)*r*rad);
+  if(view.aps[i].channel<1||view.aps[i].channel>13)continue;
+  float r=(-view.aps[i].rssi-30)/70.0f;if(r<0)r=0;if(r>1)r=1;
+  float a=-1.570796f+(view.aps[i].channel-1)*6.283185f/13;int x=cx+(int)(cosf(a)*r*rad),y=cy+(int)(sinf(a)*r*rad);
   rect(x-1,y-1,3,3,GREEN);
  }
  char value[48];snprintf(value,sizeof(value),"%u REDES | CH %u",view.count,view.channel);text(sx,48,value,&font13,WHITE);
- text(sx,66,compact?"RSSI RELATIVO":"RSSI / SIN DIRECCION",&font11,DIM);
+ text(sx,66,compact?"CANAL / RSSI":"CANAL / RSSI, NO DIRECCION",&font11,DIM);
  unsigned max=1;for(unsigned c=1;c<=13;c++){unsigned n=channel_aps(c);if(n>max)max=n;}
  for(unsigned c=1;c<=13;c++){int x=sx+(c-1)*step;unsigned n=channel_aps(c);int h=n*(compact?15:30)/max;
-  rect(x,base-h,compact?7:9,h,c==view.channel?CYAN:GREEN);char label[4];snprintf(label,sizeof(label),"%u",c);text(x,base+4,label,&font11,DIM);
+  rect(x,base-h,compact?7:9,h,c==view.channel?CYAN:GREEN);if(!compact||c%2==1){char label[4];snprintf(label,sizeof(label),"%u",c);text(x,base+4,label,&font11,DIM);}
  }
 }
 static void networks(void){
- if(!view.count){centered(66,"ESCUCHANDO REDES",&font19,CYAN);centered(102,"Sin transmitir paquetes",&font11,DIM);return;}
+ if(!view.count){centered(66,"ESCUCHANDO REDES",&font19,CYAN);centered(94,"Sin transmitir paquetes",&font11,DIM);return;}
  unsigned rows=height<150?2:3,start=view.selected/rows*rows;
  for(unsigned row=0;row<rows&&start+row<view.count;row++){
   unsigned id=start+row;ap_t*a=&view.aps[id];int y=46+row*31;
@@ -86,7 +98,7 @@ static void fingerprint(void){
  text(9,64,address,&font11,CYAN);
  snprintf(value,sizeof(value),"CH %u | %d dBm | %s",a->channel,a->rssi,sentinel_security(a->security));
  text(9,82,value,&font11,DIM);
- text(9,99,view.baseline_set&&!strcmp(a->ssid,view.baseline_ssid)?"SSID VIGILADO":"2s: fijar referencia propia",&font11,GREEN);
+ text(9,96,view.baseline_set&&!strcmp(a->ssid,view.baseline_ssid)?"SSID VIGILADO":"2s: fijar referencia propia",&font11,GREEN);
 }
 static void alerts(void){
  char value[48];snprintf(value,sizeof(value),"%lu",(unsigned long)view.security_mismatches);
@@ -94,19 +106,19 @@ static void alerts(void){
  text(70,71,view.security_mismatches?"REVISAR":"SIN AVISOS",&font13,view.security_mismatches?RED:GREEN);
  snprintf(value,sizeof(value),"%lu deauth | %lu disassoc",(unsigned long)view.deauth,(unsigned long)view.disassoc);
  text(10,89,value,&font11,view.deauth?AMBER:DIM);
- text(10,102,"Un aviso no demuestra un ataque",&font11,DIM);
+ if(height>=150)text(10,112,"Indicios, no prueba de intrusion",&font11,DIM);
 }
 static void evidence(void){
  char value[48];snprintf(value,sizeof(value),"%lu tramas | %u redes",(unsigned long)view.frames,view.count);text(10,45,value,&font13,WHITE);
  snprintf(value,sizeof(value),"%lu beacons | %lu descartes",(unsigned long)view.beacons,(unsigned long)view.dropped);text(10,64,value,&font11,DIM);
- text(10,82,"USB 115200 | CH340 | APP ANDROID",&font11,CYAN);
- text(10,99,"Sin claves / sin inyeccion / datos en RAM",&font11,GREEN);
+ text(10,82,"CIBERDECK | USB 115200",&font11,CYAN);
+ text(10,96,"1x: vista | 2s en radar: pausa",&font11,GREEN);
 }
 static void confirm(void){
  centered(46,"FIJAR REFERENCIA PROPIA",&font13,AMBER);
  if(view.count)clipped(12,66,width-24,view.aps[view.selected].ssid,&font13,WHITE);
  centered(85,"Guarda SSID, BSSID, canal y seguridad.",&font11,DIM);
- centered(100,"No guarda contrasenas.",&font11,DIM);
+ centered(96,"No guarda contrasenas.",&font11,DIM);
 }
 static void apply_geometry(void){if(applied_profile==requested_profile&&applied_invert==requested_invert)return;applied_profile=requested_profile;applied_invert=requested_invert;width=applied_profile?240:320;height=applied_profile?135:170;esp_lcd_panel_swap_xy(panel,true);esp_lcd_panel_mirror(panel,true,false);esp_lcd_panel_set_gap(panel,applied_profile?40:0,applied_profile?53:35);esp_lcd_panel_invert_color(panel,applied_invert);}static bool done(esp_lcd_panel_io_handle_t io,esp_lcd_panel_io_event_data_t*e,void*c){BaseType_t wake=pdFALSE;xSemaphoreGiveFromISR(flushed,&wake);return wake==pdTRUE;}
 static void short_press(void){page=page==5?2:(page+1)%PAGE_COUNT;manual_until=millis()+60000;}static void double_press(void){if(page==0)sentinel_clear();else if(page==1||page==2)sentinel_next();manual_until=millis()+60000;}static void hold_press(void){manual_until=millis()+60000;if(page==0)sentinel_set_running(!view.running);else if(page==1)page=2;else if(page==2&&view.count)page=5;else if(page==3)sentinel_forget_baseline();else if(page==5){sentinel_baseline_selected();page=3;}}

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
             Button(onClick = stop) { Text("Detener Bluetooth") }
         } else Button(enabled = permissionGranted, onClick = start) { Text("Buscar anuncios BLE · 10 s") }
         Text("${snapshot.devices.size} direcciones BLE observadas")
+        BleSignalChart(snapshot)
         if (snapshot.devices.isNotEmpty()) Button(enabled = !saveBusy && !snapshot.running && !snapshot.gattBusy,
             onClick = { save(snapshot.evidence()) }) { Text("Guardar observaciones BLE") }
         snapshot.devices.forEach { row ->

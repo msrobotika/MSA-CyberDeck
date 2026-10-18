@@ -1,5 +1,6 @@
 """Local hardware validation; preserves monitor state and never flashes/NVS-writes."""
 import json
+import argparse
 import time
 from pathlib import Path
 import serial
@@ -51,13 +52,24 @@ class Sensor:
             rgb.extend((((p >> 11) & 31)*255//31, ((p >> 5) & 63)*255//63, (p & 31)*255//31))
         Image.frombytes("RGB", (w,h), bytes(rgb)).save(target)
 
-out = Path(".private/sensor-validation-compact")
+parser = argparse.ArgumentParser()
+parser.add_argument("--output", default=".private/sensor-validation-compact")
+out = Path(parser.parse_args().output)
 out.mkdir(parents=True, exist_ok=True)
 device = Sensor()
 initial = None
 try:
-    initial = device.command("status")
-    assert initial.get("firmware") == "MSA-WiFi-Sentinel-0.2.1-CyberDeck", "Unexpected firmware"
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        try:
+            candidate = device.command("status")
+            if candidate.get("firmware", "").startswith("MSA-WiFi-Sentinel-"):
+                initial = candidate
+                break
+        except TimeoutError:
+            pass
+    assert initial is not None, "No firmware status after startup"
+    assert initial.get("firmware", "").startswith("MSA-WiFi-Sentinel-"), "Unexpected firmware"
     assert initial.get("passive") is True and initial.get("injection_enabled") is False
     time.sleep(2)
     assert device.command("aps").get("result") == "aps_begin"

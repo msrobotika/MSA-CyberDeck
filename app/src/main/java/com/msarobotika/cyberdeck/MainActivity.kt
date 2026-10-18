@@ -36,6 +36,7 @@ class MainActivity : ComponentActivity() {
     private var detached: () -> Unit = {}
     private var stopDiscovery: () -> Unit = {}
     private var refreshUsb: () -> Unit = {}
+    private var callsRequested by mutableStateOf(false)
     private var receiverRequested by mutableStateOf(false)
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -48,6 +49,7 @@ class MainActivity : ComponentActivity() {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        callsRequested=intent?.getBooleanExtra("open_calls",false)==true
         receiverRequested=intent?.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false)==true
         ContextCompat.registerReceiver(this, receiver, IntentFilter(permissionAction).apply {
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
@@ -58,6 +60,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {super.onResume();refreshUsb()}
     override fun onNewIntent(intent:Intent) {
         super.onNewIntent(intent);setIntent(intent)
+        if(intent.getBooleanExtra("open_calls",false))callsRequested=true
         if(intent.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false))receiverRequested=true
     }
     override fun onDestroy() { unregisterReceiver(receiver); worker.shutdown(); super.onDestroy() }
@@ -65,6 +68,9 @@ class MainActivity : ComponentActivity() {
     @Composable private fun Deck() {
         val store = remember { EvidenceStore(this) }
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
+        val phoneSnapshot by session.phone.collectAsState()
+        val resourceSamples by session.samples.collectAsState()
+        val phoneLive by session.phoneLive.collectAsState()
         val bridge=remember{UsbBridge(this@MainActivity)}
         DisposableEffect(bridge){onDispose{bridge.release()}}
         SideEffect{refreshUsb={bridge.refresh()}}
@@ -72,12 +78,14 @@ class MainActivity : ComponentActivity() {
         var reportContext by rememberSaveable(stateSaver=androidx.compose.runtime.saveable.listSaver(
             save={listOf(it.name,it.scope,it.notes)},restore={ReportContext(it[0],it[1],it[2])})) { mutableStateOf(draftStore.read()) }
         var reportSelection by rememberSaveable { mutableStateOf(arrayListOf<String>()) }
+        var usbMode by rememberSaveable { mutableStateOf("Consola") }
         var toolQuery by rememberSaveable { mutableStateOf("") }
         var manageEvidence by rememberSaveable { mutableStateOf(false) }
         var entries by remember { mutableStateOf(emptyList<Evidence>()) }
         var tab by rememberSaveable { mutableStateOf("Resumen") }
         var rootNavigationEvent by remember {mutableIntStateOf(0)}
         val screenStates=androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+        LaunchedEffect(callsRequested){if(callsRequested){tab="Llamadas";callsRequested=false}}
         LaunchedEffect(receiverRequested){if(receiverRequested){tab="Recibir";receiverRequested=false}}
         var connection by remember { mutableStateOf<DiagnosticResult?>(null) }
         var message by remember { mutableStateOf("Datos locales · sin sensores enlazados") }
@@ -122,10 +130,10 @@ class MainActivity : ComponentActivity() {
             }
         }
         DisposableEffect(ble, nfc, peer) { onDispose { ble.stop(); nfc.close(); peer.close() } }
-        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop();bridge.disconnect() } }
+        SideEffect { stopDiscovery = { inventory.stop(); ble.stop(); nfc.stop(); peer.stop();bridge.disconnect();session.phoneLive.value=false } }
         var notificationsGranted by remember {mutableStateOf(Build.VERSION.SDK_INT<33 || ContextCompat.checkSelfPermission(this,android.Manifest.permission.POST_NOTIFICATIONS)==android.content.pm.PackageManager.PERMISSION_GRANTED)}
         val requestNotifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){notificationsGranted=it}
-        LaunchedEffect(tab) { if (tab != "NFC") nfc.stop() }
+        LaunchedEffect(tab) { if (tab != "NFC") nfc.stop();if(tab!="Móvil")session.phoneLive.value=false }
         DisposableEffect(peerState.active, nfcSnapshot.armed, browserState.active) {
             if (peerState.active || nfcSnapshot.armed || browserState.active) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -251,10 +259,13 @@ class MainActivity : ComponentActivity() {
                 LazyColumn(Modifier.fillMaxSize().testTag("deck-list"),state=contentScroll,contentPadding=PaddingValues(horizontal=18.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
                     when(tab) {
                         "Resumen" -> {
-                            item { RobotCommandHero() }
-                            item { DeckStats(entries,sensor!=null) }
-                            item { DeckSection("En campo",action="Ver herramientas",click={tab="Herramientas"}) }
-                            item { DeckQuickActions { tab=it } }
+                            item { CiberDeckCommand(phoneSnapshot,busy,analyze={run{
+                                val result=PhoneAudit.read(this@MainActivity)
+                                runOnUiThread{session.phone.value=result;tab="Móvil"}
+                                "Chequeo local terminado"
+                            }}) }
+                            item { DeckSection("Qué quieres hacer",action="Ver herramientas",click={tab="Herramientas"}) }
+                            item { CiberDeckActions { tab=it } }
                             item {
                                 Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                                     Text("Tu conexión",style=MaterialTheme.typography.titleMedium)
@@ -268,12 +279,21 @@ class MainActivity : ComponentActivity() {
                                     connection?.let { DeckDisclosure("Detalles de la conexión",it.details.joinToString("\n"){field->"${field.first}: ${field.second}"}) }
                                 } }
                             }
-                            item { DeckSection("Actividad reciente",subtitle="Copias guardadas en este móvil",action="Ver archivo",click={tab="Evidencias"}) }
-                            if(entries.isEmpty())item{Info("Tu archivo empieza aquí","Guarda un diagnóstico o recibe un archivo. Después podrás revisarlo, exportarlo y comprobar su integridad.")}
+                            item { DeckSection("Actividad reciente",subtitle="${entries.size} copias · ${displayBytes(entries.sumOf{it.bytes})}",action="Ver archivo",click={tab="Evidencias"}) }
+                            if(entries.isEmpty())item{Text("Los resultados que guardes aparecerán aquí.",style=MaterialTheme.typography.bodySmall)}
                             items(entries.takeLast(3).asReversed(),key={"recent-${it.id}"}) { entry ->
                                 DeckRecent(entry){evidenceQuery=entry.name;evidenceFilter="Todas";tab="Evidencias"}
                             }
                         }
+                        "Llamadas" -> {item{CallGuardPanel(save={saveDiagnostic(it)})}}
+                        "Enlaces" -> {item{LinkInspectionPanel(save={saveDiagnostic(it)})}}
+                        "Móvil" -> {item { PhoneAuditPanel(phoneSnapshot,busy,refresh={run{
+                            val result=PhoneAudit.read(this@MainActivity)
+                            runOnUiThread{session.phone.value=result}
+                            "Chequeo local terminado"
+                        }},save={saveDiagnostic(it)},settings={action->
+                            runCatching{startActivity(Intent(action))}.onFailure{message="Este ajuste no está disponible en este Android"}
+                        },samples=resourceSamples,live=phoneLive,setLive={session.phoneLive.value=it},add={sample->session.samples.value=(session.samples.value+sample).takeLast(60)}) }}
                         "Herramientas" -> {
                             item { DeckToolSearch(toolQuery){toolQuery=it} }
                             val matching=deckTools.filter{toolQuery.isBlank() || "${it.title} ${it.subtitle} ${it.group}".contains(toolQuery.trim(),ignoreCase=true)}
@@ -300,7 +320,7 @@ class MainActivity : ComponentActivity() {
                         "Sesiones" -> {
                             item { PeerPanel(peerState, receive = { BrowserTransferService.stop(this@MainActivity); peer.receive() }, stop = { peer.stop() }, decide = { peer.decide(it) },
                                 copy = { invitation ->
-                                    val clip = android.content.ClipData.newPlainText("Invitación temporal CyberDeck", invitation)
+                                    val clip = android.content.ClipData.newPlainText("Invitación temporal CiberDeck", invitation)
                                     if (Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply {
                                         putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
                                     }
@@ -313,7 +333,7 @@ class MainActivity : ComponentActivity() {
                                 }, sendReport = { invitation ->
                                     run {
                                         val bytes = store.report(entries,reportContext).toByteArray(Charsets.UTF_8)
-                                        runOnUiThread { runCatching { peer.send(invitation, "informe-CyberDeck.md", bytes) }.onFailure { message = "Envío: ${it.message}" } }
+                                        runOnUiThread { runCatching { peer.send(invitation, "informe-CiberDeck.md", bytes) }.onFailure { message = "Envío: ${it.message}" } }
                                         "Informe preparado para la sesión local"
                                     }
                                 }) }
@@ -321,7 +341,7 @@ class MainActivity : ComponentActivity() {
                         "Recibir" -> {
                             item { BrowserReceiverPanel(browserState, start = { peer.stop();runCatching{BrowserTransferService.start(this@MainActivity)}.onFailure{message="No se pudo iniciar la recepción: ${it.message}"} },
                                 stop = { BrowserTransferService.stop(this@MainActivity) }, decide = { BrowserTransferService.decide(it) }, copy = { address ->
-                                    val clip = android.content.ClipData.newPlainText("Recepción temporal CyberDeck", address)
+                                    val clip = android.content.ClipData.newPlainText("Recepción temporal CiberDeck", address)
                                     if (Build.VERSION.SDK_INT >= 33) clip.description.extras = android.os.PersistableBundle().apply {
                                         putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
                                     }
@@ -366,6 +386,11 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         "USB" -> {
+                            item { Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+                                FilterChip(selected=usbMode=="Consola",onClick={usbMode="Consola"},label={Text("Consola USB")})
+                                FilterChip(selected=usbMode=="Wi-Fi",onClick={bridge.disconnect();usbMode="Wi-Fi"},label={Text("Redes del ESP32")})
+                            } }
+                            if(usbMode=="Consola") {
                             item { UsbBridgePanel(bridge,hostBusy=busy || permissionPending,save={
                                 val bytes=bridge.export()
                                 run{
@@ -374,7 +399,7 @@ class MainActivity : ComponentActivity() {
                                     "Registro USB guardado con SHA-256"
                                 }
                             }) }
-                            item { HorizontalDivider();Text("LECTURA COMPLETA DE WIFI SENTINEL",color=DeckCyan);Text("Detén el enlace serie anterior antes de abrir el lector de redes.",style=MaterialTheme.typography.bodySmall) }
+                            } else {
                             item { Button(enabled = !busy, onClick = {
                                 devices = SentinelUsb.supported(usb)
                                 sensor = null
@@ -399,6 +424,7 @@ class MainActivity : ComponentActivity() {
                                 items(snapshot.networks, key = { it.id }) { ap ->
                                     Info(ap.ssid.ifEmpty { "SSID oculto" }, "${ap.bssid}\nCanal ${ap.channel} · ${ap.rssi} dBm · ${ap.security}")
                                 }
+                            }
                             }
                         }
                         "Radio" -> {
@@ -457,7 +483,7 @@ class MainActivity : ComponentActivity() {
                                 run {
                                     draftStore.save(snapshot)
                                     val generated=store.report(selectedEntries,snapshot)
-                                    runOnUiThread{report=generated;exporter.launch("MSA-CyberDeck-informe.md")}
+                                    runOnUiThread{report=generated;exporter.launch("MSA-CiberDeck-informe.md")}
                                     "Informe preparado para guardar"
                                 }
                             }){Text("Guardar informe")} }

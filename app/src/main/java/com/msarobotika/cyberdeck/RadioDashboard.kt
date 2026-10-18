@@ -13,38 +13,33 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import kotlin.math.*
 
-/** RSSI controls radius; angles only separate markers and never imply bearing. */
+/** Real channel number encodes angle, measured RSSI encodes radius; neither is physical bearing. */
 @Composable fun RadioDashboard(sensor: SensorSnapshot) {
     val cyan = Color(0xFF5DE7FF)
-    val sweep by rememberInfiniteTransition(label = "radar").animateFloat(
-        initialValue = 0f, targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(4000, easing = LinearEasing)),
-        label = "sweep")
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("RADAR DE SEÑAL", color = cyan)
-            Text("RSSI relativo · ángulos decorativos, sin dirección ni distancia", style = MaterialTheme.typography.bodySmall)
+            Text("RADAR POR CANAL", color = cyan)
+            Text("Ángulo = canal 1–13; radio = RSSI. No representa dirección ni distancia física.", style = MaterialTheme.typography.bodySmall)
             Canvas(Modifier.fillMaxWidth().height(240.dp)) {
                 val center = Offset(size.width / 2f, size.height / 2f)
                 val radius = min(size.width, size.height) * .43f
                 for (i in 1..4) drawCircle(cyan.copy(alpha = .2f), radius * i / 4f, center, style = Stroke(1f))
                 drawLine(cyan.copy(alpha = .15f), center - Offset(radius, 0f), center + Offset(radius, 0f))
                 drawLine(cyan.copy(alpha = .15f), center - Offset(0f, radius), center + Offset(0f, radius))
-                drawArc(cyan.copy(alpha = .12f), sweep - 30f, 30f, true,
-                    topLeft = center - Offset(radius, radius), size = Size(radius * 2f, radius * 2f))
-                val angle = Math.toRadians(sweep.toDouble())
-                drawLine(cyan.copy(alpha = .6f), center,
-                    center + Offset((cos(angle) * radius).toFloat(), (sin(angle) * radius).toFloat()), 2f)
-                sensor.networks.sortedBy { it.bssid }.forEachIndexed { index, ap ->
-                    val a = index * 2.399963
-                    val r = ((-ap.rssi - 30f) / 70f).coerceIn(.12f, 1f) * radius
+                for(channel in 1..13){val a=RadioGeometry.channelAngle(channel);drawLine(cyan.copy(alpha=.10f),center,center+Offset((cos(a)*radius).toFloat(),(sin(a)*radius).toFloat()),1f)}
+                if(sensor.channel in 1..13){val angle=RadioGeometry.channelAngle(sensor.channel)
+                    drawLine(DeckMint,center,center+Offset((cos(angle)*radius).toFloat(),(sin(angle)*radius).toFloat()),2f)}
+                sensor.networks.filter{it.channel in 1..13}.forEach { ap ->
+                    val a = RadioGeometry.channelAngle(ap.channel)
+                    val r = RadioGeometry.signalRadius(ap.rssi) * radius
                     val point = center + Offset((cos(a) * r).toFloat(), (sin(a) * r).toFloat())
                     drawCircle(cyan.copy(alpha = .13f), 11f, point)
                     drawCircle(cyan, 4f, point)
                 }
                 drawCircle(Color.White, 3f, center)
             }
-            Text("${sensor.networks.size} redes · última lectura USB", style = MaterialTheme.typography.bodySmall)
+            Text("${sensor.networks.size} redes · lectura puntual USB · canal sintonizado ${sensor.channel}", style = MaterialTheme.typography.bodySmall)
+            Text("Escala radial: −30 dBm en el centro, −100 en el borde; valores fuera se limitan. No hay barrido animado que aparente una lectura en vivo.",style=MaterialTheme.typography.bodySmall)
         }
     }
     Spacer(Modifier.height(12.dp))

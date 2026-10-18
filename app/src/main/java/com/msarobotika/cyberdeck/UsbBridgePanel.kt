@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
 
 @Composable fun UsbBridgePanel(bridge:UsbBridge,hostBusy:Boolean=false,save:()->Unit) {
     Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text("SUPERFLYPER · ENLACE USB",style=MaterialTheme.typography.titleMedium,color=DeckCyan)
+        Text("CIBERDECK · ENLACE USB",style=MaterialTheme.typography.titleMedium,color=DeckCyan)
         Text(bridge.status,style=MaterialTheme.typography.bodyMedium)
         if(bridge.connecting || bridge.busy)LinearProgressIndicator(Modifier.fillMaxWidth())
         Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -78,7 +78,7 @@ object SuperModules {
 }
 @Composable fun SuperModulesPanel() {
     Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-        Text("SUPERFLYPER · MÓDULOS",style=MaterialTheme.typography.titleMedium,color=DeckCyan)
+        Text("CIBERDECK · MÓDULOS",style=MaterialTheme.typography.titleMedium,color=DeckCyan)
         Text("Base extensible con estado explícito. Un módulo pendiente no ejecuta funciones ni muestra lecturas.")
         SuperModules.all.forEach { module -> Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
             Text(module.title,style=MaterialTheme.typography.titleMedium)

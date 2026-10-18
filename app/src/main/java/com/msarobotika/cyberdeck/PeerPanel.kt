@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
     var invitation by rememberSaveable { mutableStateOf("") }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("MÓVIL A MÓVIL · SESIÓN LOCAL", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
-        Text("Ambos móviles necesitan CyberDeck y acceso entre sí en una red local con IPv4. Puedes usar un punto de acceso propio. No se envían archivos a un servidor externo.")
+        Text("Ambos móviles necesitan CiberDeck y acceso entre sí en una red local con IPv4. Puedes usar un punto de acceso propio. No se envían archivos a un servidor externo.")
         Text(state.status)
         if (state.active) {
             LinearProgressIndicator(Modifier.fillMaxWidth())

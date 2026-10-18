@@ -85,7 +85,7 @@ class BrowserReceiver(private val context: Context, private val changed: (Browse
                                 check(token == epoch) { "Sesión cerrada" }
                                 val hash = PeerProtocol.sha256(bytes)
                                 received(name, bytes)
-                                runCatching { response(connection, 200, "Archivo guardado en CyberDeck.\n$length bytes\nSHA-256 calculado en el receptor:\n$hash") }
+                                runCatching { response(connection, 200, "Archivo guardado en CiberDeck.\n$length bytes\nSHA-256 calculado en el receptor:\n$hash") }
                                 post(token, BrowserState(status = "Archivo recibido y guardado · $length bytes · SHA-256 $hash"))
                             }
                         } else response(connection, 404, "Sesión o ruta no disponible")
