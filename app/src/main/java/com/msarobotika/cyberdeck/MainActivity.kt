@@ -67,6 +67,9 @@ class MainActivity : ComponentActivity() {
 
     @Composable private fun Deck() {
         val store = remember { EvidenceStore(this) }
+        val workStore=remember{AuditWorkStore(this)}
+        var workState by remember{mutableStateOf(AuditWorkState())}
+        var workLoaded by remember{mutableStateOf(false)}
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
         val apkSnapshot by session.apk.collectAsState()
         val exposureState by session.exposure.collectAsState()
@@ -186,10 +189,15 @@ class MainActivity : ComponentActivity() {
             }
         }
         fun saveDiagnostic(result: DiagnosticResult) {
+            val associationReady=workLoaded
+            val intendedWork=if(associationReady)workState.activeId else null
             run {
                 val loaded = store.saveBytes("diagnostico-${result.kind}-${System.currentTimeMillis()}.json", result.toEvidenceJson().toByteArray(Charsets.UTF_8))
                 runOnUiThread { entries = loaded }
-                "Resultado guardado con SHA-256"
+                if(!associationReady)return@run "Resultado guardado con SHA-256; los trabajos no están disponibles. Puedes asociarlo después desde Trabajos."
+                val associated=runCatching{if(intendedWork!=null)workStore.attach(intendedWork,listOf(loaded.last())) else workStore.read()}
+                associated.onSuccess{state->runOnUiThread{workState=state}}
+                if(associated.isSuccess)"Resultado guardado con SHA-256" else "Resultado guardado con SHA-256; no se pudo asociar al trabajo: ${associated.exceptionOrNull()?.message}"
             }
         }
         fun readSensor(device: UsbDevice) {
@@ -217,8 +225,9 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) { run {
             val loaded = store.list()
             val current = ConnectionDiagnostic.read(this@MainActivity)
-            runOnUiThread { entries = loaded; connection = current }
-            "${loaded.size} evidencias guardadas"
+            val works=runCatching{workStore.read()}
+            runOnUiThread { entries = loaded; connection = current;works.onSuccess{workState=it;workLoaded=true} }
+            if(works.isSuccess)"${loaded.size} evidencias guardadas" else "No se pudieron leer los trabajos: ${works.exceptionOrNull()?.message}. Sus archivos se conservan."
         } }
         val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) run {
@@ -277,6 +286,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(rootNavigationEvent){if(tab in listOf("Resumen","Evidencias","Informes"))contentScroll.scrollToItem(0)}
                 LaunchedEffect(evidenceQuery,evidenceFilter){if(tab=="Evidencias")contentScroll.scrollToItem(0)}
                 LazyColumn(Modifier.fillMaxSize().testTag("deck-list"),state=contentScroll,contentPadding=PaddingValues(horizontal=18.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+                    if(tab!="Trabajos")workState.works.firstOrNull{it.id==workState.activeId}?.let{work->item{TextButton(onClick={tab="Trabajos"}){Text("Trabajo activo: ${work.name}",maxLines=2)}}}
                     when(tab) {
                         "Resumen" -> {
                             item { CiberDeckCommand(phoneSnapshot,busy,audit={tab="Equipo"},analyze={run{
@@ -308,6 +318,9 @@ class MainActivity : ComponentActivity() {
                         "Equipo" -> {item{ExposurePanel(session,save={saveDiagnostic(it)})}}
                         "Magnético" -> {item{MagneticPanel(session,save={saveDiagnostic(it)})}}
                         "CIDR" -> {item{NetworkPlanPanel(save={saveDiagnostic(it)})}}
+                        "Trabajos" -> {item{AuditWorkPanel(workState,workStore,entries,workLoaded,busy,
+                            change={success,action->run{val state=action();runOnUiThread{workState=state;workLoaded=true};success}},
+                            export={work->run{val generated=workStore.report(work.id,store);runOnUiThread{report=generated;exporter.launch("CiberDeck-trabajo-${work.id.take(8)}.md")};"Informe del trabajo preparado para guardar"}})}}
                         "IA" -> {item{LocalAiPanel(session,listOfNotNull(
                             phoneSnapshot?.diagnostic()?.let{"Chequeo del móvil" to it},
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},
@@ -385,14 +398,7 @@ class MainActivity : ComponentActivity() {
                         "Mi red" -> {
                             item { LanInventoryPanel(inventorySnapshot, busy,
                                 start = { inventory.start() }, stop = { inventory.stop() },
-                                save = { result ->
-                                    run {
-                                        val loaded = store.saveBytes("diagnostico-lan-${System.currentTimeMillis()}.json",
-                                            result.toEvidenceJson().toByteArray(Charsets.UTF_8))
-                                        runOnUiThread { entries = loaded }
-                                        "Inventario guardado con SHA-256"
-                                    }
-                                }) }
+                                save = { result ->saveDiagnostic(result) }) }
                         }
                         "Red", "Web" -> {
                             item {
@@ -408,14 +414,7 @@ class MainActivity : ComponentActivity() {
                                             runOnUiThread { diagnostic = result }
                                             result.summary
                                         }
-                                    }, onSave = { result ->
-                                        run {
-                                            val loaded = store.saveBytes("diagnostico-${result.kind}-${System.currentTimeMillis()}.json",
-                                                result.toEvidenceJson().toByteArray(Charsets.UTF_8))
-                                            runOnUiThread { entries = loaded }
-                                            "Resultado guardado con SHA-256"
-                                        }
-                                    })
+                                    }, onSave = { result ->saveDiagnostic(result) })
                             }
                         }
                         "USB" -> {
@@ -507,6 +506,7 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         "Informes" -> {
+                            item{OutlinedButton(onClick={tab="Trabajos"},modifier=Modifier.fillMaxWidth()){Text("Informes por trabajo")}}
                             val selectedEntries=if(reportSelection.isEmpty())entries else entries.filter{it.id in reportSelection}
                             item { Info("De la observación al informe","${selectedEntries.size} copias · ${displayBytes(selectedEntries.sumOf{it.bytes})}. ${if(reportSelection.isEmpty())"Incluye tu archivo actual." else "Selección preparada desde Evidencias."}") }
                             if(reportSelection.isNotEmpty())item{TextButton(onClick={reportSelection=arrayListOf()}){Text("Usar todas las evidencias")}}

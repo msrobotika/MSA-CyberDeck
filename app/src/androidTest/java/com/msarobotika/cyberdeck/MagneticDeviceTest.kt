@@ -29,6 +29,9 @@ class MagneticDeviceTest {
   ui.onNode(hasText("Escala",substring=true)).performScrollTo()
   val shot=File(ui.activity.filesDir,"validation/ciberdeck-magnetic.png").apply{parentFile?.mkdirs()}
   shot.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
+  ui.onNodeWithTag("deck-list").performTouchInput{swipeUp(startY=height*.7f,endY=height*.4f)}
+  val graph=File(ui.activity.filesDir,"validation/ciberdeck-magnetic-graph.png")
+  graph.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
   ui.openDeck("Resumen");assertFalse(session.magneticLive.value)
  }
 }
