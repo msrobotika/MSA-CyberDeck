@@ -320,7 +320,7 @@ class MainActivity : ComponentActivity() {
                         "CIDR" -> {item{NetworkPlanPanel(save={saveDiagnostic(it)})}}
                         "Trabajos" -> {item{AuditWorkPanel(workState,workStore,entries,workLoaded,busy,
                             change={success,action->run{val state=action();runOnUiThread{workState=state;workLoaded=true};success}},
-                            export={work->run{val generated=workStore.report(work.id,store);runOnUiThread{report=generated;exporter.launch("CiberDeck-trabajo-${work.id.take(8)}.md")};"Informe del trabajo preparado para guardar"}})}}
+                            export={work->run{val generated=workStore.report(work.id,store);runOnUiThread{report=generated;exporter.launch("CiberDeck-trabajo-${work.id.take(8)}.md")};"Informe del trabajo preparado para guardar"}},navigate={tab=it})}}
                         "IA" -> {item{LocalAiPanel(session,listOfNotNull(
                             phoneSnapshot?.diagnostic()?.let{"Chequeo del móvil" to it},
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},

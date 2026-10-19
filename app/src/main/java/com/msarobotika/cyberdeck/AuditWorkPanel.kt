@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-@Composable fun AuditWorkPanel(state:AuditWorkState,store:AuditWorkStore,entries:List<Evidence>,loaded:Boolean,busy:Boolean,change:(String,()->AuditWorkState)->Unit,export:(AuditWork)->Unit){
+@Composable fun AuditWorkPanel(state:AuditWorkState,store:AuditWorkStore,entries:List<Evidence>,loaded:Boolean,busy:Boolean,change:(String,()->AuditWorkState)->Unit,export:(AuditWork)->Unit,navigate:(String)->Unit){
  var creating by rememberSaveable{mutableStateOf(false)}
  var newName by rememberSaveable{mutableStateOf("")};var newScope by rememberSaveable{mutableStateOf("")};var newTargets by rememberSaveable{mutableStateOf("")}
  var selectedId by rememberSaveable{mutableStateOf<String?>(null)}
@@ -40,12 +40,12 @@ import androidx.compose.ui.unit.dp
     OutlinedButton(enabled=!busy,onClick={menu=true}){Text(selected?.name?:"Elegir trabajo",maxLines=2,overflow=TextOverflow.Ellipsis)}
     DropdownMenu(menu,onDismissRequest={menu=false}){state.works.asReversed().forEach{work->DropdownMenuItem(text={Text(work.name+if(work.archived)" · archivado" else "",maxLines=2)},onClick={selectedId=work.id;menu=false})}}
    }
-   selected?.let{work->WorkDetail(work,state.activeId==work.id,store,entries,busy,change,export)}
+   selected?.let{work->WorkDetail(work,state.activeId==work.id,store,entries,busy,change,export,navigate)}
   }
   DeckDisclosure("Qué queda asociado","Los nuevos diagnósticos guardados desde las herramientas se asocian al trabajo activo capturado al pulsar Guardar. Los archivos importados, recibidos y registros USB se añaden manualmente. Desactivar o archivar un trabajo no borra evidencias. Las referencias fijan ID, tamaño y SHA-256: no se sustituyen silenciosamente si cambia el archivo. El informe vuelve a comprobar las copias. Es organización local, no certificación de procedencia ni cadena de custodia.")
  }
 }
-@Composable private fun WorkDetail(work:AuditWork,active:Boolean,store:AuditWorkStore,entries:List<Evidence>,busy:Boolean,change:(String,()->AuditWorkState)->Unit,export:(AuditWork)->Unit){
+@Composable private fun WorkDetail(work:AuditWork,active:Boolean,store:AuditWorkStore,entries:List<Evidence>,busy:Boolean,change:(String,()->AuditWorkState)->Unit,export:(AuditWork)->Unit,navigate:(String)->Unit){
  var editing by rememberSaveable(work.id){mutableStateOf(false)}
  var name by rememberSaveable(work.id){mutableStateOf(work.name)};var scope by rememberSaveable(work.id){mutableStateOf(work.scope)}
  var targets by rememberSaveable(work.id){mutableStateOf(work.targets)};var notes by rememberSaveable(work.id){mutableStateOf(work.notes)}
@@ -71,7 +71,11 @@ import androidx.compose.ui.unit.dp
   }
   TextButton(enabled=!busy,onClick={change(if(work.archived)"Trabajo restaurado" else "Trabajo archivado sin borrar copias"){store.archive(work.id,!work.archived)}}){Text(if(work.archived)"Restaurar trabajo" else "Archivar trabajo")}
  }}
+ WorkIntegrityPanel(work,busy)
  if(!work.archived){
+  Text("Continuar la revisión",style=MaterialTheme.typography.titleMedium)
+  Text(if(active)"Los diagnósticos que guardes se vinculan a este trabajo." else "Activa este trabajo para asociarle automáticamente los nuevos diagnósticos.",style=MaterialTheme.typography.bodySmall)
+  listOf("Móvil" to "Revisar este móvil","Equipo" to "Comprobar un equipo autorizado","APK" to "Inspeccionar una APK","USB" to "Consultar el ESP32 por USB").forEach{(route,label)->OutlinedButton(enabled=!busy && active,onClick={navigate(route)},modifier=Modifier.fillMaxWidth()){Text(label)}}
   TextButton(onClick={picking=!picking}){Text(if(picking)"Cerrar selector de evidencias" else "Añadir evidencias existentes")}
   if(picking){
    OutlinedTextField(query,{query=it.take(160)},label={Text("Buscar copia por nombre")},modifier=Modifier.fillMaxWidth())

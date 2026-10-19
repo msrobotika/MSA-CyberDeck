@@ -2,11 +2,11 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.11 · Trabajos de auditoría y herramientas de campo
+## Desarrollo 0.12 · Integridad visual y trabajos de auditoría
 
 APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada y comprobada en Galaxy A15; esta revisión no se ha instalado en el OPPO desconectado.
 
-- **Trabajos de auditoría**: separa cada revisión por nombre, alcance, objetivos y notas. Asocia los diagnósticos guardados al trabajo activo, incorpora evidencias existentes y exporta un informe con comprobación SHA-256. Archivar no borra archivos. [Uso y validación](docs/VALIDATION-011.md).
+- **Trabajos de auditoría**: separa cada revisión por nombre, alcance, objetivos y notas. Asocia los diagnósticos guardados al trabajo activo, incorpora evidencias existentes y exporta un informe con comprobación SHA-256. Archivar no borra archivos. Panel de integridad con recuentos medidos y accesos directos a las herramientas del trabajo activo. [Uso de trabajos](docs/VALIDATION-011.md) · [Panel y pruebas](docs/VALIDATION-012.md).
 - **Auditar un equipo**: flujo guiado desde el inicio. Resuelve un destino, confirma una IP y hasta ocho puertos, acepta el alcance autorizado y comprueba conexiones TCP sin enviar datos de aplicación. Gráfico de resultados, tiempos medidos, referencia temporal, comparación e informe verificable. La red queda fijada y un cambio interrumpe la prueba. Un puerto accesible no acredita una vulnerabilidad ni una intrusión.
 - **Asistente IA local**: motor Google LiteRT-LM con Qwen3 0.6B mixed INT4, descargable sin registro. Importación privada, SHA-256, contexto elegido, parada y liberación de memoria. Generación comprobada físicamente en A15; calidad experimental y conclusiones sujetas a revisión. Los pesos no están incluidos en la APK ni Git. [Modelo exacto y pruebas](docs/OPEN-LOCAL-MODEL.md).
 - **Campo magnético**: sensor Android real en µT, ejes X/Y/Z, gráfica, referencia temporal e informe. Requiere magnetómetro; no mide radiofrecuencia ni detecta ataques. El ESP32 necesita un sensor externo para medir por sí mismo.
@@ -21,7 +21,7 @@ APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalad
 - **Guardia de llamadas**, experimental: API oficial Android de filtrado con elección expresa de la app por el usuario. Registro privado limitado a 100 eventos entrantes, lista personal de revisión, avisos por coincidencia exacta o verificación de operador fallida. No consulta reputación externa, no graba ni bloquea llamadas. Sin llamada física de validación todavía.
 - ESP32 con cinco pantallas horizontales y la misma paleta/identidad: Radar, Redes, Ficha, Avisos y USB. BOOT cambia de vista; no es táctil.
 
-[Validación de esta candidata](docs/VALIDATION-011.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
+[Validación de esta candidata](docs/VALIDATION-012.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
 
 PC→ESP y PC→OPPO funcionan por separado. Esto **no valida** la conexión directa Android→ESP mediante OTG, que sigue pendiente. El firmware real conserva el protocolo WiFi Sentinel; no se ha sustituido por el firmware genérico candidato.
 
@@ -31,7 +31,7 @@ La captura de auditoría corresponde a una conexión real a un servicio local de
 
 Capturas actualizadas del A15: trabajo persistente con diagnósticos reales y gráfica de muestras del magnetómetro. La captura de IA muestra el modelo importado y descargado de memoria; la generación local se comprobó por separado.
 
-<img src="docs/screenshots/ciberdeck-work.png" width="260" alt="Trabajo real de revisión local del A15"> <img src="docs/screenshots/ciberdeck-magnetic-graph.png" width="260" alt="Gráfica de muestras reales del magnetómetro del A15">
+<img src="docs/screenshots/ciberdeck-work-integrity.png" width="260" alt="Comprobación real de las copias del trabajo en el A15"> <img src="docs/screenshots/ciberdeck-work.png" width="260" alt="Trabajo real de revisión local del A15"> <img src="docs/screenshots/ciberdeck-magnetic-graph.png" width="260" alt="Gráfica de muestras reales del magnetómetro del A15">
 
 <img src="docs/screenshots/ciberdeck-esp-radar.png" width="480" alt="Framebuffer real del radar del ESP32, 240 por 135">
 
