@@ -29,6 +29,9 @@ class AgentUiDeviceTest {
   assertNotNull(session.agent.value.error,session.agent.value.plan)
   assertEquals(listOf(AgentTool.PHONE,AgentTool.CONNECTION),session.agent.value.plan!!.steps)
   assertTrue(session.agent.value.results.isEmpty());assertNull(session.agent.value.run)
+  ui.onNodeWithTag("agent-plan").performScrollTo()
+  val planShot=File(ui.activity.filesDir,"validation/ciberdeck-agent-plan.png").apply{parentFile?.mkdirs()}
+  planShot.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
   ui.onNodeWithText("Ejecutar este plan").performScrollTo().performClick()
   ui.waitUntil(20000){!session.agent.value.running && session.agent.value.run!=null}
   assertEquals(listOf("phone","connection"),session.agent.value.results.map{it.result?.kind})
@@ -36,9 +39,14 @@ class AgentUiDeviceTest {
   val out=File(ui.activity.filesDir,"validation/ciberdeck-agent.png").apply{parentFile?.mkdirs()}
   out.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
   val store=EvidenceStore(ui.activity);val before=store.list().size
+  val works=AuditWorkStore(ui.activity);val active=works.read().activeId
   ui.onNodeWithText("Guardar ejecución como evidencia").performClick()
   ui.waitUntil(10000){store.list().size>before}
-  assertEquals("agent",store.diagnostic(store.list().last()).kind)
+  val entry=store.list().last();val report=store.diagnostic(entry)
+  assertEquals("agent",report.kind)
+  assertTrue(report.details.any{it.first=="Plan aprobado" && it.second=="phone, connection"})
+  assertTrue(report.details.any{it.first=="SHA-256 modelo planificador" && it.second==session.agent.value.modelHash})
+  if(active!=null)ui.waitUntil(10000){works.read().works.first{it.id==active}.evidence.any{AuditWorkPolicy.matches(it,entry)}}
   ui.openDeck("Resumen")
  }
 }

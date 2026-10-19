@@ -6,7 +6,7 @@ Aplicación Android local para comprobar, observar y documentar dispositivos pro
 
 APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada y comprobada en Galaxy A15; esta revisión no se ha instalado en el OPPO desconectado.
 
-- **Agente local, dentro de IA → Agente**: convierte una petición en un plan revisable de hasta tres herramientas: revisión del móvil, estado local de conexión y comparación de copias guardadas. JSON validado, ejecución solo al pulsar el botón, resultados de herramientas y guardado manual de la sesión. No dispone de comandos de sistema ni acciones arbitrarias. Qwen propuso los dos pasos solicitados y ambas herramientas se ejecutaron con lecturas reales en A15; el recorrido final de botones/guardado del agente sigue pendiente de repetir tras la corrección del validador. [Contrato, pruebas y límites](docs/VALIDATION-017.md).
+- **Agente local, dentro de IA → Agente**: convierte una petición en un plan revisable de hasta tres herramientas: revisión del móvil, estado local de conexión y comparación de copias guardadas. JSON validado, ejecución solo al pulsar el botón, resultados de herramientas y guardado manual de la sesión. No dispone de comandos de sistema ni acciones arbitrarias. Qwen propuso los dos pasos solicitados y ambas herramientas se ejecutaron con lecturas reales en A15. Recorrido completo de botones comprobado: no ejecuta antes de pulsar Ejecutar, guarda la sesión con el plan/hash del modelo y la vincula al trabajo activo. [Contrato, pruebas y límites](docs/VALIDATION-017.md).
 - **Comparación guiada**: prepara una pareja compatible entre hasta 100 diagnósticos recientes del filtro, comprueba sus copias y conserva la selección manual. Los detalles se despliegan y los selectores manuales se ocultan al preparar la pareja. El cálculo vuelve a verificar los originales.
 - **Trabajos de auditoría**: separa cada revisión por nombre, alcance, objetivos y notas. Asocia los diagnósticos guardados al trabajo activo, incorpora evidencias existentes y exporta un informe con comprobación SHA-256. Archivar no borra archivos. Panel de integridad con recuentos medidos y accesos directos a las herramientas del trabajo activo. [Uso de trabajos](docs/VALIDATION-011.md) · [Panel y pruebas](docs/VALIDATION-012.md).
 - **Comparar lecturas**: dos diagnósticos guardados del mismo tipo/destino, verificación SHA-256, gráfica de campos modificados/añadidos/ausentes/sin cambios, búsqueda y guardado vinculado al trabajo activo. Sin tráfico ni conclusiones automáticas de seguridad. [Método y validación](docs/VALIDATION-013.md).
@@ -51,6 +51,10 @@ Pruebas de interfaz 0.15.1 correctas en A15: selección conservada tras recrear 
 La selección guiada se comprobó con evidencias reales del A15. Captura de la pareja preparada; representa orden de guardado local, sin estimar riesgo:
 
 <img src="docs/screenshots/ciberdeck-comparison-guided.png" width="280" alt="Pareja de diagnósticos reales preparada por la selección guiada en A15">
+
+Capturas reales del agente en A15: petición y plan propuesto antes de ejecutar; resultados auténticos de móvil/conexión antes de guardar. Los detalles de red permanecen plegados.
+
+<img src="docs/screenshots/ciberdeck-agent-plan.png" width="280" alt="Petición real y plan local de dos pasos antes de ejecutar en A15"> <img src="docs/screenshots/ciberdeck-agent.png" width="280" alt="Agente en A15 con dos herramientas completadas y guardado de la sesión">
 
 ## Base CyberDeck conservada
 
