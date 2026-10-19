@@ -2,9 +2,13 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.20 · Tareas del móvil con un toque
+## Desarrollo 0.21 · Resultados claros del agente
 
-APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: compilación y lint correctos, 162 pruebas JVM y 13 casos Android distintos correctos. El OPPO no está conectado y no se ha actualizado en esta revisión. [Validación 0.20](docs/VALIDATION-020.md).
+APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: compilación y lint correctos, 169 pruebas JVM y validación Android descrita en el informe. El OPPO no está conectado y no se ha actualizado en esta revisión. [Validación 0.21](docs/VALIDATION-021.md).
+
+**Resultados primero**: al ejecutar, el agente muestra un resumen con progreso medido, síntesis de cada paso y guardado de la sesión. Los métodos y lecturas completos se despliegan al pedirlos. Distingue errores, interrupciones, interpretaciones de IA y pasos manuales u omitidos; terminar herramientas no es una puntuación de seguridad. «Preparar de nuevo» conserva el origen del plan y no repite operaciones automáticamente.
+
+<img src="docs/screenshots/ciberdeck-agent-summary-021.png" width="320" alt="Resumen real de resultados de CiberDeck 0.21 en A15">
 
 **Abre Agente → Revisar mi móvil**: ejecuta cinco comprobaciones reales de ajustes, conexión, recursos, plan de revisión y APK propia, sin cargar IA ni conectar el ESP32. Hay tareas directas para conexión, Bluetooth, NFC y APK. Las peticiones comunes reconocidas utilizan reglas locales; las peticiones más complejas pueden preparar un plan con el modelo local, cuya calidad sigue siendo experimental. No es comprensión general de cualquier instrucción.
 

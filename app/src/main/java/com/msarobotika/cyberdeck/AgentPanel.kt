@@ -16,6 +16,7 @@ import java.time.Instant
  val context=LocalContext.current;val scope=rememberCoroutineScope()
  val ai by session.ai.collectAsState();val agent by session.agent.collectAsState();val model by session.aiModel.collectAsState()
  var request by rememberSaveable{mutableStateOf("")}
+ var showResults by rememberSaveable{mutableStateOf(false)}
  var work by remember{mutableStateOf<AuditWork?>(null)};var scopeLoaded by remember{mutableStateOf(false)}
  var scopeError by remember{mutableStateOf("")};var executionJob by remember{mutableStateOf<Job?>(null)}
  var quickExpanded by rememberSaveable{mutableStateOf(false)};var queuedTask by remember{mutableStateOf<AgentTask?>(null)}
@@ -59,7 +60,31 @@ import java.time.Instant
  fun chooseTask(task:AgentTask){if(session.agent.value.running || session.agent.value.planning || blocked)return;request=task.title;session.agent.value=task.session();queuedTask=if(task.instant)task else null}
  LaunchedEffect(queuedTask,scopeLoaded,blocked){if(queuedTask!=null && scopeLoaded && !blocked && !session.agent.value.running){queuedTask=null;execute()}}
  fun planWithAi(){session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty()))}
+ LaunchedEffect(agent.run?.startedAt){showResults=false}
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+  AgentSummary.from(agent)?.let{summary->
+   Card(Modifier.fillMaxWidth().testTag("agent-summary")){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+    Text(summary.title,style=MaterialTheme.typography.titleLarge,color=if(summary.title=="Revisión con error")MaterialTheme.colorScheme.error else DeckCyan)
+    Text(agent.request,style=MaterialTheme.typography.bodyMedium,maxLines=2)
+    LinearProgressIndicator(progress={summary.progress},modifier=Modifier.fillMaxWidth())
+    Text("${summary.results} de ${summary.total} pasos con resultado",style=MaterialTheme.typography.titleMedium)
+    if(summary.skipped>0 || summary.manual>0 || summary.generated>0)Text("${summary.skipped} omitidos · ${summary.manual} manuales · ${summary.generated} interpretaciones de IA",style=MaterialTheme.typography.bodySmall)
+    if(agent.error.isNotBlank())Text(agent.error,color=MaterialTheme.colorScheme.error)
+    if(agent.notice.isNotBlank())Text(agent.notice,style=MaterialTheme.typography.bodySmall)
+    if(actionStatus.isNotBlank())Text(actionStatus,color=DeckCyan)
+    agent.results.forEach{step->
+     Text(step.tool.label,style=MaterialTheme.typography.titleSmall)
+     Text(when{step.error.isNotBlank()->"Error: ${step.error}";step.awaiting->"Espera tu intervención";step.skipped->"Paso omitido";step.manual->"Confirmación manual · sin lectura verificada";step.tool==AgentTool.ANALYST && step.result!=null->"Interpretación de IA · revisar";else->step.result?.summary?:"Sin resultado"},maxLines=2,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall)
+    }
+    Text("Progreso de la tarea; no es una puntuación de seguridad.",style=MaterialTheme.typography.bodySmall)
+    if(agent.running)OutlinedButton(onClick={executionJob?.cancel()}){Text("Detener ejecución")}
+    else {
+     if(agent.results.isNotEmpty())TextButton(onClick={showResults=!showResults}){Text(if(showResults)"Ocultar detalles de resultados" else "Ver detalles de resultados")}
+     agent.run?.let{run->OutlinedButton(enabled=editing,onClick={runCatching{run.diagnostic(agent.request,agent.modelHash,agent.evidenceScope,agent.origin)}.onSuccess(save).onFailure{e->session.agent.update{it.copy(error=e.message?:"No se pudo preparar el informe")}}}){Text("Guardar ejecución como evidencia")}}
+     TextButton(enabled=editing,onClick={session.agent.value=AgentSession(request=agent.request,plan=agent.plan,inputs=agent.inputs,origin=agent.origin,modelHash=agent.modelHash)}){Text("Preparar de nuevo")}
+    }
+   }}
+  }
   Text("Tu móvil es el equipo principal. El ESP32 es opcional.",style=MaterialTheme.typography.bodySmall)
   FilledTonalButton(enabled=editing,onClick={chooseTask(AgentTasks.phone)},modifier=Modifier.fillMaxWidth().testTag("agent-task-phone")){Column(Modifier.padding(vertical=4.dp)){Text("Revisar mi móvil");Text("Ajustes, conexión, batería y APK · comprobar ahora",style=MaterialTheme.typography.bodySmall)}}
   OutlinedTextField(request,{request=it.take(800)},label={Text("Qué quieres que haga CiberDeck")},placeholder={Text("Revisa mi móvil, busca Bluetooth…")},modifier=Modifier.fillMaxWidth(),enabled=editing,maxLines=3)
@@ -96,7 +121,7 @@ import java.time.Instant
   if(agent.error.isNotBlank())Text(agent.error,color=MaterialTheme.colorScheme.error)
   if(agent.notice.isNotBlank())Text(agent.notice,color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
   if(scopeError.isNotBlank())Text(scopeError,color=MaterialTheme.colorScheme.error)
-  agent.plan?.let{plan->
+  agent.plan?.takeIf{agent.run==null || showResults || agent.results.any{it.awaiting}}?.let{plan->
    val input=agent.inputs;val editableInputs=editing && agent.run==null
    fun inputChanged(value:AgentInputs){session.agent.update{it.copy(inputs=value)}}
    if(plan.steps.any{it==AgentTool.DNS || it==AgentTool.TCP || it==AgentTool.EXPOSURE})OutlinedTextField(input.host,{inputChanged(input.copy(host=it.take(253),networkApproved=false))},label={Text("Dominio o IP autorizado")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs,singleLine=true)
@@ -117,8 +142,7 @@ import java.time.Instant
   }
   if(actionStatus.isNotBlank())Text(actionStatus,color=DeckCyan,modifier=Modifier.testTag("agent-action-status"))
   if(actionLink.isNotBlank()){Text("Enlace temporal · solo para tu red de confianza");androidx.compose.foundation.text.selection.SelectionContainer{Text(actionLink)}}
-  if(agent.running){LinearProgressIndicator(Modifier.fillMaxWidth());OutlinedButton(onClick={executionJob?.cancel()}){Text("Detener ejecución")}}
-  agent.results.forEach{step->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+  if(showResults || agent.results.any{it.awaiting})agent.results.forEach{step->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
    Text(step.tool.label,style=MaterialTheme.typography.titleMedium)
    Text(when{step.awaiting->"PENDIENTE DE INTERACCIÓN";step.skipped->"OMITIDO";step.manual->"CONFIRMADO POR TI · SIN VERIFICACIÓN";step.result!=null && step.tool==AgentTool.ANALYST->"INTERPRETACIÓN GENERADA · REVISAR";step.result!=null->"COMPLETADO · RESULTADO DE HERRAMIENTA";else->"ERROR · PLAN DETENIDO"},color=if(step.result!=null)DeckMint else DeckCyan,style=MaterialTheme.typography.labelLarge)
    step.result?.let{r->Text(r.summary);DeckDisclosure("Ver resultado y método",listOf("Destino: ${r.target}","Lectura: ${r.checkedAt}").plus(r.details.map{"${it.first}: ${it.second}"}).joinToString("\n"))}
@@ -132,11 +156,6 @@ import java.time.Instant
     TextButton(onClick={execute("skip")},enabled=editing){Text("Omitir este paso")}
    }
   }}}
-  agent.run?.let{run->
-   Text("${run.steps.count{it.result!=null}} de ${run.plan.steps.size} pasos completados${if(run.steps.any{it.awaiting})" · en pausa" else ""}",style=MaterialTheme.typography.titleMedium)
-   if(!agent.running)TextButton(enabled=editing,onClick={session.agent.value=AgentSession(request=agent.request,plan=agent.plan,inputs=agent.inputs,origin=agent.origin)}){Text("Preparar de nuevo")}
-   OutlinedButton(enabled=editing,onClick={runCatching{run.diagnostic(agent.request,agent.modelHash,agent.evidenceScope,agent.origin)}.onSuccess(save).onFailure{e->session.agent.update{it.copy(error=e.message?:"No se pudo preparar el informe")}}}){Text("Guardar ejecución como evidencia")}
-  }
   if(agent.raw.isNotBlank())DeckDisclosure("Plan recibido de la IA",agent.raw)
   DeckDisclosure("Acceso y límites","El agente utiliza las funciones implementadas de CiberDeck y permisos concedidos por Android. No tiene root, shell ni acceso a datos privados de otras apps. Las operaciones integradas conservan los permisos y selectores de Android; se espera la respuesta real antes de continuar. Borrar una copia requiere confirmación específica. Los resultados guardados se vuelven a verificar; confirmaciones manuales y texto generado se distinguen de lecturas. RF/IR y otros módulos del catálogo futuro siguen pendientes. La sesión permanece en memoria hasta guardarla; salir durante una ejecución la interrumpe. Un plan puede no corresponder a tu intención: revísalo.")
  }
