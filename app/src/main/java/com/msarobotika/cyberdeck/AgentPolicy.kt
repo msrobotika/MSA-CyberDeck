@@ -21,7 +21,7 @@ enum class AgentTool(val wire:String,val label:String,val group:String="Diagnós
  val assisted get()=route!=null
 }
 data class AgentPlan(val steps:List<AgentTool>){init{require(steps.isNotEmpty() && steps.size<=8 && steps.distinct().size==steps.size){"El plan debe tener entre uno y ocho pasos distintos"}}}
-data class AgentInputs(val host:String="",val port:String="443",val url:String="",val cidr:String="",val networkApproved:Boolean=false)
+data class AgentInputs(val host:String="",val port:String="443",val url:String="",val cidr:String="",val networkApproved:Boolean=false,val bleGatt:Boolean=false)
 fun validateAgentInputs(plan:AgentPlan,input:AgentInputs){
  if(plan.steps.any{it.network})require(input.networkApproved){"Confirma la autorización del destino de red antes de ejecutar"}
  if(plan.steps.any{it in listOf(AgentTool.DNS,AgentTool.TCP,AgentTool.EXPOSURE)})Diagnostics.host(input.host)
@@ -32,7 +32,7 @@ fun validateAgentInputs(plan:AgentPlan,input:AgentInputs){
  if(AgentTool.CIDR in plan.steps)NetworkPlan.parse(input.cidr)
 }
 object AgentPolicy {
- val SYSTEM="Traduce peticiones a planes JSON de CiberDeck. Solo propones, nunca ejecutas. Usa entre 1 y 8 identificadores distintos de este catálogo: "+AgentTool.entries.joinToString("; "){"${it.wire}=${it.label}"}+". Incluye todos los pasos pedidos. phone Y connection para revisar móvil y conexión. Responde SOLO {\"steps\":[...]} sin argumentos ni explicación. Destinos y permisos se completan en la app, nunca los inventes. El agente ejecuta las herramientas registradas; permisos Android, selectores y acciones físicas pueden requerir interacción del usuario. RF/IR no implementados: modules solo informa. Si no hay herramienta compatible responde {\"steps\":[]}."
+ val SYSTEM="Traduce peticiones a planes JSON de CiberDeck. Solo propones, nunca ejecutas. Usa entre 1 y 8 identificadores distintos de este catálogo: "+AgentTool.entries.joinToString("; "){"${it.wire}=${it.label}"}+". El móvil funciona sin ESP32. phone, connection, resources, review, self_apk, BLE, NFC, archivos y diagnósticos usan Android. USB y radio solo si el usuario pide explícitamente ESP32/USB/radar. Incluye todos los pasos pedidos. phone Y connection para revisar móvil y conexión. Responde SOLO {\"steps\":[...]} sin argumentos ni explicación. Destinos y permisos se completan en la app, nunca los inventes. El agente ejecuta las herramientas registradas; permisos Android, selectores y acciones físicas pueden requerir interacción del usuario. RF/IR no implementados: modules solo informa. Si no hay herramienta compatible responde {\"steps\":[]}."
  fun prompt(request:String,model:String):String {
   require(request.isNotBlank() && request.length<=800){"Escribe una petición de hasta 800 caracteres"}
   return "Ejemplos:\nPetición: Revisa mi móvil y el estado de su conexión\n{\"steps\":[\"phone\",\"connection\"]}\nPetición: Revisa mi móvil, lee su conexión y compara mis lecturas guardadas\n{\"steps\":[\"phone\",\"connection\",\"compare\"]}\nPetición: Lee NFC y después verifica las copias del trabajo\n{\"steps\":[\"nfc\",\"integrity\"]}\nPetición: Resuelve un dominio y revisa una web\n{\"steps\":[\"dns\",\"web\"]}\nTraduce esta petición, solo JSON:\nPetición: ${request.trim()}"+if(model.contains("qwen3",true))"\n/no_think" else ""
@@ -50,7 +50,7 @@ object AgentPolicy {
  }
 }
 data class AgentStepResult(val tool:AgentTool,val result:DiagnosticResult?=null,val error:String="",val awaiting:Boolean=false,val manual:Boolean=false,val skipped:Boolean=false,val source:Evidence?=null)
-data class AgentSession(val request:String="",val modelHash:String="",val planning:Boolean=false,val plan:AgentPlan?=null,val raw:String="",val error:String="",val running:Boolean=false,val results:List<AgentStepResult> = emptyList(),val run:AgentRun?=null,val evidenceScope:String="",val workId:String?=null,val inputs:AgentInputs=AgentInputs(),val origin:String="IA local",val resumeEvidence:Evidence?=null)
+data class AgentSession(val request:String="",val modelHash:String="",val planning:Boolean=false,val plan:AgentPlan?=null,val raw:String="",val error:String="",val running:Boolean=false,val results:List<AgentStepResult> = emptyList(),val run:AgentRun?=null,val evidenceScope:String="",val workId:String?=null,val inputs:AgentInputs=AgentInputs(),val origin:String="IA local",val resumeEvidence:Evidence?=null,val notice:String="")
 data class AgentRun(val plan:AgentPlan,val startedAt:String,val finishedAt:String,val steps:List<AgentStepResult>){
  fun diagnostic(request:String,modelHash:String,scope:String,origin:String="IA local"):DiagnosticResult {
   val completed=steps.count{it.result!=null}

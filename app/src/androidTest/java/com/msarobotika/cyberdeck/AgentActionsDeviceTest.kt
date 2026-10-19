@@ -58,7 +58,7 @@ class AgentActionsDeviceTest {
   assertTrue(session().agent.value.results.isEmpty())
   InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
   ui.waitUntil(15000){!session().agent.value.running}
-  assertTrue(session().agent.value.results.isEmpty());assertTrue(session().agent.value.error.contains("interrumpida"))
+  assertTrue(session().agent.value.results.isEmpty());assertTrue(session().agent.value.notice.contains("Detenido"))
  }
  @Test fun nfcWaitsForRealTagAndStopDoesNotCompleteInventory(){
   val adapter=android.nfc.NfcAdapter.getDefaultAdapter(ui.activity);assumeTrue(adapter?.isEnabled==true)
@@ -74,7 +74,6 @@ class AgentActionsDeviceTest {
   @Suppress("MissingPermission") val enabled=manager?.adapter?.isEnabled==true
   assumeTrue(enabled)
   prepare(AgentTool.BLE,AgentTool.MODULES)
-  nativeClick("Observar anuncios · 10 segundos")
   ui.waitUntil(20000){!session().agent.value.running && session().agent.value.results.size==2}
   assertEquals(listOf("ble","modules"),session().agent.value.results.map{it.result?.kind});assertTrue(session().agent.value.results.none{it.awaiting})
  }

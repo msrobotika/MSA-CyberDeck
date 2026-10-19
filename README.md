@@ -2,9 +2,13 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.19.1 · Agente visible desde Inicio y menú
+## Desarrollo 0.20 · Tareas del móvil con un toque
 
-APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: compilación/lint, 154 pruebas de lógica y 17 casos Android distintos correctos. Se probaron ejecución, parada, selectores y planificación local; los periféricos y operaciones aún pendientes están enumerados en [Validación 0.19](docs/VALIDATION-019.md). Esta revisión no se ha instalado en el OPPO desconectado.
+APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: compilación y lint correctos, 162 pruebas JVM y 13 casos Android distintos correctos. El OPPO no está conectado y no se ha actualizado en esta revisión. [Validación 0.20](docs/VALIDATION-020.md).
+
+**Abre Agente → Revisar mi móvil**: ejecuta cinco comprobaciones reales de ajustes, conexión, recursos, plan de revisión y APK propia, sin cargar IA ni conectar el ESP32. Hay tareas directas para conexión, Bluetooth, NFC y APK. Las peticiones comunes reconocidas utilizan reglas locales; las peticiones más complejas pueden preparar un plan con el modelo local, cuya calidad sigue siendo experimental. No es comprensión general de cualquier instrucción.
+
+<img src="docs/screenshots/ciberdeck-agent-entry-020.png" width="600" alt="Entrada real del agente 0.20 en A15 con tarea directa del móvil"> <img src="docs/screenshots/ciberdeck-phone-task-020.png" width="600" alt="Cinco comprobaciones reales completadas sin modelo ni ESP32">
 
 - **Agente local, desde Inicio → Abrir agente o Menú → Agente**: las 30 entradas cuentan con adaptador: 29 realizan operaciones implementadas y una consulta informa del hardware futuro. El ejecutor llama a los controladores reales de BLE, NFC, sensores, USB, diagnóstico, archivos, trabajos, informes, recepción y transferencia. Espera permisos, selección de archivos/adaptadores, interacción física y respuestas; no completa un paso por abrir una pantalla. Planes de hasta ocho pasos con IA local o selección manual, destinos autorizados, parada, resultados y registro. Un error o cancelación detiene los pasos posteriores. Conserva los límites de Android y los módulos RF/IR pendientes. [Operaciones y condiciones](docs/AGENT-ACTIONS.md) · [Pruebas y límites](docs/VALIDATION-019.md).
 - **Comparación guiada**: prepara una pareja compatible entre hasta 100 diagnósticos recientes del filtro, comprueba sus copias y conserva la selección manual. Los detalles se despliegan y los selectores manuales se ocultan al preparar la pareja. El cálculo vuelve a verificar los originales.

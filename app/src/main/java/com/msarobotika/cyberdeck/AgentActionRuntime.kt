@@ -22,7 +22,7 @@ class AgentActionRuntime(private val activity:ComponentActivity,private val acce
   validateAgentInputs(AgentPlan(listOf(tool)),inputs)
   status.value="${tool.label} · ejecutando";liveLink.value=""
   try{when(tool){
-   AgentTool.BLE->ble()
+   AgentTool.BLE->ble(inputs.bleGatt)
    AgentTool.NFC->nfc()
    AgentTool.LAN->lan()
    AgentTool.MAGNETIC->magnetic()
@@ -41,12 +41,11 @@ class AgentActionRuntime(private val activity:ComponentActivity,private val acce
    AgentTool.PHONE,AgentTool.CONNECTION,AgentTool.COMPARE,AgentTool.REVIEW,AgentTool.RESOURCES,AgentTool.SELF_APK,AgentTool.INVENTORY,AgentTool.INTEGRITY,AgentTool.CALL_STATUS,AgentTool.DNS,AgentTool.TCP,AgentTool.WEB,AgentTool.LINK,AgentTool.CIDR->io{performAgentTool(activity,tool,workId,inputs)}
   }}finally{status.value="";liveLink.value=""}
  }
- private suspend fun ble():DiagnosticResult {
+ private suspend fun ble(gatt:Boolean):DiagnosticResult {
   if(!BleInspector.hasPermissions(activity)){status.value="Autoriza los permisos Bluetooth de Android";access.permissions(BleInspector.permissions());check(BleInspector.hasPermissions(activity)){"Permiso Bluetooth no concedido"}}
-  val action=access.choose(activity,"Bluetooth del agente",listOf("Observar anuncios · 10 segundos","Observar y consultar servicios GATT autorizados"))
   var snapshot=BleSnapshot();val reader=BleInspector(activity){snapshot=it;status.value=it.status}
   try{reader.start();check(snapshot.running){snapshot.status};until(13000){!snapshot.running};check(snapshot.status.startsWith("Búsqueda BLE finalizada")){snapshot.status}
-   if(action==1){val devices=snapshot.devices;check(devices.isNotEmpty()){"No se observaron dispositivos para consultar"};val chosen=devices[access.choose(activity,"Dispositivo GATT propio o autorizado",devices.map{"${it.name} · ${it.address}"})];check(access.confirm(activity,"Consultar servicios GATT", "${chosen.address}. Confirma que es tu equipo o tienes permiso. No se leen ni escriben características.")){"Consulta cancelada"};reader.inspect(chosen.address);until(11000){!snapshot.gattBusy};check(snapshot.status.startsWith("Servicios GATT observados")){snapshot.status}}
+   if(gatt){val devices=snapshot.devices;check(devices.isNotEmpty()){"No se observaron dispositivos para consultar"};val chosen=devices[access.choose(activity,"Dispositivo GATT propio o autorizado",devices.map{"${it.name} · ${it.address}"})];check(access.confirm(activity,"Consultar servicios GATT", "${chosen.address}. Confirma que es tu equipo o tienes permiso. No se leen ni escriben características.")){"Consulta cancelada"};reader.inspect(chosen.address);until(11000){!snapshot.gattBusy};check(snapshot.status.startsWith("Servicios GATT observados")){snapshot.status}}
    return snapshot.evidence()}
   finally{reader.stop()}
  }

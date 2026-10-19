@@ -1,6 +1,14 @@
-# Acciones del agente · CiberDeck 0.19
+# Acciones del agente · CiberDeck 0.20
 
 El agente de la aplicación ya no se limita a navegar hacia los módulos interactivos. `AgentActionRuntime` conecta el ejecutor suspendible a los controladores existentes; `AgentAndroidAccess` espera permisos, selectores y decisiones del usuario. Las 30 entradas tienen un adaptador explícito: 29 realizan una operación implementada y `modules` informa del hardware futuro. No significa acceso root ni que todas puedan ejecutarse sin intervención.
+
+## Tareas directas del móvil
+
+«Revisar mi móvil» ejecuta cinco lecturas/comprobaciones con un toque. Conexión, Bluetooth, NFC e inspección de una APK tienen accesos propios. Funcionan sin cargar el modelo ni conectar un ESP32; NFC y APK esperan etiqueta o selector Android. BLE inicia directamente diez segundos de anuncios, sin menú previo. GATT sigue disponible como opción explícita en los planes del catálogo.
+
+Las frases comunes se resuelven mediante una gramática local pequeña y comprobable. Los enlaces y los servicios de red preparan el plan y esperan entradas/alcance antes de ejecutar. Una petición no reconocida ofrece acciones o carga de IA. El planificador local no puede añadir USB/radar cuando la petición no solicita hardware. Se conservan las treinta funciones del catálogo y los selectores/permisos Android.
+
+La cabecera del agente se ha reducido y la tarea principal aparece antes del cuadro de texto. Los ajustes del modelo quedan después de las tareas. «Preparar de nuevo» reinicia la preparación sin repetir operaciones automáticamente.
 
 ## Operaciones por entrada
 
@@ -39,7 +47,7 @@ El agente de la aplicación ya no se limita a navegar hacia los módulos interac
 
 ## Ejecución y registro
 
-1. Abrir «Agente» desde el botón de Inicio, su entrada visible en el menú o el catálogo del kit. Preparar con IA o elegir hasta ocho funciones distintas. En 0.19.1 el agente tiene pantalla propia; «Asistente IA» conserva el analista.
+1. Pulsar una tarea directa o abrir «Agente» desde el botón de Inicio, su entrada visible en el menú o el catálogo del kit. Preparar con IA o elegir hasta ocho funciones distintas. En 0.19.1 el agente tiene pantalla propia; «Asistente IA» conserva el analista.
 2. Completar destinos/puertos y autorización de las herramientas de red. Son campos de la app, no argumentos inventados por el modelo.
 3. Revisar y pulsar Ejecutar. Los permisos y selecciones necesarios aparecen en Android; no hay que abrir manualmente la pantalla de cada herramienta.
 4. El agente espera la respuesta del controlador. Los errores detienen el resto del plan. Cancelar un selector no completa su paso ni ejecuta el siguiente.
@@ -61,4 +69,4 @@ Los planes permanecen en memoria; no hay ejecución persistente tras cerrar el p
 - Las funciones RF/IR y módulos industriales futuros siguen pendientes.
 - El ejecutor anterior de pausa y continuidad se conserva como contrato de compatibilidad; la app 0.19 utiliza el ejecutor de acciones cuando dispone del runtime Android.
 
-Pruebas y limitaciones de la candidata: [VALIDATION-019.md](VALIDATION-019.md). El catálogo 0.18 queda conservado como registro histórico.
+Pruebas y limitaciones de la candidata: [VALIDATION-020.md](VALIDATION-020.md). El catálogo 0.18 queda conservado como registro histórico.

@@ -29,6 +29,7 @@ class AgentUiDeviceTest {
   ui.onNode(hasText("Agente",substring=false) and hasClickAction() and !hasTestTag("drawer-agent")).performScrollTo().performClick()
   ui.onNodeWithTag("screen-title").assertTextEquals("Agente")
   ui.runOnIdle{assertTrue("Switching back must not unload the model",session.ai.value.loaded)}
+  ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().performTextInput("Revisa mi móvil y el estado de su conexión")
   ui.onNodeWithText("Preparar plan con IA").performScrollTo().performClick()
   ui.waitUntil(95000){!session.agent.value.planning && (session.agent.value.plan!=null || session.agent.value.error.isNotBlank())}
   val private=File(ui.activity.filesDir,"validation/agent-plan-private.txt").apply{parentFile?.mkdirs()}
