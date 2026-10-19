@@ -26,7 +26,7 @@ import java.time.Instant
  val importStatus by session.aiImportStatus.collectAsState()
  val client=remember{LocalAiClient(context,session.ai)}
  val owner=androidx.lifecycle.compose.LocalLifecycleOwner.current
- var question by rememberSaveable{mutableStateOf("Explica este resultado y qué debería comprobar después.")}
+ var question by rememberSaveable{mutableStateOf("Explica este resultado en tres frases e indica qué comprobar después.")}
  var chosen by rememberSaveable{mutableStateOf("Sin contexto")}
  var expanded by remember{mutableStateOf(false)}
  var deleting by remember{mutableStateOf(false)}
@@ -55,8 +55,8 @@ import java.time.Instant
   if(!state.connected && !blocked)OutlinedButton(onClick={client.disconnect();client.connect()}){Text("Reconectar motor")}
   Button(enabled=!blocked && !state.loaded,onClick=pick){Text(if(model==null)"Importar modelo .litertlm" else "Cambiar modelo")}
   if(model==null){
-   Text("Prepara Gemma 3 1B IT INT4 desde su página oficial, acepta allí sus condiciones y elige el archivo descargado. Esta versión no contiene los pesos ni genera ejemplos de respuesta.",style=MaterialTheme.typography.bodySmall)
-   TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://huggingface.co/litert-community/Gemma3-1B-IT")))}){Text("Abrir página del modelo")}
+   Text("Modelo recomendado sin registro: Qwen3 0,6B mixed INT4, unos 498 MB, licencia Apache 2.0. Descarga el archivo .litertlm desde LiteRT Community e impórtalo. Los pesos no vienen incluidos en la APK.",style=MaterialTheme.typography.bodySmall)
+   TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://huggingface.co/litert-community/Qwen3-0.6B/blob/e6687177e00897731e7716267eebd4eba0dde7c2/qwen3_0_6b_mixed_int4.litertlm")))}){Text("Abrir modelo sin registro")}
   }else model?.let{m->
    Text(m.name+" · "+displayBytes(m.bytes),style=MaterialTheme.typography.bodySmall)
    DeckDisclosure("Huella y almacenamiento","SHA-256: ${m.sha256}\nImportado: ${m.importedAt}. Copia privada; el original no se modifica. La cabecera y el hash no acreditan procedencia ni compatibilidad; cargarlo comprobará si el motor lo acepta.")
@@ -74,7 +74,7 @@ import java.time.Instant
   }}
   selected?.let{result->DeckDisclosure("Ver datos incluidos",AiPolicy.prompt("Explicar resultado",result))}
   OutlinedTextField(question,{question=it.take(800)},label={Text("Pregunta al analista")},supportingText={Text("${question.length}/800 · solo el contexto que elijas, hasta 2200 caracteres")},modifier=Modifier.fillMaxWidth(),maxLines=5,enabled=!blocked)
-  Button(enabled=state.loaded && !blocked && question.isNotBlank(),onClick={session.aiRequest.value=AiRequest(question,selected?.let{"${it.kind}: ${it.target} · ${it.checkedAt} · primeros 2200 caracteres"}?:"Ninguno",model?.name.orEmpty(),model?.sha256.orEmpty(),Instant.now().toString());client.send(AiWire.ASK,AiPolicy.prompt(question,selected))}){Text("Analizar en este móvil")}
+  Button(enabled=state.loaded && !blocked && question.isNotBlank(),onClick={session.aiRequest.value=AiRequest(question,selected?.let{"${it.kind}: ${it.target} · ${it.checkedAt} · primeros 2200 caracteres"}?:"Ninguno",model?.name.orEmpty(),model?.sha256.orEmpty(),Instant.now().toString());client.send(AiWire.ASK,AiPolicy.modelPrompt(question,selected,model?.name.orEmpty()))}){Text("Analizar en este móvil")}
   if(state.busy && state.loaded)OutlinedButton(onClick={client.send(AiWire.STOP)}){Text("Detener generación")}
   if(!state.loaded)Text("Importa y carga un modelo para habilitar la generación. Motor nativo: ${if(state.runtime)"cargado" else "sin verificar"}.",style=MaterialTheme.typography.bodySmall)
   if(state.output.isNotEmpty()){
@@ -83,7 +83,7 @@ import java.time.Instant
    Text("${state.elapsed/1000} s · ${state.chunks} fragmentos recibidos (no tokens). Puede contener errores; no acredita ataques ni sustituye las lecturas originales.",style=MaterialTheme.typography.bodySmall)
    OutlinedButton(enabled=!blocked,onClick={save(DiagnosticResult("ai","Modelo local",Instant.now().toString(),"Interpretación de IA; no es una medición",listOf("Motor" to "Google LiteRT-LM 0.13.1 · CPU local","Modelo" to (request?.model?:"No disponible"),"SHA-256 modelo" to (request?.modelHash?:"No disponible"),"Pregunta" to (request?.question?:"No disponible"),"Contexto seleccionado" to (request?.context?:"No disponible"),"Fecha de solicitud" to (request?.at?:"No disponible"),"Estado" to if(state.error.isBlank())"Finalizada por el motor; pendiente de revisión" else "Interrumpida: ${state.error}","Respuesta generada" to state.output,"Límite" to "Texto de IA no verificado. Sin ejecución de herramientas ni acciones sobre equipos.")))}){Text("Guardar interpretación")}
   }
-  DeckDisclosure("Privacidad y límites","No incluye Gemini en la nube, clave API ni automatización de herramientas. El modelo se copia a almacenamiento privado y no se distribuye en GitHub. El motor corre en otro proceso de CiberDeck para contener fallos nativos; tiene los permisos de la app, pero esta integración no realiza peticiones de red. Puede equivocarse o seguir texto malicioso del contexto: revisa la respuesta. Ninguna salida se ejecuta. No se graba micrófono ni se leen llamadas, mensajes o archivos no seleccionados para la IA. Generación pendiente de validación física con un modelo real.")
+  DeckDisclosure("Privacidad y límites","No incluye Gemini en la nube, clave API ni automatización de herramientas. El modelo se copia a almacenamiento privado y no se distribuye en GitHub. El motor corre en otro proceso de CiberDeck para contener fallos nativos; tiene los permisos de la app, pero esta integración no realiza peticiones de red. Puede equivocarse o seguir texto malicioso del contexto: revisa la respuesta. Ninguna salida se ejecuta. No se graba micrófono ni se leen llamadas, mensajes o archivos no seleccionados para la IA. Las respuestas pueden ser inexactas y no son un diagnóstico de seguridad.")
  }
  if(deleting)AlertDialog(onDismissRequest={deleting=false},title={Text("¿Eliminar el modelo importado?")},text={Text("Borra solo la copia privada de CiberDeck. El archivo que seleccionaste permanece intacto.")},confirmButton={TextButton(onClick={runCatching{AiModelStore(context).delete()}.onSuccess{session.aiModel.value=null;session.ai.update{it.copy(output="")}}.onFailure{error->session.ai.update{it.copy(error=error.message?:"No se pudo eliminar")}};deleting=false}){Text("Eliminar")}},dismissButton={TextButton(onClick={deleting=false}){Text("Cancelar")}})
 }

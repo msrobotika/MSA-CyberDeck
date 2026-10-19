@@ -48,7 +48,7 @@ object ResourceSampler {
         ResourceChart("Batería",samples.mapNotNull{sample->sample.battery?.let{Triple(sample.elapsed,it.toFloat(),sample.at)}},"%",true)
     }
 }
-@Composable private fun ResourceChart(title:String,data:List<Triple<Long,Float,String>>,unit:String,fixedPercent:Boolean) {
+@Composable internal fun ResourceChart(title:String,data:List<Triple<Long,Float,String>>,unit:String,fixedPercent:Boolean) {
     Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
         Text(title,style=MaterialTheme.typography.titleMedium)
         if(data.isEmpty())Text("Inicia la medición para ver muestras reales.",style=MaterialTheme.typography.bodySmall)

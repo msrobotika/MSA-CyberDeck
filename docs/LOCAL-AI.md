@@ -1,11 +1,11 @@
 # Asistente local de CiberDeck
 
-Integración experimental de Gemma mediante Google LiteRT-LM para Android. El usuario ha pedido dejar preparada la importación: no se descargan pesos, no se acepta una licencia en su nombre y no se simulan respuestas.
+Integración experimental de modelos locales mediante Google LiteRT-LM para Android. La alternativa actual es Qwen3 0.6B mixed INT4, descargada e importada en el A15 sin registro. La generación se ha probado con observaciones reales del teléfono; su calidad sigue siendo limitada y requiere revisión. No se simulan respuestas. Ver [modelo, hash y validación](OPEN-LOCAL-MODEL.md).
 
 ## Flujo
 
 1. Abrir Asistente IA en el menú.
-2. Obtener el modelo Gemma 3 1B IT INT4 desde su repositorio enlazado, revisando y aceptando allí las condiciones de Gemma. No se pide introducir tokens, claves ni contraseñas en CiberDeck.
+2. Obtener el archivo Qwen3 mixed INT4 enlazado en la guía, sin registro. Gemma es una alternativa opcional con sus propias condiciones y no se ha descargado ni aceptado su licencia en nombre del usuario. No se pide introducir tokens, claves ni contraseñas en CiberDeck.
 3. Importar el archivo `.litertlm` con el selector de Android. Se comprueba la cabecera, se calcula SHA-256 por bloques y se guarda una copia privada de hasta 2 GiB. La extensión y el hash no autentican el editor. La compatibilidad definitiva se conoce al cargarlo.
 4. Cargar manualmente el modelo. El motor usa CPU con dos hilos, contexto de 2048 tokens y una comprobación previa de al menos 1,5 GiB de RAM disponible. Es una precaución, no una garantía de memoria suficiente para cualquier modelo. No se promete velocidad en el A15 ni en el OPPO sin una prueba del modelo concreto.
 5. Elegir contexto explícito: ninguno, chequeo del móvil, auditoría de un equipo, APK inspeccionada o último diagnóstico. Vista previa de los datos adjuntos, hasta 2200 caracteres, y pregunta de hasta 800. No se adjuntan automáticamente conversaciones, llamadas, fotos, credenciales o archivos del teléfono.
@@ -23,7 +23,7 @@ El proceso separado comparte UID y permisos de CiberDeck: no es un sandbox de se
 
 ## Estado
 
-Se prepara el motor, su cliente IPC, importación, controles y pruebas sin modelo. Generación, rendimiento, consumo y calidad pendientes de un archivo Gemma real y aceptado por el propietario. No presentar la comprobación de biblioteca nativa como una prueba de inferencia. Gemini Nano/AICore es una tecnología distinta: AICore no apareció instalado en el A15 durante la revisión; no se da por disponible en ese móvil ni en el OPPO.
+Motor, cliente IPC, importación, controles y generación Qwen3 comprobados en el A15. Una respuesta breve a un diagnóstico real tardó unos 30 segundos con CPU y dos hilos; no equivale a un benchmark ni una evaluación de precisión. Las primeras respuestas mostraron límites de calidad y se corrigió la presentación del razonamiento interno; no se acredita al modelo como experto ni detector de ataques. Gemma y el OPPO siguen sin una prueba de inferencia. Gemini Nano/AICore es una tecnología distinta: AICore no apareció instalado en el A15 durante la revisión; no se da por disponible en ese móvil ni en el OPPO.
 
 Versiones fijadas: LiteRT-LM 0.13.1, Kotlin 2.2.21, AGP 8.10.1, Gradle 8.13 y Java 17. Se eligió una versión del motor compatible con la base de compilación actualizable, sin depender de `latest.release`. Android mínimo 26. Esta candidata incluye bibliotecas nativas arm64-v8a y x86_64: la APK completa requiere un dispositivo de 64 bits. No se ofrece todavía una variante para teléfonos de 32 bits sin IA. A15 y OPPO identificados son ARM64.
 
@@ -34,4 +34,4 @@ Versiones fijadas: LiteRT-LM 0.13.1, Kotlin 2.2.21, AGP 8.10.1, Gradle 8.13 y Ja
 - [Modelo recomendado y condiciones de acceso](https://huggingface.co/litert-community/Gemma3-1B-IT)
 - [Gemini Nano](https://developer.android.com/ai/gemini-nano)
 
-Los pesos Gemma tienen su propia licencia. No se incluyen en el repositorio, APK ni artefactos CI. Las licencias del motor y los modelos son independientes de la licencia del código de CiberDeck.
+Las licencias del motor y los modelos son independientes de la licencia del código de CiberDeck. Qwen3 declara Apache 2.0; Gemma tiene sus propias condiciones. No se incluyen pesos en el repositorio, APK ni artefactos CI.

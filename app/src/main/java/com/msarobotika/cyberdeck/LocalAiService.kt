@@ -48,20 +48,21 @@ class LocalAiService:Service() {
      val prompt=msg.data.getString("prompt").orEmpty();if(prompt.isBlank() || prompt.length>4000){report("Pregunta no válida");return}
      busy=true;text="";chunks=0;started=SystemClock.elapsedRealtime();finalized.set(false);report("Generando en este móvil");armWatchdog()
      worker.execute{try{
-      val c=engine!!.createConversation(ConversationConfig(systemInstruction=Contents.of(AiPolicy.SYSTEM),tools=emptyList(),automaticToolCalling=false,samplerConfig=SamplerConfig(topK=20,topP=.9,temperature=.2)))
+      val c=engine!!.createConversation(ConversationConfig(systemInstruction=Contents.of(AiPolicy.SYSTEM),tools=emptyList(),automaticToolCalling=false,extraContext=mapOf("enable_thinking" to false),samplerConfig=SamplerConfig(topK=20,topP=.9,temperature=.2)))
       conversation=c
       val builder=StringBuilder();var last=0L
       c.sendMessageAsync(prompt,object:MessageCallback{
        override fun onMessage(message:com.google.ai.edge.litertlm.Message){synchronized(builder){
         builder.append(message.contents.contents.filterIsInstance<Content.Text>().joinToString(""){it.text});chunks++
-        val snapshot=builder.toString().take(AiPolicy.MAX_OUTPUT_CHARS)
+        val snapshot=AiPolicy.answerText(builder.toString()).take(AiPolicy.MAX_OUTPUT_CHARS)
         if(builder.length>=AiPolicy.MAX_OUTPUT_CHARS)runCatching{c.cancelProcess()}
         val now=SystemClock.elapsedRealtime();if(now-last>=100){last=now;main.post{text=snapshot;report("Generando en este móvil")}}
        }}
        override fun onDone(){finish("")}
        override fun onError(throwable:Throwable){finish(if(throwable is java.util.concurrent.CancellationException)"Generación detenida" else throwable.message?:"Error al generar")}
-       private fun finish(error:String){if(!finalized.compareAndSet(false,true))return;val output=synchronized(builder){builder.toString().take(AiPolicy.MAX_OUTPUT_CHARS)}
-        worker.execute{runCatching{c.close()};conversation=null;main.post{text=output;busy=false;report(if(error.isEmpty())"Respuesta generada localmente" else "Generación interrumpida",error)}}
+       private fun finish(error:String){if(!finalized.compareAndSet(false,true))return;val output=synchronized(builder){AiPolicy.answerText(builder.toString()).take(AiPolicy.MAX_OUTPUT_CHARS)}
+        val problem=if(error.isEmpty() && output.isBlank())"El modelo no devolvió una respuesta final. Prueba una pregunta más breve." else error
+        worker.execute{runCatching{c.close()};conversation=null;main.post{text=output;busy=false;report(if(problem.isEmpty())"Respuesta generada localmente" else "Generación interrumpida",problem)}}
        }
       })
      }catch(t:Throwable){finalized.set(true);runCatching{conversation?.close()};conversation=null;fail(t)}}

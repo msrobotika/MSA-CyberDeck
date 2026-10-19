@@ -25,7 +25,7 @@ class AiModelStore(private val context:Context) {
   return File(dir,info.file)
  }
  fun import(uri:Uri,progress:(Long)->Unit):AiModelInfo {
-  var name="modelo.litertlm";var knownSize:Long?=null
+  var name=if(uri.scheme=="file")uri.lastPathSegment.orEmpty().take(120).ifBlank{"modelo.litertlm"} else "modelo.litertlm";var knownSize:Long?=null
   context.contentResolver.query(uri,arrayOf(OpenableColumns.DISPLAY_NAME,OpenableColumns.SIZE),null,null,null)?.use{c->if(c.moveToFirst()){name=c.getString(0).orEmpty().take(120);if(!c.isNull(1))knownSize=c.getLong(1)}}
   require(name.endsWith(".litertlm",true)){"Selecciona el archivo .litertlm, no GGUF, TASK, ZIP ni APK"}
   knownSize?.let{require(it in 16384..AiPolicy.MAX_MODEL_BYTES){"El modelo debe ocupar entre 16 KiB y 2 GiB"};require(dir.usableSpace>it+128*1024*1024){"No hay espacio suficiente para importar sin reemplazar el modelo actual"}}

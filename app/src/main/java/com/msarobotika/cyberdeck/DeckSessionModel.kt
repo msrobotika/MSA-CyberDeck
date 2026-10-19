@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class DeckSessionModel:ViewModel() {
     val nfc=MutableStateFlow(NfcSnapshot())
     val exposure=MutableStateFlow(ExposureState())
+    val magnetic=MutableStateFlow<List<MagneticSample>>(emptyList())
+    val magneticLive=MutableStateFlow(false)
+    val magneticReference=MutableStateFlow<Double?>(null)
     var exposureRunner:ExposureRunner?=null
     val ai=MutableStateFlow(LocalAiState())
     val aiRequest=MutableStateFlow<AiRequest?>(null)

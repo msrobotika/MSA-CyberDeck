@@ -306,6 +306,8 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         "Equipo" -> {item{ExposurePanel(session,save={saveDiagnostic(it)})}}
+                        "Magnético" -> {item{MagneticPanel(session,save={saveDiagnostic(it)})}}
+                        "CIDR" -> {item{NetworkPlanPanel(save={saveDiagnostic(it)})}}
                         "IA" -> {item{LocalAiPanel(session,listOfNotNull(
                             phoneSnapshot?.diagnostic()?.let{"Chequeo del móvil" to it},
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},
