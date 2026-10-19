@@ -6,6 +6,20 @@ import java.util.UUID
 import org.junit.Test
 import org.junit.Assert.*
 class ComparisonStoreDeviceTest {
+ @Test fun suggestVerifiedPairFromActualActiveWorkWithoutScreenAccess(){
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val store=EvidenceStore(context);val state=AuditWorkStore(context).read()
+  val work=state.works.firstOrNull{it.id==state.activeId}
+  org.junit.Assume.assumeTrue(work!=null)
+  val entries=store.list().asReversed().filter{e->e.name.startsWith("diagnostico-") && !e.name.startsWith("diagnostico-comparison-") && e.bytes<=65536 && work!!.evidence.any{AuditWorkPolicy.matches(it,e)}}
+  val pair=suggestComparison(entries){store.diagnostic(it)}
+  org.junit.Assume.assumeTrue(pair!=null)
+  val result=loadSavedComparison(store,pair!!.baseline.entry,pair.current.entry)
+  assertEquals(pair.baseline.diagnostic,result.baseline);assertEquals(pair.current.diagnostic,result.current)
+  assertNotEquals(pair.baseline.entry.id,pair.current.entry.id)
+  assertTrue(entries.indexOf(pair.current.entry)<entries.indexOf(pair.baseline.entry))
+  assertTrue(result.rows.isNotEmpty())
+ }
  @Test fun actualStoredPhoneReadingsComparedWithoutScreenAccess(){
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   val store=EvidenceStore(context)
@@ -34,6 +48,7 @@ class ComparisonStoreDeviceTest {
    assertTrue(runCatching{loadSavedComparison(store,first,first)}.isFailure)
    val file=File(folder,"evidence/${second.id}");val bytes=file.readBytes();val changed=bytes.clone();changed[changed.size/2]=(changed[changed.size/2].toInt() xor 1).toByte();file.writeBytes(changed)
    assertTrue(runCatching{loadSavedComparison(store,first,second)}.isFailure)
+   assertNull(suggestComparison(listOf(second,first)){store.diagnostic(it)})
    file.writeBytes(bytes);store.delete(first.id);assertTrue(runCatching{loadSavedComparison(store,first,second)}.isFailure)
   }finally{folder.deleteRecursively()}
  }

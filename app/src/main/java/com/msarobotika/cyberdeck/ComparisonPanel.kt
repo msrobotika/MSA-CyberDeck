@@ -31,6 +31,9 @@ class ComparisonSelectionModel(private val saved:SavedStateHandle):ViewModel(){
  var query by rememberSaveable{mutableStateOf("")};var changesOnly by rememberSaveable{mutableStateOf(true)}
  var running by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")}
  var result by remember{mutableStateOf<SavedComparison?>(null)}
+ var suggesting by remember{mutableStateOf(false)}
+ var suggestion by remember{mutableStateOf<ComparisonSuggestion?>(null)}
+ var manual by rememberSaveable{mutableStateOf(true)}
  val candidates=entries.asReversed().filter{it.name.startsWith("diagnostico-") && !it.name.startsWith("diagnostico-comparison-") && it.bytes<=65536 && (!workOnly || work?.evidence?.any{ref->AuditWorkPolicy.matches(ref,it)}==true)}
  LaunchedEffect(candidates){
   result?.let{if(it.first !in candidates || it.second !in candidates)result=null}
@@ -39,11 +42,33 @@ class ComparisonSelectionModel(private val saved:SavedStateHandle):ViewModel(){
   Text("CAMBIOS ENTRE LECTURAS",style=MaterialTheme.typography.labelLarge,color=DeckCyan)
   Text("Antes y después, con evidencia",style=MaterialTheme.typography.headlineSmall)
   Text("Compara dos diagnósticos guardados del mismo tipo y destino. Las copias se verifican por SHA-256 antes de leer sus datos.")
-  if(work!=null)FilterChip(selected=workOnly,onClick={workOnly=!workOnly;selection.chooseFirst(null);selection.chooseSecond(null);result=null;error=""},enabled=!running,label={Text("Solo trabajo activo")})
+  if(work!=null)FilterChip(selected=workOnly,onClick={workOnly=!workOnly;selection.chooseFirst(null);selection.chooseSecond(null);result=null;suggestion=null;error=""},enabled=!running && !suggesting,label={Text("Solo trabajo activo")})
   if(candidates.size<2)Text("Necesitas dos diagnósticos compatibles guardados. Repite una revisión desde su herramienta y guarda ambas lecturas.")
-  ComparisonChoice("A · Referencia","before",candidates,first,!running && !busy){selection.chooseFirst(it);result=null;error=""}
-  ComparisonChoice("B · Otra lectura","after",candidates,second,!running && !busy){selection.chooseSecond(it);result=null;error=""}
-  Button(enabled=!running && !busy && first!=second && candidates.any{it.id==first} && candidates.any{it.id==second},onClick={
+  OutlinedButton(enabled=!running && !suggesting && !busy && candidates.size>=2,modifier=Modifier.testTag("comparison-suggest"),onClick={
+   suggesting=true;error=""
+   scope.launch{try{
+    val proposed=withContext(Dispatchers.IO){suggestComparison(candidates){entry->ensureActive();store.diagnostic(entry)}}
+    if(proposed==null)error="No hay dos lecturas verificables del mismo tipo y destino entre las últimas 100 copias de este filtro. Puedes elegir otras manualmente."
+    else{selection.chooseFirst(proposed.baseline.entry.id);selection.chooseSecond(proposed.current.entry.id);suggestion=proposed;manual=false;result=null}
+   }catch(e:CancellationException){throw e}catch(e:Exception){error=e.message?:"No se pudo preparar la pareja"}finally{suggesting=false}}
+  }){Text(if(suggesting)"Buscando copias compatibles…" else "Preparar pareja compatible")}
+  Text("Prepara dos lecturas del mismo tipo y destino. Puedes cambiar la selección.",style=MaterialTheme.typography.bodySmall)
+  if(suggesting)LinearProgressIndicator(Modifier.fillMaxWidth())
+  DeckDisclosure("Cómo se prepara la pareja","Revisa hasta 100 copias recientes del filtro. Elige la lectura guardada más reciente que tenga otra del mismo tipo y destino exactos. A es la copia anterior por orden de guardado y B la posterior; no acredita el orden de observación ni identidad física. Omite copias no verificables y formatos incompatibles. Verificar y comparar comprueba de nuevo ambas copias. No inicia pruebas de red.")
+  suggestion?.takeIf{it.baseline.entry.id==first && it.current.entry.id==second && candidates.contains(it.baseline.entry) && candidates.contains(it.current.entry)}?.let{pair->
+   Card(Modifier.fillMaxWidth().testTag("comparison-pair-preview")){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+    Text("PAREJA PREPARADA",color=DeckMint,style=MaterialTheme.typography.labelLarge)
+    Text("${pair.current.diagnostic.kind} · ${pair.current.diagnostic.target}",style=MaterialTheme.typography.titleMedium)
+    Text("A · Guardada ${displayTime(pair.baseline.entry.importedAt)}\nB · Guardada ${displayTime(pair.current.entry.importedAt)}",style=MaterialTheme.typography.bodySmall)
+    DeckDisclosure("Ver resúmenes de las lecturas","A: ${pair.baseline.diagnostic.summary.take(240)}\nB: ${pair.current.diagnostic.summary.take(240)}")
+   }}
+  }
+  TextButton(enabled=!running && !suggesting && !busy,onClick={manual=!manual}){Text(if(manual)"Ocultar selección manual" else "Elegir otras lecturas")}
+  if(manual){
+  ComparisonChoice("A · Referencia","before",candidates,first,!running && !suggesting && !busy){selection.chooseFirst(it);suggestion=null;result=null;error=""}
+  ComparisonChoice("B · Otra lectura","after",candidates,second,!running && !suggesting && !busy){selection.chooseSecond(it);suggestion=null;result=null;error=""}
+  }
+  Button(enabled=!running && !suggesting && !busy && first!=second && candidates.any{it.id==first} && candidates.any{it.id==second},onClick={
    val a=candidates.firstOrNull{it.id==first};val b=candidates.firstOrNull{it.id==second}
    if(a==null || b==null){error="La selección ya no está disponible"}else{running=true;error="";result=null
     scope.launch{try{result=withContext(Dispatchers.IO){loadSavedComparison(store,a,b)}}catch(e:CancellationException){throw e}catch(e:Exception){error=e.message?:"No se pudo comparar"}finally{running=false}}

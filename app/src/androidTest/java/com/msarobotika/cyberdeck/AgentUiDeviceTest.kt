@@ -1,0 +1,44 @@
+package com.msarobotika.cyberdeck
+
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.lifecycle.ViewModelProvider
+import android.graphics.Bitmap
+import java.io.File
+import org.junit.Rule
+import org.junit.Test
+import org.junit.Assert.*
+import org.junit.Assume.assumeTrue
+
+class AgentUiDeviceTest {
+ @get:Rule val ui=createAndroidComposeRule<MainActivity>()
+ @Test fun actualLocalModelProposesPlanBeforeUserExecutesAndSaves(){
+  assumeTrue(androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("agentAi")=="qwen3")
+  ui.openDeck("IA")
+  val session=ViewModelProvider(ui.activity)[DeckSessionModel::class.java]
+  ui.waitUntil(20000){session.ai.value.runtime && session.aiModel.value!=null}
+  ui.onNodeWithText("Agente",substring=false).performScrollTo().performClick()
+  ui.onNodeWithText("Cargar IA local").performScrollTo().performClick()
+  ui.waitUntil(95000){!session.ai.value.busy && (session.ai.value.loaded || session.ai.value.error.isNotBlank())}
+  assertTrue(session.ai.value.error,session.ai.value.loaded)
+  ui.onNodeWithText("Preparar plan con IA").performScrollTo().performClick()
+  ui.waitUntil(95000){!session.agent.value.planning && (session.agent.value.plan!=null || session.agent.value.error.isNotBlank())}
+  val private=File(ui.activity.filesDir,"validation/agent-plan-private.txt").apply{parentFile?.mkdirs()}
+  private.writeText(session.agent.value.raw+"\nERROR: "+session.agent.value.error)
+  assertNotNull(session.agent.value.error,session.agent.value.plan)
+  assertEquals(listOf(AgentTool.PHONE,AgentTool.CONNECTION),session.agent.value.plan!!.steps)
+  assertTrue(session.agent.value.results.isEmpty());assertNull(session.agent.value.run)
+  ui.onNodeWithText("Ejecutar este plan").performScrollTo().performClick()
+  ui.waitUntil(20000){!session.agent.value.running && session.agent.value.run!=null}
+  assertEquals(listOf("phone","connection"),session.agent.value.results.map{it.result?.kind})
+  ui.onNodeWithText("Guardar ejecución como evidencia").performScrollTo()
+  val out=File(ui.activity.filesDir,"validation/ciberdeck-agent.png").apply{parentFile?.mkdirs()}
+  out.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
+  val store=EvidenceStore(ui.activity);val before=store.list().size
+  ui.onNodeWithText("Guardar ejecución como evidencia").performClick()
+  ui.waitUntil(10000){store.list().size>before}
+  assertEquals("agent",store.diagnostic(store.list().last()).kind)
+  ui.openDeck("Resumen")
+ }
+}

@@ -2,10 +2,12 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.15.1 · Comparación y revisión verificadas en A15
+## Desarrollo 0.17 · Agente local experimental y comparación guiada
 
 APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada y comprobada en Galaxy A15; esta revisión no se ha instalado en el OPPO desconectado.
 
+- **Agente local, dentro de IA → Agente**: convierte una petición en un plan revisable de hasta tres herramientas: revisión del móvil, estado local de conexión y comparación de copias guardadas. JSON validado, ejecución solo al pulsar el botón, resultados de herramientas y guardado manual de la sesión. No dispone de comandos de sistema ni acciones arbitrarias. Qwen propuso los dos pasos solicitados y ambas herramientas se ejecutaron con lecturas reales en A15; el recorrido final de botones/guardado del agente sigue pendiente de repetir tras la corrección del validador. [Contrato, pruebas y límites](docs/VALIDATION-017.md).
+- **Comparación guiada**: prepara una pareja compatible entre hasta 100 diagnósticos recientes del filtro, comprueba sus copias y conserva la selección manual. Los detalles se despliegan y los selectores manuales se ocultan al preparar la pareja. El cálculo vuelve a verificar los originales.
 - **Trabajos de auditoría**: separa cada revisión por nombre, alcance, objetivos y notas. Asocia los diagnósticos guardados al trabajo activo, incorpora evidencias existentes y exporta un informe con comprobación SHA-256. Archivar no borra archivos. Panel de integridad con recuentos medidos y accesos directos a las herramientas del trabajo activo. [Uso de trabajos](docs/VALIDATION-011.md) · [Panel y pruebas](docs/VALIDATION-012.md).
 - **Comparar lecturas**: dos diagnósticos guardados del mismo tipo/destino, verificación SHA-256, gráfica de campos modificados/añadidos/ausentes/sin cambios, búsqueda y guardado vinculado al trabajo activo. Sin tráfico ni conclusiones automáticas de seguridad. [Método y validación](docs/VALIDATION-013.md).
 - **Auditar un equipo**: flujo guiado desde el inicio. Resuelve un destino, confirma una IP y hasta ocho puertos, acepta el alcance autorizado y comprueba conexiones TCP sin enviar datos de aplicación. Gráfico de resultados, tiempos medidos, referencia temporal, comparación e informe verificable. La red queda fijada y un cambio interrumpe la prueba. Un puerto accesible no acredita una vulnerabilidad ni una intrusión.
@@ -24,7 +26,7 @@ APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalad
 - **Guardia de llamadas**, experimental: API oficial Android de filtrado con elección expresa de la app por el usuario. Registro privado limitado a 100 eventos entrantes, lista personal de revisión, avisos por coincidencia exacta o verificación de operador fallida. No consulta reputación externa, no graba ni bloquea llamadas. Sin llamada física de validación todavía.
 - ESP32 con cinco pantallas horizontales y la misma paleta/identidad: Radar, Redes, Ficha, Avisos y USB. BOOT cambia de vista; no es táctil.
 
-[Validación de esta candidata](docs/VALIDATION-0151.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
+[Validación de esta candidata](docs/VALIDATION-017.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
 
 PC→ESP y PC→OPPO funcionan por separado. Esto **no valida** la conexión directa Android→ESP mediante OTG, que sigue pendiente. El firmware real conserva el protocolo WiFi Sentinel; no se ha sustituido por el firmware genérico candidato.
 
@@ -45,6 +47,10 @@ El rediseño ESP 0.3.1 conserva el radar inicial y cambia las otras cuatro vista
 Pruebas de interfaz 0.15.1 correctas en A15: selección conservada tras recrear la actividad y volver a Comparar; gráfica calculada con dos diagnósticos reales y guardado en el trabajo activo; selección y retirada de contexto para IA sin borrar el original; plan de revisión guardado con su asociación al trabajo. La generación desde los botones de IA, las anotaciones manuales y el selector de exportación siguen pendientes de prueba en este recorrido.
 
 <img src="docs/screenshots/ciberdeck-comparison.png" width="260" alt="Comparación real: 19 campos sin cambios y 2 modificados en dos lecturas del A15"> <img src="docs/screenshots/ciberdeck-phone-review.png" width="260" alt="Plan real del A15 con 11 observaciones sin marcar automáticamente"> <img src="docs/screenshots/ciberdeck-ai-source.png" width="260" alt="Diagnóstico guardado seleccionado como fuente verificada para IA local, sin generación automática">
+
+La selección guiada se comprobó con evidencias reales del A15. Captura de la pareja preparada; representa orden de guardado local, sin estimar riesgo:
+
+<img src="docs/screenshots/ciberdeck-comparison-guided.png" width="280" alt="Pareja de diagnósticos reales preparada por la selección guiada en A15">
 
 ## Base CyberDeck conservada
 

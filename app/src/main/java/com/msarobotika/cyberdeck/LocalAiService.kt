@@ -8,7 +8,7 @@ import com.google.ai.edge.litertlm.*
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
-object AiWire {const val PING=1;const val LOAD=2;const val ASK=3;const val STOP=4;const val UNLOAD=5;const val STATE=10}
+object AiWire {const val PING=1;const val LOAD=2;const val ASK=3;const val STOP=4;const val UNLOAD=5;const val PLAN=6;const val STATE=10}
 
 /** App-private worker process. No tools, network requests, shell or autonomous device actions. */
 class LocalAiService:Service() {
@@ -44,11 +44,12 @@ class LocalAiService:Service() {
       main.post{engine=ready;busy=false;report("Modelo cargado · CPU local")}
      }catch(t:Throwable){runCatching{candidate?.takeIf{it.isInitialized()}?.close()};fail(t)}
     }}
-    AiWire.ASK->{if(busy || engine==null)return
+    AiWire.ASK,AiWire.PLAN->{if(busy || engine==null)return
      val prompt=msg.data.getString("prompt").orEmpty();if(prompt.isBlank() || prompt.length>4000){report("Pregunta no válida");return}
      busy=true;text="";chunks=0;started=SystemClock.elapsedRealtime();finalized.set(false);report("Generando en este móvil");armWatchdog()
+     val system=if(msg.what==AiWire.PLAN)AgentPolicy.SYSTEM else AiPolicy.SYSTEM
      worker.execute{try{
-      val c=engine!!.createConversation(ConversationConfig(systemInstruction=Contents.of(AiPolicy.SYSTEM),tools=emptyList(),automaticToolCalling=false,extraContext=mapOf("enable_thinking" to false),samplerConfig=SamplerConfig(topK=20,topP=.9,temperature=.2)))
+      val c=engine!!.createConversation(ConversationConfig(systemInstruction=Contents.of(system),tools=emptyList(),automaticToolCalling=false,extraContext=mapOf("enable_thinking" to false),samplerConfig=SamplerConfig(topK=20,topP=.9,temperature=.2)))
       conversation=c
       val builder=StringBuilder();var last=0L
       c.sendMessageAsync(prompt,object:MessageCallback{

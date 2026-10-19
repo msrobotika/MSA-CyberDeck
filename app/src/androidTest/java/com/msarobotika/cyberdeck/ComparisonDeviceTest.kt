@@ -10,6 +10,24 @@ import org.junit.Assert.*
 import org.junit.Assume.assumeTrue
 class ComparisonDeviceTest {
  @get:Rule val ui=createAndroidComposeRule<MainActivity>()
+ @Test fun compatiblePairCanBePreparedFromRealWorkReadings(){
+  val store=EvidenceStore(ui.activity);val state=AuditWorkStore(ui.activity).read()
+  val work=state.works.firstOrNull{it.id==state.activeId}
+  assumeTrue(work!=null)
+  val candidates=store.list().asReversed().filter{e->e.name.startsWith("diagnostico-") && !e.name.startsWith("diagnostico-comparison-") && e.bytes<=65536 && work!!.evidence.any{AuditWorkPolicy.matches(it,e)}}
+  val expected=suggestComparison(candidates){store.diagnostic(it)}
+  assumeTrue(expected!=null)
+  ui.openDeck("Comparar")
+  ui.onNodeWithTag("comparison-suggest").performScrollTo().performClick()
+  ui.waitUntil(15000){ui.onAllNodesWithTag("comparison-pair-preview").fetchSemanticsNodes().isNotEmpty()}
+  val selection=androidx.lifecycle.ViewModelProvider(ui.activity)[ComparisonSelectionModel::class.java]
+  assertEquals(expected!!.baseline.entry.id,selection.first.value);assertEquals(expected.current.entry.id,selection.second.value)
+  ui.onNodeWithTag("comparison-pair-preview").performScrollTo()
+  val out=File(ui.activity.filesDir,"validation/ciberdeck-comparison-guided.png").apply{parentFile?.mkdirs()}
+  out.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
+  ui.onNodeWithText("Verificar y comparar").performScrollTo().performClick()
+  ui.waitUntil(15000){ui.onAllNodesWithText("COPIAS VERIFICADAS").fetchSemanticsNodes().isNotEmpty()}
+ }
  @Test fun realSavedPhoneReadingsComparedAndSavedInActiveWork(){
   val store=EvidenceStore(ui.activity);val works=AuditWorkStore(ui.activity)
   val work=works.read().works.firstOrNull{it.id==works.read().activeId}

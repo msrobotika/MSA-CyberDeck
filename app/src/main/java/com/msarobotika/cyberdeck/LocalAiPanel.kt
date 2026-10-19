@@ -25,6 +25,8 @@ import java.time.Instant
  val request by session.aiRequest.collectAsState()
  val importing by session.aiImporting.collectAsState()
  val importStatus by session.aiImportStatus.collectAsState()
+ val agent by session.agent.collectAsState()
+ var agentMode by rememberSaveable{mutableStateOf(false)}
  val client=remember{LocalAiClient(context,session.ai)}
  val owner=androidx.lifecycle.compose.LocalLifecycleOwner.current
  var question by rememberSaveable{mutableStateOf("Explica este resultado en tres frases e indica qué comprobar después.")}
@@ -38,7 +40,7 @@ import java.time.Instant
  var preparation by remember{mutableStateOf<Job?>(null)}
  val scope=rememberCoroutineScope()
  val sourceStore=remember(context){EvidenceStore(context)}
- val blocked=state.busy || importing || preparing
+ val blocked=state.busy || importing || preparing || agent.running
  LaunchedEffect(savedContext?.entry?.id){
   if(savedContext!=null)chosen="Evidencia seleccionada" else if(chosen=="Evidencia seleccionada")chosen="Sin contexto"
  }
@@ -66,10 +68,14 @@ import java.time.Instant
   onDispose{preparation?.cancel();owner.lifecycle.removeObserver(observer);client.disconnect()}
  }
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+   FilterChip(!agentMode,onClick={agentMode=false;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null},enabled=!blocked,label={Text("Analista")})
+   FilterChip(agentMode,onClick={agentMode=true;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null},enabled=!blocked,label={Text("Agente")})
+  }
   Card(Modifier.fillMaxWidth()){Row(Modifier.padding(16.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)){
    Image(painterResource(R.drawable.cyberdeck_robot),"Robot MSA Robotika",Modifier.size(80.dp))
    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
-    Text("ANALISTA LOCAL",color=DeckCyan,style=MaterialTheme.typography.labelLarge)
+    Text(if(agentMode)"AGENTE LOCAL" else "ANALISTA LOCAL",color=DeckCyan,style=MaterialTheme.typography.labelLarge)
     Text("Google LiteRT-LM",style=MaterialTheme.typography.titleLarge)
     Text(if(model==null)"SIN MODELO IMPORTADO" else if(state.loaded)"MODELO EN MEMORIA" else "ARCHIVO IMPORTADO · SIN CARGAR",style=MaterialTheme.typography.labelSmall)
    }
@@ -95,6 +101,7 @@ import java.time.Instant
   }
   Text("CPU · 2 hilos · contexto limitado · se libera al salir. Cargar un modelo puede tardar y aumentar el consumo.",style=MaterialTheme.typography.bodySmall)
   HorizontalDivider()
+  if(agentMode){AgentPanel(session,blocked,send={what,prompt->client.send(what,prompt)},save=save)}else{
   Text("Qué quieres analizar",style=MaterialTheme.typography.titleMedium)
   Box{OutlinedButton(onClick={expanded=true},enabled=!blocked){Text(if(selected==null)"Sin contexto adjunto" else "Contexto: $chosen")};DropdownMenu(expanded,onDismissRequest={expanded=false}){
    (listOf("Sin contexto")+(if(savedContext!=null)listOf("Evidencia seleccionada") else emptyList())+contexts.map{it.first}).forEach{name->DropdownMenuItem(text={Text(name)},onClick={chosen=name;expanded=false})}
@@ -125,6 +132,7 @@ import java.time.Instant
    OutlinedButton(enabled=!blocked,onClick={save(DiagnosticResult("ai","Modelo local",Instant.now().toString(),"Interpretación de IA; no es una medición",listOf("Motor" to "Google LiteRT-LM 0.13.1 · CPU local","Modelo" to (request?.model?:"No disponible"),"SHA-256 modelo" to (request?.modelHash?:"No disponible"),"Pregunta" to (request?.question?:"No disponible"),"Contexto seleccionado" to (request?.context?:"No disponible"),"Fecha de solicitud" to (request?.at?:"No disponible"),"ID fuente guardada" to (request?.sourceId?.ifBlank{"No adjunta"}?:"No disponible"),"SHA-256 fuente guardada" to (request?.sourceHash?.ifBlank{"No adjunta"}?:"No disponible"),"Fecha de verificación de fuente" to (request?.sourceVerifiedAt?.ifBlank{"No adjunta"}?:"No disponible"),"Estado" to if(state.error.isBlank())"Finalizada por el motor; pendiente de revisión" else "Interrumpida: ${state.error}","Respuesta generada" to state.output,"Límite" to "Texto de IA no verificado. Sin ejecución de herramientas ni acciones sobre equipos.")))}){Text("Guardar interpretación")}
   }
   DeckDisclosure("Privacidad y límites","No incluye Gemini en la nube, clave API ni automatización de herramientas. El modelo se copia a almacenamiento privado y no se distribuye en GitHub. El motor corre en otro proceso de CiberDeck para contener fallos nativos; tiene los permisos de la app, pero esta integración no realiza peticiones de red. Puede equivocarse o seguir texto malicioso del contexto: revisa la respuesta. Ninguna salida se ejecuta. No se graba micrófono ni se leen llamadas, mensajes o archivos no seleccionados para la IA. Las respuestas pueden ser inexactas y no son un diagnóstico de seguridad.")
+  }
  }
  if(deleting)AlertDialog(onDismissRequest={deleting=false},title={Text("¿Eliminar el modelo importado?")},text={Text("Borra solo la copia privada de CiberDeck. El archivo que seleccionaste permanece intacto.")},confirmButton={TextButton(onClick={runCatching{AiModelStore(context).delete()}.onSuccess{session.aiModel.value=null;session.ai.update{it.copy(output="")}}.onFailure{error->session.ai.update{it.copy(error=error.message?:"No se pudo eliminar")}};deleting=false}){Text("Eliminar")}},dismissButton={TextButton(onClick={deleting=false}){Text("Cancelar")}})
 }
