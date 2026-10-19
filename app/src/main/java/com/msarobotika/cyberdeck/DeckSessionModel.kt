@@ -13,6 +13,7 @@ class DeckSessionModel:ViewModel() {
     var exposureRunner:ExposureRunner?=null
     val ai=MutableStateFlow(LocalAiState())
     val agent=MutableStateFlow(AgentSession())
+    val agentMode=MutableStateFlow(false)
     val aiSource=MutableStateFlow<SavedAiContext?>(null)
     val aiRequest=MutableStateFlow<AiRequest?>(null)
     val aiImporting=MutableStateFlow(false)

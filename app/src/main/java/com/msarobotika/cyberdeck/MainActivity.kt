@@ -72,6 +72,8 @@ class MainActivity : ComponentActivity() {
         var workLoaded by remember{mutableStateOf(false)}
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
         val comparisonSelection=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[ComparisonSelectionModel::class.java]}
+        val agentState by session.agent.collectAsState()
+        val agentMode by session.agentMode.collectAsState()
         val savedAiContext by session.aiSource.collectAsState()
         val apkSnapshot by session.apk.collectAsState()
         val exposureState by session.exposure.collectAsState()
@@ -191,11 +193,13 @@ class MainActivity : ComponentActivity() {
             }
         }
         fun saveDiagnostic(result: DiagnosticResult) {
+            val agentRunId=session.agent.value.run?.startedAt
+            val sourceRoute=tab
             val associationReady=workLoaded
             val intendedWork=if(associationReady)workState.activeId else null
             run {
                 val loaded = store.saveBytes("diagnostico-${result.kind}-${System.currentTimeMillis()}.json", result.toEvidenceJson().toByteArray(Charsets.UTF_8))
-                runOnUiThread { entries = loaded }
+                runOnUiThread { entries = loaded;session.agent.value=offerAgentEvidence(session.agent.value,loaded.last(),result.kind,sourceRoute,agentRunId) }
                 if(!associationReady)return@run "Resultado guardado con SHA-256; los trabajos no están disponibles. Puedes asociarlo después desde Trabajos."
                 val associated=runCatching{if(intendedWork!=null)workStore.attach(intendedWork,listOf(loaded.last())) else workStore.read()}
                 associated.onSuccess{state->runOnUiThread{workState=state}}
@@ -289,6 +293,9 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(evidenceQuery,evidenceFilter){if(tab=="Evidencias")contentScroll.scrollToItem(0)}
                 LazyColumn(Modifier.fillMaxSize().testTag("deck-list"),state=contentScroll,contentPadding=PaddingValues(horizontal=18.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
                     if(tab!="Trabajos")workState.works.firstOrNull{it.id==workState.activeId}?.let{work->item{TextButton(onClick={tab="Trabajos"}){Text("Trabajo activo: ${work.name}",maxLines=2)}}}
+                    if(agentState.run?.steps?.lastOrNull()?.awaiting==true && (tab!="IA" || !agentMode))item(key="agent-resume"){
+                        FilledTonalButton(onClick={session.agentMode.value=true;tab="IA"}){Text("Volver al agente · paso pendiente")}
+                    }
                     when(tab) {
                         "Resumen" -> {
                             item { CiberDeckCommand(phoneSnapshot,busy,audit={tab="Equipo"},analyze={run{
@@ -329,7 +336,7 @@ class MainActivity : ComponentActivity() {
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},
                             diagnostic?.let{"Último diagnóstico" to it},
                             exposureState.result?.diagnostic(exposureState.reference)?.let{"Auditoría del equipo" to it}),
-                            pick={aiPicker.launch(arrayOf("*/*"))},save={saveDiagnostic(it)},savedContext=savedAiContext,clearSaved={session.aiSource.value=null})}}
+                            pick={aiPicker.launch(arrayOf("*/*"))},save={saveDiagnostic(it)},savedContext=savedAiContext,clearSaved={session.aiSource.value=null},navigate={tab=it})}}
                         "APK" -> {item{ApkInspectorPanel(apkSnapshot,busy,
                             pick={apkPicker.launch(arrayOf("application/vnd.android.package-archive","application/octet-stream"))},
                             self={run{val result=ApkInspector.inspectFile(this@MainActivity,java.io.File(applicationInfo.sourceDir));runOnUiThread{session.apk.value=result};"CiberDeck inspeccionada desde su APK instalado"}},
