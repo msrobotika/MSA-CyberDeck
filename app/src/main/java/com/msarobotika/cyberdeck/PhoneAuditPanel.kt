@@ -26,9 +26,11 @@ import androidx.compose.ui.unit.dp
                     OutlinedButton(enabled=!busy,onClick={save(snapshot.diagnostic())}){Text("Guardar chequeo")}
                 }
             }}
+            FilterChip(selected=section=="Plan",onClick={section="Plan"},label={Text("Plan de revisión")})
             for(pair in listOf(listOf("Seguridad","Conexión"),listOf("Recursos","Hardware")))Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
                 pair.forEach{label->FilterChip(selected=section==label,onClick={section=label},label={Text(label)},modifier=Modifier.weight(1f))}
             }
+            if(section=="Plan")PhoneReviewPanel(snapshot,busy,save,settings)
             if(section in listOf("Seguridad","Conexión")) snapshot.checks.filter{it.section==section}.forEach{check->
                 Card(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
                     Text(check.title,style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant)

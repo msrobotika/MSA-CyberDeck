@@ -27,7 +27,7 @@ class PhoneAuditDeviceTest {
         shot("phone")
         ui.activityRule.scenario.recreate()
         assertEquals(snapshot.at,ViewModelProvider(ui.activity)[DeckSessionModel::class.java].phone.value?.at)
-        ui.onNodeWithText("Recursos").performClick()
+        ui.onNodeWithText("Recursos").performScrollTo().performClick()
         ui.onNodeWithText("Iniciar gráfica en vivo").performScrollTo().performClick()
         ui.waitUntil(10000){ViewModelProvider(ui.activity)[DeckSessionModel::class.java].samples.value.size>=2}
         ui.onNodeWithText("Pausar gráfica").performScrollTo().performClick()

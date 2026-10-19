@@ -14,7 +14,7 @@ object PhoneAssessment {
         val age=date?.let{ChronoUnit.DAYS.between(it,today)}
         return PhoneCheck("Parche de seguridad",if(date==null)"No disponible" else value,
             if(age==null || age<0)"Fecha no interpretable o posterior al reloj actual. No se evalúan vulnerabilidades."
-            else "$age días desde la fecha declarada. Revisar a partir de 180 días es un criterio local, no un catálogo de CVE ni una comprobación de la última versión del fabricante.",
+            else "$age días desde la fecha declarada. Revisar al superar 180 días es un criterio local, no un catálogo de CVE ni una comprobación de la última versión del fabricante.",
             when{age==null || age<0->PhoneTone.UNKNOWN;age>180->PhoneTone.REVIEW;else->PhoneTone.INFO},"Seguridad","android.settings.SYSTEM_UPDATE_SETTINGS")
     }
     fun debugging(enabled:Int)=PhoneCheck("Depuración USB",when(enabled){1->"Activada";0->"Desactivada";else->"No disponible"},
