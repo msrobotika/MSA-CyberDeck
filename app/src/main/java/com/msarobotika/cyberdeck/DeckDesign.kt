@@ -99,7 +99,7 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
                     if(tool!=null) IconButton(onClick={go("Herramientas")},modifier=Modifier.semantics{contentDescription="Volver a herramientas"}) { DeckGlyph("back") }
                     Column(Modifier.weight(1f).padding(start=12.dp)) {
                         Text("MSA ROBOTIKA",fontFamily=FontFamily.Monospace,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary,letterSpacing=1.sp)
-                        Text(tool?.title ?: when(route){"Resumen"->"CiberDeck";"Herramientas"->"Tu kit de campo";"Evidencias"->"Archivo de evidencias";else->"Informe de trabajo"},style=MaterialTheme.typography.titleLarge)
+                        Text(tool?.title ?: when(route){"Resumen"->"CiberDeck";"Herramientas"->"Tu kit de campo";"Evidencias"->"Archivo de evidencias";else->"Informe de trabajo"},style=MaterialTheme.typography.titleLarge,modifier=Modifier.testTag("screen-title"))
                     }
                 }
                 if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())

@@ -31,7 +31,7 @@ class AgentExpansionDeviceTest {
   }finally{folder.deleteRecursively()}
  }
  @Test fun catalogCoversExistingAppToolsWithoutPretendingHardware(){
-  val covered=AgentTool.entries.mapNotNull{it.route}.toSet()+setOf("Móvil","Comparar","CIDR","Red","Web","Enlaces")
+  val covered=AgentTool.entries.mapNotNull{it.route}.toSet()+setOf("Móvil","Comparar","CIDR","Red","Web","Enlaces","Agente")
   assertTrue(deckTools.map{it.route}.all{it in covered})
   assertEquals(30,AgentTool.entries.size);assertEquals(14,AgentTool.entries.count{!it.assisted})
   AgentTool.entries.filter{it.assisted}.forEach{tool->var called=false;val run=executeAgentPlan(AgentPlan(listOf(tool)),{called=true;error("Must pause")});assertFalse(called);assertTrue(run.steps.single().awaiting)}

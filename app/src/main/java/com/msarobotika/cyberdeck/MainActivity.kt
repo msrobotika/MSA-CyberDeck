@@ -37,6 +37,7 @@ class MainActivity : ComponentActivity() {
     private var detached: () -> Unit = {}
     private var stopDiscovery: () -> Unit = {}
     private var refreshUsb: () -> Unit = {}
+    private var agentRequested by mutableStateOf(false)
     private var callsRequested by mutableStateOf(false)
     private var receiverRequested by mutableStateOf(false)
     private val receiver = object : BroadcastReceiver() {
@@ -51,6 +52,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         agentAccess=AgentAndroidAccess(this)
+        agentRequested=intent?.getBooleanExtra("open_agent",false)==true
         callsRequested=intent?.getBooleanExtra("open_calls",false)==true
         receiverRequested=intent?.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false)==true
         ContextCompat.registerReceiver(this, receiver, IntentFilter(permissionAction).apply {
@@ -62,6 +64,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {super.onResume();refreshUsb()}
     override fun onNewIntent(intent:Intent) {
         super.onNewIntent(intent);setIntent(intent)
+        if(intent.getBooleanExtra("open_agent",false))agentRequested=true
         if(intent.getBooleanExtra("open_calls",false))callsRequested=true
         if(intent.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false))receiverRequested=true
     }
@@ -98,6 +101,8 @@ class MainActivity : ComponentActivity() {
         var tab by rememberSaveable { mutableStateOf("Resumen") }
         var rootNavigationEvent by remember {mutableIntStateOf(0)}
         val screenStates=androidx.compose.runtime.saveable.rememberSaveableStateHolder()
+        LaunchedEffect(agentRequested){if(agentRequested){tab="Agente";session.agentMode.value=true;agentRequested=false}}
+        LaunchedEffect(tab){if(tab=="Agente")session.agentMode.value=true else if(tab=="IA")session.agentMode.value=false}
         LaunchedEffect(callsRequested){if(callsRequested){tab="Llamadas";callsRequested=false}}
         LaunchedEffect(receiverRequested){if(receiverRequested){tab="Recibir";receiverRequested=false}}
         var connection by remember { mutableStateOf<DiagnosticResult?>(null) }
@@ -292,18 +297,19 @@ class MainActivity : ComponentActivity() {
         }
         DeckTheme {
             DeckShell(tab,busy,message,navigate={tab=it;rootNavigationEvent++},receiving=browserState.active) {
-                screenStates.SaveableStateProvider(tab) {
+                screenStates.SaveableStateProvider(if(tab=="Agente")"IA" else tab) {
                 val contentScroll=rememberLazyListState()
+                LaunchedEffect(tab){if(tab in listOf("IA","Agente"))contentScroll.scrollToItem(0)}
                 LaunchedEffect(rootNavigationEvent){if(tab in listOf("Resumen","Evidencias","Informes"))contentScroll.scrollToItem(0)}
                 LaunchedEffect(evidenceQuery,evidenceFilter){if(tab=="Evidencias")contentScroll.scrollToItem(0)}
                 LazyColumn(Modifier.fillMaxSize().testTag("deck-list"),state=contentScroll,contentPadding=PaddingValues(horizontal=18.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
                     if(tab!="Trabajos")workState.works.firstOrNull{it.id==workState.activeId}?.let{work->item{TextButton(onClick={tab="Trabajos"}){Text("Trabajo activo: ${work.name}",maxLines=2)}}}
-                    if(agentState.run?.steps?.lastOrNull()?.awaiting==true && (tab!="IA" || !agentMode))item(key="agent-resume"){
-                        FilledTonalButton(onClick={session.agentMode.value=true;tab="IA"}){Text("Volver al agente · paso pendiente")}
+                    if(agentState.run?.steps?.lastOrNull()?.awaiting==true && (tab !in listOf("IA","Agente") || !agentMode))item(key="agent-resume"){
+                        FilledTonalButton(onClick={session.agentMode.value=true;tab="Agente"}){Text("Volver al agente · paso pendiente")}
                     }
                     when(tab) {
                         "Resumen" -> {
-                            item { CiberDeckCommand(phoneSnapshot,busy,audit={tab="Equipo"},analyze={run{
+                            item { CiberDeckCommand(phoneSnapshot,busy,agent={tab="Agente"},audit={tab="Equipo"},analyze={run{
                                 val result=PhoneAudit.read(this@MainActivity)
                                 runOnUiThread{session.phone.value=result;tab="Móvil"}
                                 "Chequeo local terminado"
@@ -336,7 +342,7 @@ class MainActivity : ComponentActivity() {
                         "Trabajos" -> {item{AuditWorkPanel(workState,workStore,entries,workLoaded,busy,
                             change={success,action->run{val state=action();runOnUiThread{workState=state;workLoaded=true};success}},
                             export={work->run{val generated=workStore.report(work.id,store);runOnUiThread{report=generated;exporter.launch("CiberDeck-trabajo-${work.id.take(8)}.md")};"Informe del trabajo preparado para guardar"}},navigate={tab=it})}}
-                        "IA" -> {item(key="tool-ai"){LocalAiPanel(session,listOfNotNull(
+                        "IA", "Agente" -> {item(key="tool-ai"){LocalAiPanel(session,listOfNotNull(
                             phoneSnapshot?.diagnostic()?.let{"Chequeo del móvil" to it},
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},
                             diagnostic?.let{"Último diagnóstico" to it},

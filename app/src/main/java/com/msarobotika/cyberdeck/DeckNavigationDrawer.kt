@@ -32,10 +32,11 @@ import kotlinx.coroutines.launch
                 }
                 deckRoots.take(2).forEach { root -> NavigationDrawerItem(label={Text(root.title)},selected=route==root.route,
                     onClick={select(root.route)},icon={DeckGlyph(root.glyph)},modifier=Modifier.testTag("drawer-root-${root.route}")) }
+                NavigationDrawerItem(label={Text("Agente")},selected=route=="Agente",onClick={select("Agente")},icon={DeckGlyph("tools")},modifier=Modifier.testTag("drawer-agent"))
                 NavigationDrawerItem(label={Text("Mi móvil")},selected=route=="Móvil",onClick={select("Móvil")},icon={DeckGlyph("report")})
                 HorizontalDivider(Modifier.padding(vertical=12.dp))
                 Text("HERRAMIENTAS POR ÁREA",style=MaterialTheme.typography.labelSmall,color=DeckCyan)
-                deckTools.filter{it.route !in listOf("Módulos","Móvil")}.groupBy{it.group}.forEach { (group,tools) ->
+                deckTools.filter{it.route !in listOf("Módulos","Móvil","Agente")}.groupBy{it.group}.forEach { (group,tools) ->
                     TextButton(onClick={expanded=if(expanded==group)"" else group},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("drawer-group-$group").semantics{stateDescription=if(expanded==group)"Desplegado" else "Plegado"}) {
                         Text(group,Modifier.weight(1f),color=MaterialTheme.colorScheme.onSurface)
                         Text(if(expanded==group)"−" else "+",color=DeckCyan)

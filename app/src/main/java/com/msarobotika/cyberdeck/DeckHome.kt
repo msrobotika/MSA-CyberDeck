@@ -30,6 +30,7 @@ val deckTools=listOf(
     DeckTool("CIDR","Plan de red","IPv4, máscara, rango y direcciones utilizables","Conectividad","tools","Cálculo local"),
     DeckTool("Magnético","Campo magnético","µT, ejes, gráfica y referencia del sensor real","Electrónica","radio","Requiere magnetómetro"),
     DeckTool("Equipo","Auditar equipo","Alcance, conexiones TCP, comparación e informe","Auditoría","tools","Un equipo · 8 puertos"),
+    DeckTool("Agente","Agente","Prepara y ejecuta tareas con las herramientas del kit","Asistente","tools","30 entradas"),
     DeckTool("IA","Asistente IA","IA local para explicar resultados elegidos","Asistente","report","Modelo local"),
     DeckTool("APK","Inspector APK","Firma, permisos y manifiesto sin instalar","Protección personal","files","Análisis local"),
     DeckTool("Llamadas","Llamadas","Verificación del operador y avisos locales","Protección personal","report","Activación opcional"),

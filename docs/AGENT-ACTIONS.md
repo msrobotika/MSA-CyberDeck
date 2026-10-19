@@ -39,7 +39,7 @@ El agente de la aplicación ya no se limita a navegar hacia los módulos interac
 
 ## Ejecución y registro
 
-1. Preparar con IA o elegir hasta ocho funciones distintas en el catálogo.
+1. Abrir «Agente» desde el botón de Inicio, su entrada visible en el menú o el catálogo del kit. Preparar con IA o elegir hasta ocho funciones distintas. En 0.19.1 el agente tiene pantalla propia; «Asistente IA» conserva el analista.
 2. Completar destinos/puertos y autorización de las herramientas de red. Son campos de la app, no argumentos inventados por el modelo.
 3. Revisar y pulsar Ejecutar. Los permisos y selecciones necesarios aparecen en Android; no hay que abrir manualmente la pantalla de cada herramienta.
 4. El agente espera la respuesta del controlador. Los errores detienen el resto del plan. Cancelar un selector no completa su paso ni ejecuta el siguiente.
@@ -49,7 +49,7 @@ Las acciones de red pueden enviar tráfico o abrir un receptor temporal. La apro
 
 La ejecución se detiene al abandonar la pantalla o pasar a segundo plano, salvo durante un selector/permiso Android propio que debe poder devolver su resultado. Se liberan lectores, escáneres y receptores al cancelar. El receptor del agente está ligado al paso activo y no permanece escuchando tras terminar. El enlace secreto temporal no se conserva en el informe.
 
-Los planes permanecen en memoria; no hay ejecución persistente tras cerrar el proceso. No se reintentan automáticamente transferencias, importaciones ni borrados. La precisión del planificador local es experimental; un catálogo completo no garantiza que entienda cualquier petición.
+Los planes permanecen en memoria; no hay ejecución persistente tras cerrar el proceso. No se reintentan automáticamente transferencias, importaciones ni borrados. Los ajustes del modelo se despliegan con «Modelo y ajustes de IA»; si hay un modelo importado, «Cargar IA local» permanece visible sin desplegarlos. La precisión del planificador local es experimental; un catálogo completo no garantiza que entienda cualquier petición.
 
 ## Límites
 

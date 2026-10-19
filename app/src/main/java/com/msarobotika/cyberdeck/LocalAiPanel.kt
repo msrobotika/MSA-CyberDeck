@@ -33,6 +33,7 @@ import java.time.Instant
  var chosen by rememberSaveable{mutableStateOf("Sin contexto")}
  var expanded by remember{mutableStateOf(false)}
  var deleting by remember{mutableStateOf(false)}
+ var engineOptions by rememberSaveable{mutableStateOf(false)}
  val savedChosen=chosen=="Evidencia seleccionada" && savedContext!=null
  val selected=if(savedChosen)savedContext?.input() else contexts.firstOrNull{it.first==chosen}?.second
  var preparing by remember{mutableStateOf(false)}
@@ -69,17 +70,25 @@ import java.time.Instant
  }
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
-   FilterChip(!agentMode,onClick={session.agentMode.value=false;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null},enabled=!blocked,label={Text("Analista")})
-   FilterChip(agentMode,onClick={session.agentMode.value=true;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null},enabled=!blocked,label={Text("Agente")})
+   FilterChip(!agentMode,onClick={session.agentMode.value=false;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null;navigate("IA")},enabled=!blocked,label={Text("Analista")})
+   FilterChip(agentMode,onClick={session.agentMode.value=true;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null;navigate("Agente")},enabled=!blocked,label={Text("Agente")})
   }
   Card(Modifier.fillMaxWidth()){Row(Modifier.padding(16.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)){
    Image(painterResource(R.drawable.cyberdeck_robot),"Robot MSA Robotika",Modifier.size(80.dp))
    Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){
     Text(if(agentMode)"AGENTE LOCAL" else "ANALISTA LOCAL",color=DeckCyan,style=MaterialTheme.typography.labelLarge)
-    Text("Google LiteRT-LM",style=MaterialTheme.typography.titleLarge)
+    Text(if(agentMode)"Tu agente de campo" else "Google LiteRT-LM",style=MaterialTheme.typography.titleLarge)
     Text(if(model==null)"SIN MODELO IMPORTADO" else if(state.loaded)"MODELO EN MEMORIA" else "ARCHIVO IMPORTADO · SIN CARGAR",style=MaterialTheme.typography.labelSmall)
    }
   }}
+  if(agentMode){
+   TextButton(enabled=!blocked,onClick={engineOptions=!engineOptions}){Text(if(engineOptions)"Ocultar ajustes de IA" else "Modelo y ajustes de IA")}
+   if(!engineOptions && !state.loaded && model!=null)Button(enabled=!blocked && state.runtime,onClick={client.send(AiWire.LOAD)}){Text("Cargar IA local")}
+   if(!engineOptions && model==null)OutlinedButton(enabled=!blocked,onClick=pick){Text("Importar modelo para el agente")}
+   if(state.busy)Text(state.phase,color=DeckCyan)
+   if(state.error.isNotBlank() && !engineOptions)Text(state.error,color=MaterialTheme.colorScheme.error)
+  }
+  if(!agentMode || engineOptions){
   Text("Explica tus resultados y prepara comprobaciones defensivas. Sin enviar preguntas o informes a un servidor.")
   Text(if(importing)importStatus else state.phase,color=DeckCyan,style=MaterialTheme.typography.bodySmall)
   if(importStatus.isNotBlank() && !importing)Text(importStatus,style=MaterialTheme.typography.bodySmall)
@@ -100,6 +109,7 @@ import java.time.Instant
    }
   }
   Text("CPU · 2 hilos · contexto limitado · se libera al salir. Cargar un modelo puede tardar y aumentar el consumo.",style=MaterialTheme.typography.bodySmall)
+  }
   HorizontalDivider()
   if(agentMode){AgentPanel(session,blocked,runtime=agentRuntime,send={what,prompt->client.send(what,prompt)},save=save,navigate={route->if(route=="IA"){session.agentMode.value=false;session.ai.update{it.copy(output="")};session.aiRequest.value=null};navigate(route)})}else{
   Text("Qué quieres analizar",style=MaterialTheme.typography.titleMedium)

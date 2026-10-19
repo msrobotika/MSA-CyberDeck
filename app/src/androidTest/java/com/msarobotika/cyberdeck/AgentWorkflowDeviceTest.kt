@@ -14,7 +14,7 @@ class AgentWorkflowDeviceTest {
  private fun select(vararg tools:AgentTool){
   ui.openDeck("IA");val session=ViewModelProvider(ui.activity)[DeckSessionModel::class.java]
   ui.waitUntil(20000){session.ai.value.runtime && !session.ai.value.busy}
-  ui.onNodeWithText("Agente",substring=false).performScrollTo().performClick()
+  ui.onNode(hasText("Agente",substring=false) and hasClickAction() and !hasTestTag("drawer-agent")).performScrollTo().performClick()
   ui.onNodeWithText("Elegir funciones · 30").performScrollTo().performClick()
   tools.forEach{ui.onNodeWithTag("agent-pick-${it.wire}").performScrollTo().performClick()}
   ui.onNodeWithText("Preparar selección · ${tools.size}/8").performScrollTo().performClick()

@@ -2,11 +2,11 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.19 · Acciones del agente en todo el kit
+## Desarrollo 0.19.1 · Agente visible desde Inicio y menú
 
 APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: compilación/lint, 154 pruebas de lógica y 17 casos Android distintos correctos. Se probaron ejecución, parada, selectores y planificación local; los periféricos y operaciones aún pendientes están enumerados en [Validación 0.19](docs/VALIDATION-019.md). Esta revisión no se ha instalado en el OPPO desconectado.
 
-- **Agente local, dentro de IA → Agente**: las 30 entradas cuentan con adaptador: 29 realizan operaciones implementadas y una consulta informa del hardware futuro. El ejecutor llama a los controladores reales de BLE, NFC, sensores, USB, diagnóstico, archivos, trabajos, informes, recepción y transferencia. Espera permisos, selección de archivos/adaptadores, interacción física y respuestas; no completa un paso por abrir una pantalla. Planes de hasta ocho pasos con IA local o selección manual, destinos autorizados, parada, resultados y registro. Un error o cancelación detiene los pasos posteriores. Conserva los límites de Android y los módulos RF/IR pendientes. [Operaciones y condiciones](docs/AGENT-ACTIONS.md) · [Pruebas y límites](docs/VALIDATION-019.md).
+- **Agente local, desde Inicio → Abrir agente o Menú → Agente**: las 30 entradas cuentan con adaptador: 29 realizan operaciones implementadas y una consulta informa del hardware futuro. El ejecutor llama a los controladores reales de BLE, NFC, sensores, USB, diagnóstico, archivos, trabajos, informes, recepción y transferencia. Espera permisos, selección de archivos/adaptadores, interacción física y respuestas; no completa un paso por abrir una pantalla. Planes de hasta ocho pasos con IA local o selección manual, destinos autorizados, parada, resultados y registro. Un error o cancelación detiene los pasos posteriores. Conserva los límites de Android y los módulos RF/IR pendientes. [Operaciones y condiciones](docs/AGENT-ACTIONS.md) · [Pruebas y límites](docs/VALIDATION-019.md).
 - **Comparación guiada**: prepara una pareja compatible entre hasta 100 diagnósticos recientes del filtro, comprueba sus copias y conserva la selección manual. Los detalles se despliegan y los selectores manuales se ocultan al preparar la pareja. El cálculo vuelve a verificar los originales.
 - **Trabajos de auditoría**: separa cada revisión por nombre, alcance, objetivos y notas. Asocia los diagnósticos guardados al trabajo activo, incorpora evidencias existentes y exporta un informe con comprobación SHA-256. Archivar no borra archivos. Panel de integridad con recuentos medidos y accesos directos a las herramientas del trabajo activo. [Uso de trabajos](docs/VALIDATION-011.md) · [Panel y pruebas](docs/VALIDATION-012.md).
 - **Comparar lecturas**: dos diagnósticos guardados del mismo tipo/destino, verificación SHA-256, gráfica de campos modificados/añadidos/ausentes/sin cambios, búsqueda y guardado vinculado al trabajo activo. Sin tráfico ni conclusiones automáticas de seguridad. [Método y validación](docs/VALIDATION-013.md).
@@ -15,7 +15,7 @@ APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalad
 - **Asistente IA local**: motor Google LiteRT-LM con Qwen3 0.6B mixed INT4, descargable sin registro. Importación privada, SHA-256, contexto elegido, parada y liberación de memoria. Generación comprobada físicamente en A15; calidad experimental y conclusiones sujetas a revisión. Los pesos no están incluidos en la APK ni Git. [Modelo exacto y pruebas](docs/OPEN-LOCAL-MODEL.md).
 - **Campo magnético**: sensor Android real en µT, ejes X/Y/Z, gráfica, referencia temporal e informe. Requiere magnetómetro; no mide radiofrecuencia ni detecta ataques. El ESP32 necesita un sensor externo para medir por sí mismo.
 - **Plan de red**: calculadora IPv4/CIDR, máscara, red, rango y direcciones utilizables; puede leer la IPv4 activa. Cálculo local sin escanear ni enviar tráfico.
-- Inicio con cuatro accesos directos y menú lateral por áreas desplegables.
+- Inicio con acceso directo «Abrir agente» y herramientas organizadas. «Agente» tiene entrada visible en el menú lateral, título propio y acceso desde el kit. El analista conserva su pantalla «Asistente IA»; cambiar entre ambos conserva el plan preparado. Los ajustes del modelo se pliegan en el agente y el botón de carga sigue accesible. [Validación de navegación 0.19.1](docs/VALIDATION-0191.md).
 - **Plan de revisión** dentro de Mi móvil: siguientes comprobaciones basadas en reglas locales, notas privadas, marcas manuales ligadas a la lectura y aviso cuando cambia. Gráfica de progreso manual e informe vinculado al trabajo activo; sin puntuación de seguridad ni generación de IA. [Uso y validación](docs/VALIDATION-015.md).
 - **Mi móvil**: bloqueo, fecha del parche, depuración USB, conexión/VPN/DNS privado, RAM, almacenamiento, batería y hardware según las API públicas de Android.
 - **Gráficas reales**: RAM y batería cada dos segundos al iniciarlas; máximo 60 muestras, pausa al salir. Sin muestras ficticias ni carga artificial de CPU.
@@ -59,6 +59,10 @@ Capturas históricas de la versión 0.17 del agente en A15: petición y plan pro
 Capturas reales de 0.19: plan con IA antes de ejecutar, móvil/conexión completados y ejecución encadenada de cuatro operaciones. Detalles de red plegados; Módulos es una consulta de capacidades futuras, no una prueba RF.
 
 <img src="docs/screenshots/ciberdeck-agent-plan-019.png" width="260" alt="Plan del agente 0.19 antes de ejecutar"> <img src="docs/screenshots/ciberdeck-agent-019.png" width="260" alt="Resultados reales del agente 0.19"> <img src="docs/screenshots/ciberdeck-agent-actions.png" width="260" alt="Cuatro operaciones encadenadas del agente 0.19">
+
+Entrada real de 0.19.1: acceso directo a «Agente». La captura de entrada se tomó antes de cargar el modelo.
+
+<img src="docs/screenshots/ciberdeck-agent-entry-0191.png" width="280" alt="Pantalla propia del agente en 0.19.1">
 
 ## Base CyberDeck conservada
 

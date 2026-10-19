@@ -12,9 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
-@Composable fun CiberDeckCommand(snapshot:PhoneSnapshot?,busy:Boolean,audit:()->Unit,analyze:()->Unit) {
+@Composable fun CiberDeckCommand(snapshot:PhoneSnapshot?,busy:Boolean,audit:()->Unit,analyze:()->Unit,agent:()->Unit={}) {
     var motion by rememberSaveable{mutableStateOf(true)}
     val enabled=motion && ValueAnimator.areAnimatorsEnabled()
     val glow=if(enabled){val value by rememberInfiniteTransition(label="ciberdeck").animateFloat(.08f,.25f,infiniteRepeatable(tween(2200),RepeatMode.Reverse),label="breath");value}else .15f
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
                 Box(Modifier.size(88.dp).background(Brush.radialGradient(listOf(DeckCyan.copy(alpha=glow),Color.Transparent))),contentAlignment=Alignment.Center){Image(painterResource(R.drawable.cyberdeck_robot),"Robot MSA Robotika",Modifier.fillMaxSize())}
             }
             Text(snapshot?.let{"Último chequeo: ${displayTime(it.at)} · ${it.checks.count{c->c.tone==PhoneTone.REVIEW}} ajustes para revisar"}?:"Elige un equipo, comprueba servicios y guarda las pruebas. También puedes revisar este móvil.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            FilledTonalButton(enabled=!busy,onClick=agent,modifier=Modifier.fillMaxWidth().heightIn(min=52.dp).testTag("home-agent")){Text("Abrir agente")}
             Button(enabled=!busy,onClick=audit,modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)){Text("Auditar un equipo")}
             OutlinedButton(enabled=!busy,onClick=analyze,modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)){Text("Analizar mi móvil")}
             TextButton(onClick={motion=!motion},contentPadding=PaddingValues(0.dp),modifier=Modifier.heightIn(min=48.dp)){Text(if(motion)"Pausar efectos" else "Activar efectos",style=MaterialTheme.typography.labelSmall)}
