@@ -2,11 +2,11 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.18 · Agente ampliado y continuidad entre herramientas
+## Desarrollo 0.19 · Acciones del agente en todo el kit
 
-APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: lógica y pruebas nativas correctas; recorrido visual de esta revisión pendiente porque el teléfono está bloqueado. Esta revisión no se ha instalado en el OPPO desconectado.
+APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: compilación/lint, 154 pruebas de lógica y 17 casos Android distintos correctos. Se probaron ejecución, parada, selectores y planificación local; los periféricos y operaciones aún pendientes están enumerados en [Validación 0.19](docs/VALIDATION-019.md). Esta revisión no se ha instalado en el OPPO desconectado.
 
-- **Agente local, dentro de IA → Agente**: catálogo de 30 entradas, con 14 herramientas directas y 16 pasos asistidos. Prepara planes de hasta ocho pasos con IA local o selección manual. Puede ejecutar diagnósticos, revisar su APK, verificar evidencias y usar DNS/TCP/HTTP con destinos y autorización explícitos. Para BLE, NFC, USB, archivos y otros módulos abre la pantalla correspondiente y espera interacción; abrir una pantalla no equivale a ejecutar la prueba. Continúa con un resultado guardado verificado, una confirmación manual diferenciada o un paso omitido. Incluye parada, registro y procedencia de resultados. No ejecuta comandos de sistema arbitrarios. Los módulos RF/IR futuros siguen pendientes. [Catálogo completo](docs/AGENT-CAPABILITIES.md) · [Pruebas y límites 0.18](docs/VALIDATION-018.md).
+- **Agente local, dentro de IA → Agente**: las 30 entradas cuentan con adaptador: 29 realizan operaciones implementadas y una consulta informa del hardware futuro. El ejecutor llama a los controladores reales de BLE, NFC, sensores, USB, diagnóstico, archivos, trabajos, informes, recepción y transferencia. Espera permisos, selección de archivos/adaptadores, interacción física y respuestas; no completa un paso por abrir una pantalla. Planes de hasta ocho pasos con IA local o selección manual, destinos autorizados, parada, resultados y registro. Un error o cancelación detiene los pasos posteriores. Conserva los límites de Android y los módulos RF/IR pendientes. [Operaciones y condiciones](docs/AGENT-ACTIONS.md) · [Pruebas y límites](docs/VALIDATION-019.md).
 - **Comparación guiada**: prepara una pareja compatible entre hasta 100 diagnósticos recientes del filtro, comprueba sus copias y conserva la selección manual. Los detalles se despliegan y los selectores manuales se ocultan al preparar la pareja. El cálculo vuelve a verificar los originales.
 - **Trabajos de auditoría**: separa cada revisión por nombre, alcance, objetivos y notas. Asocia los diagnósticos guardados al trabajo activo, incorpora evidencias existentes y exporta un informe con comprobación SHA-256. Archivar no borra archivos. Panel de integridad con recuentos medidos y accesos directos a las herramientas del trabajo activo. [Uso de trabajos](docs/VALIDATION-011.md) · [Panel y pruebas](docs/VALIDATION-012.md).
 - **Comparar lecturas**: dos diagnósticos guardados del mismo tipo/destino, verificación SHA-256, gráfica de campos modificados/añadidos/ausentes/sin cambios, búsqueda y guardado vinculado al trabajo activo. Sin tráfico ni conclusiones automáticas de seguridad. [Método y validación](docs/VALIDATION-013.md).
@@ -26,7 +26,7 @@ APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalad
 - **Guardia de llamadas**, experimental: API oficial Android de filtrado con elección expresa de la app por el usuario. Registro privado limitado a 100 eventos entrantes, lista personal de revisión, avisos por coincidencia exacta o verificación de operador fallida. No consulta reputación externa, no graba ni bloquea llamadas. Sin llamada física de validación todavía.
 - ESP32 con cinco pantallas horizontales y la misma paleta/identidad: Radar, Redes, Ficha, Avisos y USB. BOOT cambia de vista; no es táctil.
 
-[Validación de esta candidata](docs/VALIDATION-018.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
+[Validación de esta candidata](docs/VALIDATION-019.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
 
 PC→ESP y PC→OPPO funcionan por separado. Esto **no valida** la conexión directa Android→ESP mediante OTG, que sigue pendiente. El firmware real conserva el protocolo WiFi Sentinel; no se ha sustituido por el firmware genérico candidato.
 
@@ -52,9 +52,13 @@ La selección guiada se comprobó con evidencias reales del A15. Captura de la p
 
 <img src="docs/screenshots/ciberdeck-comparison-guided.png" width="280" alt="Pareja de diagnósticos reales preparada por la selección guiada en A15">
 
-Capturas históricas de la versión 0.17 del agente en A15: petición y plan propuesto antes de ejecutar; resultados auténticos de móvil/conexión antes de guardar. El catálogo y el recorrido asistido de 0.18 todavía no cuentan con capturas visuales validadas. Los detalles de red permanecen plegados.
+Capturas históricas de la versión 0.17 del agente en A15: petición y plan propuesto antes de ejecutar; resultados auténticos de móvil/conexión antes de guardar. Las capturas actuales de 0.19 aparecen a continuación. Los detalles de red permanecen plegados.
 
 <img src="docs/screenshots/ciberdeck-agent-plan.png" width="280" alt="Petición real y plan local de dos pasos antes de ejecutar en A15"> <img src="docs/screenshots/ciberdeck-agent.png" width="280" alt="Agente en A15 con dos herramientas completadas y guardado de la sesión">
+
+Capturas reales de 0.19: plan con IA antes de ejecutar, móvil/conexión completados y ejecución encadenada de cuatro operaciones. Detalles de red plegados; Módulos es una consulta de capacidades futuras, no una prueba RF.
+
+<img src="docs/screenshots/ciberdeck-agent-plan-019.png" width="260" alt="Plan del agente 0.19 antes de ejecutar"> <img src="docs/screenshots/ciberdeck-agent-019.png" width="260" alt="Resultados reales del agente 0.19"> <img src="docs/screenshots/ciberdeck-agent-actions.png" width="260" alt="Cuatro operaciones encadenadas del agente 0.19">
 
 ## Base CyberDeck conservada
 

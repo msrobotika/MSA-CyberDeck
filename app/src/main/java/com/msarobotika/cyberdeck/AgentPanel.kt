@@ -12,7 +12,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.update
 import java.time.Instant
 
-@Composable fun AgentPanel(session:DeckSessionModel,blocked:Boolean,send:(Int,String)->Unit,save:(DiagnosticResult)->Unit,navigate:(String)->Unit={}){
+@Composable fun AgentPanel(session:DeckSessionModel,blocked:Boolean,send:(Int,String)->Unit,save:(DiagnosticResult)->Unit,navigate:(String)->Unit={},runtime:AgentActionRuntime?=null){
  val context=LocalContext.current;val scope=rememberCoroutineScope()
  val ai by session.ai.collectAsState();val agent by session.agent.collectAsState();val model by session.aiModel.collectAsState()
  var request by rememberSaveable{mutableStateOf("Revisa mi móvil y el estado de su conexión")}
@@ -20,8 +20,12 @@ import java.time.Instant
  var scopeError by remember{mutableStateOf("")};var executionJob by remember{mutableStateOf<Job?>(null)}
  var catalog by rememberSaveable{mutableStateOf(false)};var search by rememberSaveable{mutableStateOf("")}
  var picked by rememberSaveable{mutableStateOf(arrayListOf<String>())};var manualNote by rememberSaveable{mutableStateOf("")}
+ val actionStatus by (runtime?.status?:remember{ kotlinx.coroutines.flow.MutableStateFlow("") }).collectAsState()
+ val actionLink by (runtime?.liveLink?:remember{ kotlinx.coroutines.flow.MutableStateFlow("") }).collectAsState()
  val editing=!blocked && !agent.running && !agent.planning
- LaunchedEffect(Unit){try{val works=withContext(Dispatchers.IO){AuditWorkStore(context).read()};work=works.works.firstOrNull{it.id==works.activeId};scopeLoaded=true}catch(e:CancellationException){throw e}catch(e:Exception){scopeError="No se pudo leer el alcance: ${e.message}"}}
+ val owner=androidx.lifecycle.compose.LocalLifecycleOwner.current
+ DisposableEffect(owner,runtime){val listener=androidx.lifecycle.LifecycleEventObserver{_,event->if(event==androidx.lifecycle.Lifecycle.Event.ON_STOP && runtime?.waitingForAndroid!=true)executionJob?.cancel()};owner.lifecycle.addObserver(listener);onDispose{owner.lifecycle.removeObserver(listener)}}
+ LaunchedEffect(agent.running,agent.plan){try{val works=withContext(Dispatchers.IO){AuditWorkStore(context).read()};work=works.works.firstOrNull{it.id==works.activeId};scopeLoaded=true}catch(e:CancellationException){throw e}catch(e:Exception){scopeError="No se pudo leer el alcance: ${e.message}"}}
  LaunchedEffect(ai.busy,ai.output,ai.error){if(session.agent.value.planning && !ai.busy){val plan=runCatching{check(ai.error.isBlank()){ai.error};AgentPolicy.parse(ai.output)};session.agent.update{it.copy(planning=false,raw=ai.output,plan=plan.getOrNull(),error=plan.exceptionOrNull()?.message.orEmpty())}}}
  DisposableEffect(Unit){onDispose{session.agent.update{if(it.planning)it.copy(planning=false,error="Plan interrumpido al salir") else it}}}
  fun execute(completion:String?=null){
@@ -30,7 +34,7 @@ import java.time.Instant
   val id=if(prior==null)work?.id else snapshot.workId
   session.agent.update{it.copy(running=true,error="",evidenceScope=if(prior==null)work?.let{w->"${w.name} [${w.id}]"}?:"Todas las evidencias locales" else snapshot.evidenceScope,workId=id)}
   executionJob=scope.launch{try{
-   val run=withContext(Dispatchers.IO){
+   val run=withContext(Dispatchers.Default){
     validateAgentInputs(plan,snapshot.inputs)
     val started=Instant.now().toString()
     val previous=if(pending==null)emptyList() else{
@@ -42,7 +46,9 @@ import java.time.Instant
      }
      prior!!.steps.dropLast(1)+completed
     }
-    executeAgentPlan(plan,perform={tool->ensureActive();performAgentTool(context,tool,id,snapshot.inputs){!isActive}},progress={steps->session.agent.update{it.copy(results=steps,run=AgentRun(plan,prior?.startedAt?:started,Instant.now().toString(),steps))}},previous=previous,startedAt=prior?.startedAt?:started)
+    val progress:(List<AgentStepResult>)->Unit={steps->session.agent.update{it.copy(results=steps,run=AgentRun(plan,prior?.startedAt?:started,Instant.now().toString(),steps))}}
+    if(runtime!=null)executeAgentActions(plan,perform={tool->ensureActive();runtime.execute(tool,snapshot.inputs,id,send)},progress=progress,previous=previous,startedAt=prior?.startedAt?:started)
+    else executeAgentPlan(plan,perform={tool->ensureActive();performAgentTool(context,tool,id,snapshot.inputs){!isActive}},progress=progress,previous=previous,startedAt=prior?.startedAt?:started)
    }
    session.agent.update{it.copy(run=run,results=run.steps,resumeEvidence=null)}
   }catch(e:CancellationException){session.agent.update{it.copy(error="Ejecución interrumpida; no se completan los pasos pendientes")};throw e}
@@ -52,7 +58,7 @@ import java.time.Instant
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
   Text("AGENTE LOCAL · EXPERIMENTAL",color=DeckCyan,style=MaterialTheme.typography.labelLarge)
   Text("Un plan para todo tu kit",style=MaterialTheme.typography.headlineSmall)
-  Text("${AgentTool.entries.count{!it.assisted}} funciones directas y ${AgentTool.entries.count{it.assisted}} asistidas. Los permisos, archivos elegidos e interacciones físicas se gestionan en su herramienta. Hasta 8 pasos por plan.")
+  Text(if(runtime!=null)"Acceso a las 30 entradas del kit. Ejecuta operaciones reales y espera permisos, archivos o hardware cuando hace falta. Módulos futuros solo informan. Hasta 8 pasos por plan." else "Modo compatible: algunas funciones requieren abrir su herramienta.")
   OutlinedTextField(request,{request=it.take(800)},label={Text("Qué quieres que haga CiberDeck")},modifier=Modifier.fillMaxWidth(),enabled=editing,maxLines=4)
   TextButton(enabled=editing,onClick={request="Revisa mi móvil, lee su conexión y compara mis lecturas guardadas"}){Text("Usar revisión local completa")}
   Button(enabled=ai.connected && ai.loaded && editing && request.isNotBlank(),onClick={session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty()))}){Text("Preparar plan con IA")}
@@ -64,7 +70,7 @@ import java.time.Instant
     Text(group,color=DeckCyan,style=MaterialTheme.typography.titleSmall)
     tools.forEach{tool->Row(Modifier.fillMaxWidth()){
      Checkbox(tool.wire in picked,enabled=editing && (picked.size<8 || tool.wire in picked),onCheckedChange={yes->picked=ArrayList(if(yes)picked+tool.wire else picked-tool.wire)},modifier=Modifier.testTag("agent-pick-${tool.wire}"))
-     Column(Modifier.weight(1f).padding(top=8.dp)){Text(tool.label);Text(if(tool.assisted)"Asistida · se pausa en su pantalla" else if(tool.network)"Directa · requiere destino autorizado" else "Directa · lectura o cálculo local",style=MaterialTheme.typography.bodySmall)}
+     Column(Modifier.weight(1f).padding(top=8.dp)){Text(tool.label);Text(if(runtime!=null && tool==AgentTool.MODULES)"Consulta del catálogo futuro · no ejecuta RF/IR" else if(runtime!=null && tool.assisted)"Ejecutable · puede pedir permiso o selección" else if(tool.assisted)"Asistida · se pausa en su pantalla" else if(tool.network)"Directa · requiere destino autorizado" else "Directa · lectura o cálculo local",style=MaterialTheme.typography.bodySmall)}
     }}
    }
    Button(enabled=editing && picked.isNotEmpty(),onClick={session.agent.value=AgentSession(request="Plan elegido: "+picked.joinToString{wire->AgentTool.entries.first{it.wire==wire}.label},plan=AgentPlan(picked.map{wire->AgentTool.entries.first{it.wire==wire}}),origin="Selección manual");catalog=false}){Text("Preparar selección · ${picked.size}/8")}
@@ -75,21 +81,23 @@ import java.time.Instant
   agent.plan?.let{plan->
    val input=agent.inputs;val editableInputs=editing && agent.run==null
    fun inputChanged(value:AgentInputs){session.agent.update{it.copy(inputs=value)}}
-   if(plan.steps.any{it==AgentTool.DNS || it==AgentTool.TCP})OutlinedTextField(input.host,{inputChanged(input.copy(host=it.take(253),networkApproved=false))},label={Text("Dominio o IP autorizado")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs,singleLine=true)
-   if(AgentTool.TCP in plan.steps)OutlinedTextField(input.port,{inputChanged(input.copy(port=it.take(5),networkApproved=false))},label={Text("Puerto TCP")},enabled=editableInputs,singleLine=true)
+   if(plan.steps.any{it==AgentTool.DNS || it==AgentTool.TCP || it==AgentTool.EXPOSURE})OutlinedTextField(input.host,{inputChanged(input.copy(host=it.take(253),networkApproved=false))},label={Text("Dominio o IP autorizado")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs,singleLine=true)
+   if(AgentTool.TCP in plan.steps || AgentTool.EXPOSURE in plan.steps)OutlinedTextField(input.port,{inputChanged(input.copy(port=it.take(100),networkApproved=false))},label={Text(if(AgentTool.EXPOSURE in plan.steps)"Puertos TCP · hasta ocho, separados por comas" else "Puerto TCP")},enabled=editableInputs,singleLine=true)
    if(plan.steps.any{it==AgentTool.WEB || it==AgentTool.LINK})OutlinedTextField(input.url,{inputChanged(input.copy(url=it.take(4096),networkApproved=false))},label={Text("URL elegida")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs)
    if(AgentTool.CIDR in plan.steps)OutlinedTextField(input.cidr,{inputChanged(input.copy(cidr=it.take(32)))},label={Text("IPv4 y prefijo CIDR")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs,singleLine=true)
-   if(plan.steps.any{it.network})Row{Checkbox(input.networkApproved,onCheckedChange={inputChanged(input.copy(networkApproved=it))},enabled=editableInputs);Text("Tengo autorización para comprobar los destinos y el puerto indicados. DNS, TCP y HEAD pueden enviar tráfico.",Modifier.weight(1f).padding(top=10.dp),style=MaterialTheme.typography.bodySmall)}
+   if(plan.steps.any{it.network})Row{Checkbox(input.networkApproved,onCheckedChange={inputChanged(input.copy(networkApproved=it))},enabled=editableInputs);Text("Tengo autorización sobre los destinos y la red utilizados. Las operaciones seleccionadas pueden enviar tráfico o abrir una recepción temporal.",Modifier.weight(1f).padding(top=10.dp),style=MaterialTheme.typography.bodySmall)}
    val inputError=runCatching{validateAgentInputs(plan,input)}.exceptionOrNull()?.message
    Card(Modifier.fillMaxWidth().testTag("agent-plan")){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
     Text("PLAN PROPUESTO · ${plan.steps.size} PASOS",color=DeckMint,style=MaterialTheme.typography.labelLarge)
     Text(agent.request);Text("Origen: ${agent.origin}",style=MaterialTheme.typography.bodySmall)
-    plan.steps.forEachIndexed{i,tool->Text("${i+1}. ${tool.label}${if(tool.assisted)" · asistida" else ""}")}
+    plan.steps.forEachIndexed{i,tool->Text("${i+1}. ${tool.label}${if(runtime!=null && tool==AgentTool.MODULES)" · solo información" else if(runtime!=null && tool.assisted)" · espera interacción si hace falta" else if(tool.assisted)" · asistida" else ""}")}
     Text("Copias: ${if(agent.run!=null)agent.evidenceScope else work?.name?:if(scopeLoaded)"Todas las evidencias locales" else "Leyendo alcance…"}",style=MaterialTheme.typography.bodySmall)
     if(inputError!=null)Text(inputError,color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
     if(agent.run==null)Button(enabled=scopeLoaded && editing && inputError==null,onClick={execute()}){Text(if(agent.running)"Ejecutando…" else "Ejecutar este plan")}
    }}
   }
+  if(actionStatus.isNotBlank())Text(actionStatus,color=DeckCyan,modifier=Modifier.testTag("agent-action-status"))
+  if(actionLink.isNotBlank()){Text("Enlace temporal · solo para tu red de confianza");androidx.compose.foundation.text.selection.SelectionContainer{Text(actionLink)}}
   if(agent.running){LinearProgressIndicator(Modifier.fillMaxWidth());OutlinedButton(onClick={executionJob?.cancel()}){Text("Detener ejecución")}}
   agent.results.forEach{step->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
    Text(step.tool.label,style=MaterialTheme.typography.titleMedium)
@@ -110,6 +118,6 @@ import java.time.Instant
    OutlinedButton(enabled=editing,onClick={runCatching{run.diagnostic(agent.request,agent.modelHash,agent.evidenceScope,agent.origin)}.onSuccess(save).onFailure{e->session.agent.update{it.copy(error=e.message?:"No se pudo preparar el informe")}}}){Text("Guardar ejecución como evidencia")}
   }
   if(agent.raw.isNotBlank())DeckDisclosure("Plan recibido de la IA",agent.raw)
-  DeckDisclosure("Acceso y límites","El agente utiliza las funciones implementadas de CiberDeck y permisos concedidos por Android. No tiene root, shell ni acceso a datos privados de otras apps. Las herramientas asistidas conservan los selectores, permisos y confirmaciones de su pantalla. Los resultados guardados se vuelven a verificar; confirmaciones manuales y texto generado se distinguen de lecturas. RF/IR y otros módulos del catálogo futuro siguen pendientes. La sesión permanece en memoria hasta guardarla; salir durante una ejecución la interrumpe. Un plan puede no corresponder a tu intención: revísalo.")
+  DeckDisclosure("Acceso y límites","El agente utiliza las funciones implementadas de CiberDeck y permisos concedidos por Android. No tiene root, shell ni acceso a datos privados de otras apps. Las operaciones integradas conservan los permisos y selectores de Android; se espera la respuesta real antes de continuar. Borrar una copia requiere confirmación específica. Los resultados guardados se vuelven a verificar; confirmaciones manuales y texto generado se distinguen de lecturas. RF/IR y otros módulos del catálogo futuro siguen pendientes. La sesión permanece en memoria hasta guardarla; salir durante una ejecución la interrumpe. Un plan puede no corresponder a tu intención: revísalo.")
  }
 }

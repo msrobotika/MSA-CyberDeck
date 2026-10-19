@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.testTag
 import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
+    private lateinit var agentAccess:AgentAndroidAccess
     private val worker = Executors.newSingleThreadExecutor()
     private val permissionAction get() = "$packageName.USB_PERMISSION"
     private var permissionResult: (UsbDevice?) -> Unit = {}
@@ -49,6 +50,7 @@ class MainActivity : ComponentActivity() {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        agentAccess=AgentAndroidAccess(this)
         callsRequested=intent?.getBooleanExtra("open_calls",false)==true
         receiverRequested=intent?.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false)==true
         ContextCompat.registerReceiver(this, receiver, IntentFilter(permissionAction).apply {
@@ -63,7 +65,7 @@ class MainActivity : ComponentActivity() {
         if(intent.getBooleanExtra("open_calls",false))callsRequested=true
         if(intent.getBooleanExtra(BrowserTransferService.SHOW_RECEIVER,false))receiverRequested=true
     }
-    override fun onDestroy() { unregisterReceiver(receiver); worker.shutdown(); super.onDestroy() }
+    override fun onDestroy() { agentAccess.close();unregisterReceiver(receiver); worker.shutdown(); super.onDestroy() }
 
     @Composable private fun Deck() {
         val store = remember { EvidenceStore(this) }
@@ -81,8 +83,10 @@ class MainActivity : ComponentActivity() {
         val resourceSamples by session.samples.collectAsState()
         val phoneLive by session.phoneLive.collectAsState()
         val bridge=remember{UsbBridge(this@MainActivity)}
+        val agentRuntime=remember(bridge){AgentActionRuntime(this@MainActivity,agentAccess,session,bridge)}
         DisposableEffect(bridge){onDispose{bridge.release()}}
         SideEffect{refreshUsb={bridge.refresh()}}
+        LaunchedEffect(agentState.running){if(!agentState.running){kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){runCatching{workStore.read()}.onSuccess{state->runOnUiThread{workState=state;workLoaded=true}}}}}
         val draftStore = remember { ReportDraftStore(this) }
         var reportContext by rememberSaveable(stateSaver=androidx.compose.runtime.saveable.listSaver(
             save={listOf(it.name,it.scope,it.notes)},restore={ReportContext(it[0],it[1],it[2])})) { mutableStateOf(draftStore.read()) }
@@ -143,8 +147,8 @@ class MainActivity : ComponentActivity() {
         var notificationsGranted by remember {mutableStateOf(Build.VERSION.SDK_INT<33 || ContextCompat.checkSelfPermission(this,android.Manifest.permission.POST_NOTIFICATIONS)==android.content.pm.PackageManager.PERMISSION_GRANTED)}
         val requestNotifications=rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()){notificationsGranted=it}
         LaunchedEffect(tab) { if (tab != "NFC") nfc.stop();if(tab!="Móvil")session.phoneLive.value=false }
-        DisposableEffect(peerState.active, nfcSnapshot.armed, browserState.active) {
-            if (peerState.active || nfcSnapshot.armed || browserState.active) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        DisposableEffect(peerState.active, nfcSnapshot.armed, browserState.active, agentState.running) {
+            if (peerState.active || nfcSnapshot.armed || browserState.active || agentState.running) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             onDispose { window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
         }
@@ -235,6 +239,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { entries = loaded; connection = current;works.onSuccess{workState=it;workLoaded=true} }
             if(works.isSuccess)"${loaded.size} evidencias guardadas" else "No se pudieron leer los trabajos: ${works.exceptionOrNull()?.message}. Sus archivos se conservan."
         } }
+        LaunchedEffect(agentState.running){if(!agentState.running){val loaded=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){runCatching{store.list()}.getOrNull()};if(loaded!=null)entries=loaded}}
         val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
             if (uri != null) run {
                 val loaded = store.import(uri)
@@ -336,7 +341,7 @@ class MainActivity : ComponentActivity() {
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},
                             diagnostic?.let{"Último diagnóstico" to it},
                             exposureState.result?.diagnostic(exposureState.reference)?.let{"Auditoría del equipo" to it}),
-                            pick={aiPicker.launch(arrayOf("*/*"))},save={saveDiagnostic(it)},savedContext=savedAiContext,clearSaved={session.aiSource.value=null},navigate={tab=it})}}
+                            pick={aiPicker.launch(arrayOf("*/*"))},save={saveDiagnostic(it)},savedContext=savedAiContext,clearSaved={session.aiSource.value=null},navigate={tab=it},agentRuntime=agentRuntime)}}
                         "APK" -> {item{ApkInspectorPanel(apkSnapshot,busy,
                             pick={apkPicker.launch(arrayOf("application/vnd.android.package-archive","application/octet-stream"))},
                             self={run{val result=ApkInspector.inspectFile(this@MainActivity,java.io.File(applicationInfo.sourceDir));runOnUiThread{session.apk.value=result};"CiberDeck inspeccionada desde su APK instalado"}},

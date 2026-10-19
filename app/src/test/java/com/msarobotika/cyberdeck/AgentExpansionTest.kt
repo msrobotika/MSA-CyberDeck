@@ -51,4 +51,9 @@ class AgentExpansionTest {
   val report=run.diagnostic("fixture","hash","scope","Selección manual")
   assertEquals(8,report.details.count{it.first.endsWith("/ estado")});assertTrue(report.toEvidenceJson().toByteArray().size<=65536)
  }
+ @org.junit.Test fun networkAndExposureActionsRequireScopeBeforeAnyDispatch(){
+  listOf(AgentTool.LAN,AgentTool.TRANSFER,AgentTool.RECEIVE,AgentTool.EXPOSURE).forEach{tool->org.junit.Assert.assertTrue(runCatching{validateAgentInputs(AgentPlan(listOf(tool)),AgentInputs(host="127.0.0.1",port="80,443"))}.isFailure)}
+  validateAgentInputs(AgentPlan(listOf(AgentTool.EXPOSURE)),AgentInputs(host="127.0.0.1",port="80,443",networkApproved=true))
+  org.junit.Assert.assertTrue(runCatching{validateAgentInputs(AgentPlan(listOf(AgentTool.EXPOSURE)),AgentInputs(host="127.0.0.1",port="1,2,3,4,5,6,7,8,9",networkApproved=true))}.isFailure)
+ }
 }

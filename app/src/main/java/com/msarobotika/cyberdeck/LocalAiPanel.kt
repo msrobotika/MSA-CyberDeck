@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.*
 import java.time.Instant
 
-@Composable fun LocalAiPanel(session:DeckSessionModel,contexts:List<Pair<String,DiagnosticResult>>,pick:()->Unit,save:(DiagnosticResult)->Unit,savedContext:SavedAiContext?=null,clearSaved:()->Unit={},navigate:(String)->Unit={}) {
+@Composable fun LocalAiPanel(session:DeckSessionModel,contexts:List<Pair<String,DiagnosticResult>>,pick:()->Unit,save:(DiagnosticResult)->Unit,savedContext:SavedAiContext?=null,clearSaved:()->Unit={},navigate:(String)->Unit={},agentRuntime:AgentActionRuntime?=null) {
  val context=LocalContext.current
  val state by session.ai.collectAsState()
  val model by session.aiModel.collectAsState()
@@ -101,7 +101,7 @@ import java.time.Instant
   }
   Text("CPU · 2 hilos · contexto limitado · se libera al salir. Cargar un modelo puede tardar y aumentar el consumo.",style=MaterialTheme.typography.bodySmall)
   HorizontalDivider()
-  if(agentMode){AgentPanel(session,blocked,send={what,prompt->client.send(what,prompt)},save=save,navigate={route->if(route=="IA"){session.agentMode.value=false;session.ai.update{it.copy(output="")};session.aiRequest.value=null};navigate(route)})}else{
+  if(agentMode){AgentPanel(session,blocked,runtime=agentRuntime,send={what,prompt->client.send(what,prompt)},save=save,navigate={route->if(route=="IA"){session.agentMode.value=false;session.ai.update{it.copy(output="")};session.aiRequest.value=null};navigate(route)})}else{
   Text("Qué quieres analizar",style=MaterialTheme.typography.titleMedium)
   Box{OutlinedButton(onClick={expanded=true},enabled=!blocked){Text(if(selected==null)"Sin contexto adjunto" else "Contexto: $chosen")};DropdownMenu(expanded,onDismissRequest={expanded=false}){
    (listOf("Sin contexto")+(if(savedContext!=null)listOf("Evidencia seleccionada") else emptyList())+contexts.map{it.first}).forEach{name->DropdownMenuItem(text={Text(name)},onClick={chosen=name;expanded=false})}

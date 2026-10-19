@@ -11,11 +11,11 @@ enum class AgentTool(val wire:String,val label:String,val group:String="Diagnós
  DNS("dns","Resolver un destino DNS","Red",network=true), TCP("tcp","Comprobar un puerto TCP","Red",network=true), WEB("web","Inspección HTTP y TLS","Red",network=true),
  LINK("link","Analizar un enlace sin abrirlo","Red"), CIDR("cidr","Calcular una red IPv4","Red"),
  BLE("ble","Explorar Bluetooth LE","Radio y sensores","Bluetooth","ble"), NFC("nfc","Leer una etiqueta NFC","Radio y sensores","NFC","nfc"),
- LAN("lan","Descubrir servicios de mi red","Red","Mi red","lan"), USB("usb","Conectar y consultar el ESP32","Hardware","USB"),
+ LAN("lan","Descubrir servicios de mi red","Red","Mi red","lan",network=true), USB("usb","Conectar y consultar el ESP32","Hardware","USB"),
  RADIO("radio","Ver el radar Wi-Fi del ESP","Hardware","Radio"), MAGNETIC("magnetic","Medir campo magnético","Radio y sensores","Magnético","magnetic"),
- APK("apk","Elegir e inspeccionar una APK","Archivos","APK","apk"), EXPOSURE("exposure","Auditar un equipo autorizado","Red","Equipo","exposure"),
- CALLS("calls","Configurar avisos de llamadas","Diagnóstico","Llamadas","calls"), TRANSFER("transfer","Transferir entre dos CiberDeck","Archivos","Sesiones"),
- RECEIVE("receive","Recibir desde navegador","Archivos","Recibir"), FILES("files","Importar, exportar o borrar copias","Evidencias","Evidencias"),
+ APK("apk","Elegir e inspeccionar una APK","Archivos","APK","apk"), EXPOSURE("exposure","Auditar un equipo autorizado","Red","Equipo","exposure",network=true),
+ CALLS("calls","Configurar avisos de llamadas","Diagnóstico","Llamadas","calls"), TRANSFER("transfer","Transferir entre dos CiberDeck","Archivos","Sesiones",network=true),
+ RECEIVE("receive","Recibir desde navegador","Archivos","Recibir",network=true), FILES("files","Importar, exportar o borrar copias","Evidencias","Evidencias"),
  WORKS("works","Crear o gestionar trabajos","Evidencias","Trabajos"), EXPORT("export","Preparar y exportar informes","Evidencias","Informes"),
  ANALYST("analyst","Interpretar una evidencia con IA","Asistente","IA","ai"), MODULES("modules","Consultar módulos aún pendientes","Hardware","Módulos");
  val assisted get()=route!=null
@@ -24,14 +24,15 @@ data class AgentPlan(val steps:List<AgentTool>){init{require(steps.isNotEmpty() 
 data class AgentInputs(val host:String="",val port:String="443",val url:String="",val cidr:String="",val networkApproved:Boolean=false)
 fun validateAgentInputs(plan:AgentPlan,input:AgentInputs){
  if(plan.steps.any{it.network})require(input.networkApproved){"Confirma la autorización del destino de red antes de ejecutar"}
- if(plan.steps.any{it in listOf(AgentTool.DNS,AgentTool.TCP)})Diagnostics.host(input.host)
+ if(plan.steps.any{it in listOf(AgentTool.DNS,AgentTool.TCP,AgentTool.EXPOSURE)})Diagnostics.host(input.host)
  if(AgentTool.TCP in plan.steps){val port=input.port.toIntOrNull();require(port!=null && port in 1..65535){"Introduce un puerto entre 1 y 65535"}}
+ if(AgentTool.EXPOSURE in plan.steps)ExposurePolicy.ports(input.port)
  if(AgentTool.WEB in plan.steps)Diagnostics.url(input.url)
  if(AgentTool.LINK in plan.steps)LinkInspection.inspect(input.url)
  if(AgentTool.CIDR in plan.steps)NetworkPlan.parse(input.cidr)
 }
 object AgentPolicy {
- val SYSTEM="Traduce peticiones a planes JSON de CiberDeck. Solo propones, nunca ejecutas. Usa entre 1 y 8 identificadores distintos de este catálogo: "+AgentTool.entries.joinToString("; "){"${it.wire}=${it.label}"}+". Incluye todos los pasos pedidos. phone Y connection para revisar móvil y conexión. Responde SOLO {\"steps\":[...]} sin argumentos ni explicación. Destinos y permisos se completan en la app, nunca los inventes. Las herramientas asistidas requieren interacción del usuario. RF/IR no implementados: modules solo informa. Si no hay herramienta compatible responde {\"steps\":[]}."
+ val SYSTEM="Traduce peticiones a planes JSON de CiberDeck. Solo propones, nunca ejecutas. Usa entre 1 y 8 identificadores distintos de este catálogo: "+AgentTool.entries.joinToString("; "){"${it.wire}=${it.label}"}+". Incluye todos los pasos pedidos. phone Y connection para revisar móvil y conexión. Responde SOLO {\"steps\":[...]} sin argumentos ni explicación. Destinos y permisos se completan en la app, nunca los inventes. El agente ejecuta las herramientas registradas; permisos Android, selectores y acciones físicas pueden requerir interacción del usuario. RF/IR no implementados: modules solo informa. Si no hay herramienta compatible responde {\"steps\":[]}."
  fun prompt(request:String,model:String):String {
   require(request.isNotBlank() && request.length<=800){"Escribe una petición de hasta 800 caracteres"}
   return "Ejemplos:\nPetición: Revisa mi móvil y el estado de su conexión\n{\"steps\":[\"phone\",\"connection\"]}\nPetición: Revisa mi móvil, lee su conexión y compara mis lecturas guardadas\n{\"steps\":[\"phone\",\"connection\",\"compare\"]}\nPetición: Lee NFC y después verifica las copias del trabajo\n{\"steps\":[\"nfc\",\"integrity\"]}\nPetición: Resuelve un dominio y revisa una web\n{\"steps\":[\"dns\",\"web\"]}\nTraduce esta petición, solo JSON:\nPetición: ${request.trim()}"+if(model.contains("qwen3",true))"\n/no_think" else ""
@@ -53,7 +54,7 @@ data class AgentSession(val request:String="",val modelHash:String="",val planni
 data class AgentRun(val plan:AgentPlan,val startedAt:String,val finishedAt:String,val steps:List<AgentStepResult>){
  fun diagnostic(request:String,modelHash:String,scope:String,origin:String="IA local"):DiagnosticResult {
   val completed=steps.count{it.result!=null}
-  val fields=listOf("Petición del usuario" to request.take(800),"SHA-256 modelo planificador" to modelHash,"Alcance de copias" to scope,"Inicio" to startedAt,"Último estado" to finishedAt,"Plan aprobado" to plan.steps.joinToString{it.wire},"Método" to "Origen del plan: $origin. Ejecución solicitada por el usuario. Red solo con destino y autorización explícitos. Los pasos asistidos requieren interacción; abrir una pantalla no completa una prueba.")+
+  val fields=listOf("Petición del usuario" to request.take(800),"SHA-256 modelo planificador" to modelHash,"Alcance de copias" to scope,"Inicio" to startedAt,"Último estado" to finishedAt,"Plan aprobado" to plan.steps.joinToString{it.wire},"Método" to "Origen del plan: $origin. Ejecución solicitada por el usuario. Red solo con destino y autorización explícitos. Las operaciones esperan resultados del controlador; permisos, selección y acciones físicas pueden requerir interacción. Abrir una pantalla no completa una prueba.")+
    steps.map{step->"${step.tool.label} / estado" to when{step.awaiting->"Pendiente de interacción";step.skipped->"Omitido";step.manual->"Confirmado manualmente por el usuario, sin lectura verificada";step.tool==AgentTool.ANALYST && step.result!=null->"Interpretación generada, no medición";step.result!=null->"Completado con resultado de herramienta";else->"Error: ${step.error.take(400)}"}}+
    steps.flatMap{step->(step.source?.let{listOf("${step.tool.label} / fuente" to "${it.id} · SHA-256 ${it.sha256}")}?:emptyList())+(step.result?.let{r->listOf("${step.tool.label} / tipo" to r.kind,"${step.tool.label} / destino" to r.target,"${step.tool.label} / lectura" to r.checkedAt,"${step.tool.label} / resumen" to r.summary)+r.details.map{(key,value)->"${step.tool.label} / $key" to value}}?:emptyList())}
   fun build(limit:Int)=DiagnosticResult("agent","Este móvil y copias locales",finishedAt,"$completed de ${plan.steps.size} pasos completados; ${steps.count{it.awaiting}} pendientes de interacción; ${steps.count{it.skipped}} omitidos; ${steps.count{it.manual}} confirmaciones manuales",fields.take(limit).map{it.first.take(160) to it.second.take(1000)}+("Límite del informe" to "Hasta $limit campos abreviados a 1000 caracteres. No certifica ausencia de ataques; las lecturas de origen conservan sus límites."))
