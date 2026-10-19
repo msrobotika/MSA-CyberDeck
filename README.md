@@ -2,7 +2,7 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.15 · Plan de revisión manual del móvil
+## Desarrollo 0.15.1 · Comparación y revisión verificadas en A15
 
 APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada y comprobada en Galaxy A15; esta revisión no se ha instalado en el OPPO desconectado.
 
@@ -24,7 +24,7 @@ APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalad
 - **Guardia de llamadas**, experimental: API oficial Android de filtrado con elección expresa de la app por el usuario. Registro privado limitado a 100 eventos entrantes, lista personal de revisión, avisos por coincidencia exacta o verificación de operador fallida. No consulta reputación externa, no graba ni bloquea llamadas. Sin llamada física de validación todavía.
 - ESP32 con cinco pantallas horizontales y la misma paleta/identidad: Radar, Redes, Ficha, Avisos y USB. BOOT cambia de vista; no es táctil.
 
-[Validación de esta candidata](docs/VALIDATION-015.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
+[Validación de esta candidata](docs/VALIDATION-0151.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
 
 PC→ESP y PC→OPPO funcionan por separado. Esto **no valida** la conexión directa Android→ESP mediante OTG, que sigue pendiente. El firmware real conserva el protocolo WiFi Sentinel; no se ha sustituido por el firmware genérico candidato.
 
@@ -41,6 +41,10 @@ Capturas actualizadas del A15: trabajo persistente con diagnósticos reales y gr
 El rediseño ESP 0.3.1 conserva el radar inicial y cambia las otras cuatro vistas. **Compilado, aún sin instalar porque la placa no está detectada.** Vista previa del mismo código C con un snapshot anterior anonimizado, no una captura física nueva:
 
 <img src="docs/screenshots/esp-ui-031-preview.png" width="700" alt="Vista previa offline claramente marcada del firmware ESP 0.3.1, pendiente de instalación">
+
+Pruebas de interfaz 0.15.1 correctas en A15: selección conservada tras recrear la actividad y volver a Comparar; gráfica calculada con dos diagnósticos reales y guardado en el trabajo activo; selección y retirada de contexto para IA sin borrar el original; plan de revisión guardado con su asociación al trabajo. La generación desde los botones de IA, las anotaciones manuales y el selector de exportación siguen pendientes de prueba en este recorrido.
+
+<img src="docs/screenshots/ciberdeck-comparison.png" width="260" alt="Comparación real: 19 campos sin cambios y 2 modificados en dos lecturas del A15"> <img src="docs/screenshots/ciberdeck-phone-review.png" width="260" alt="Plan real del A15 con 11 observaciones sin marcar automáticamente"> <img src="docs/screenshots/ciberdeck-ai-source.png" width="260" alt="Diagnóstico guardado seleccionado como fuente verificada para IA local, sin generación automática">
 
 ## Base CyberDeck conservada
 

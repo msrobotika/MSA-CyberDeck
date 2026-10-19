@@ -22,7 +22,8 @@ class ComparisonDeviceTest {
   ui.onNodeWithTag("comparison-after-choice").performScrollTo().performClick()
   ui.onNodeWithTag("comparison-after-${b.id}").performScrollTo().performClick()
   ui.activityRule.scenario.recreate();ui.openDeck("Comparar")
-  ui.waitUntil(10000){runCatching{ui.onNodeWithText("Verificar y comparar").assertIsEnabled()}.isSuccess}
+  try{ui.waitUntil(10000){runCatching{ui.onNodeWithText("Verificar y comparar").assertIsEnabled()}.isSuccess}}
+  catch(e:Throwable){File(ui.activity.filesDir,"validation/comparison-failure-private.txt").apply{parentFile?.mkdirs()}.writeText(ui.onRoot().printToString());throw e}
   ui.onNodeWithText("Verificar y comparar").performScrollTo().performClick()
   ui.waitUntil(15000){ui.onAllNodesWithText("COPIAS VERIFICADAS").fetchSemanticsNodes().isNotEmpty()}
   for(change in FieldChange.entries)ui.onNodeWithText("${expected.count(change)} · ${change.label}").assertExists()

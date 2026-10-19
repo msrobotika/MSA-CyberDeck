@@ -11,12 +11,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import kotlinx.coroutines.*
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 
-@Composable fun ComparisonPanel(entries:List<Evidence>,work:AuditWork?,busy:Boolean,save:(DiagnosticResult)->Unit){
+/** Keep only evidence IDs across navigation/recreation; always reverify files on compare. */
+class ComparisonSelectionModel(private val saved:SavedStateHandle):ViewModel(){
+ val first=saved.getStateFlow<String?>("comparison.first",null)
+ val second=saved.getStateFlow<String?>("comparison.second",null)
+ fun chooseFirst(id:String?){saved["comparison.first"]=id}
+ fun chooseSecond(id:String?){saved["comparison.second"]=id}
+}
+
+@Composable fun ComparisonPanel(selection:ComparisonSelectionModel,entries:List<Evidence>,work:AuditWork?,busy:Boolean,save:(DiagnosticResult)->Unit){
  val context=LocalContext.current
  val store=remember(context){EvidenceStore(context)}
  val scope=rememberCoroutineScope()
- var first by rememberSaveable{mutableStateOf<String?>(null)};var second by rememberSaveable{mutableStateOf<String?>(null)}
+ val first by selection.first.collectAsState();val second by selection.second.collectAsState()
  var workOnly by rememberSaveable(work?.id){mutableStateOf(work!=null)}
  var query by rememberSaveable{mutableStateOf("")};var changesOnly by rememberSaveable{mutableStateOf(true)}
  var running by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")}
@@ -29,10 +39,10 @@ import kotlinx.coroutines.*
   Text("CAMBIOS ENTRE LECTURAS",style=MaterialTheme.typography.labelLarge,color=DeckCyan)
   Text("Antes y después, con evidencia",style=MaterialTheme.typography.headlineSmall)
   Text("Compara dos diagnósticos guardados del mismo tipo y destino. Las copias se verifican por SHA-256 antes de leer sus datos.")
-  if(work!=null)FilterChip(selected=workOnly,onClick={workOnly=!workOnly;first=null;second=null;result=null;error=""},enabled=!running,label={Text("Solo trabajo activo")})
+  if(work!=null)FilterChip(selected=workOnly,onClick={workOnly=!workOnly;selection.chooseFirst(null);selection.chooseSecond(null);result=null;error=""},enabled=!running,label={Text("Solo trabajo activo")})
   if(candidates.size<2)Text("Necesitas dos diagnósticos compatibles guardados. Repite una revisión desde su herramienta y guarda ambas lecturas.")
-  ComparisonChoice("A · Referencia","before",candidates,first,!running && !busy){first=it;result=null;error=""}
-  ComparisonChoice("B · Otra lectura","after",candidates,second,!running && !busy){second=it;result=null;error=""}
+  ComparisonChoice("A · Referencia","before",candidates,first,!running && !busy){selection.chooseFirst(it);result=null;error=""}
+  ComparisonChoice("B · Otra lectura","after",candidates,second,!running && !busy){selection.chooseSecond(it);result=null;error=""}
   Button(enabled=!running && !busy && first!=second && candidates.any{it.id==first} && candidates.any{it.id==second},onClick={
    val a=candidates.firstOrNull{it.id==first};val b=candidates.firstOrNull{it.id==second}
    if(a==null || b==null){error="La selección ya no está disponible"}else{running=true;error="";result=null

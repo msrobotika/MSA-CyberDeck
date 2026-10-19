@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
         var workState by remember{mutableStateOf(AuditWorkState())}
         var workLoaded by remember{mutableStateOf(false)}
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
+        val comparisonSelection=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[ComparisonSelectionModel::class.java]}
         val savedAiContext by session.aiSource.collectAsState()
         val apkSnapshot by session.apk.collectAsState()
         val exposureState by session.exposure.collectAsState()
@@ -319,11 +320,11 @@ class MainActivity : ComponentActivity() {
                         "Equipo" -> {item{ExposurePanel(session,save={saveDiagnostic(it)})}}
                         "Magnético" -> {item{MagneticPanel(session,save={saveDiagnostic(it)})}}
                         "CIDR" -> {item{NetworkPlanPanel(save={saveDiagnostic(it)})}}
-                        "Comparar" -> {item{ComparisonPanel(entries,workState.works.firstOrNull{it.id==workState.activeId},busy,save={saveDiagnostic(it)})}}
+                        "Comparar" -> {item(key="tool-comparison"){ComparisonPanel(comparisonSelection,entries,workState.works.firstOrNull{it.id==workState.activeId},busy,save={saveDiagnostic(it)})}}
                         "Trabajos" -> {item{AuditWorkPanel(workState,workStore,entries,workLoaded,busy,
                             change={success,action->run{val state=action();runOnUiThread{workState=state;workLoaded=true};success}},
                             export={work->run{val generated=workStore.report(work.id,store);runOnUiThread{report=generated;exporter.launch("CiberDeck-trabajo-${work.id.take(8)}.md")};"Informe del trabajo preparado para guardar"}},navigate={tab=it})}}
-                        "IA" -> {item{LocalAiPanel(session,listOfNotNull(
+                        "IA" -> {item(key="tool-ai"){LocalAiPanel(session,listOfNotNull(
                             phoneSnapshot?.diagnostic()?.let{"Chequeo del móvil" to it},
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},
                             diagnostic?.let{"Último diagnóstico" to it},
@@ -335,7 +336,7 @@ class MainActivity : ComponentActivity() {
                             save={saveDiagnostic(it)})}}
                         "Llamadas" -> {item{CallGuardPanel(save={saveDiagnostic(it)})}}
                         "Enlaces" -> {item{LinkInspectionPanel(save={saveDiagnostic(it)})}}
-                        "Móvil" -> {item { PhoneAuditPanel(phoneSnapshot,busy,refresh={run{
+                        "Móvil" -> {item(key="tool-phone") { PhoneAuditPanel(phoneSnapshot,busy,refresh={run{
                             val result=PhoneAudit.read(this@MainActivity)
                             runOnUiThread{session.phone.value=result}
                             "Chequeo local terminado"
