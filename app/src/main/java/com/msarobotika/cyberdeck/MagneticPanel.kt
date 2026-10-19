@@ -24,7 +24,7 @@ object MagneticPolicy {
  fun report(sensor:String,samples:List<MagneticSample>,reference:Double?)=DiagnosticResult("magnetic",sensor,Instant.now().toString(),"${samples.size} lecturas reales del magnetómetro",listOf(
   "Método" to "Sensor Android TYPE_MAGNETIC_FIELD, ejes del dispositivo, µT. Hasta 60 muestras, máximo 2 por segundo. Pausa al salir.",
   "Referencia temporal" to (reference?.let{"$it µT"}?:"No fijada"),
-  "Límites" to "Campo magnético local, no radiación RF, detector de ataques, certificación sanitaria ni identificación de la fuente. Imanes, orientación, metales y calibración afectan a la lectura.")+samples.map{it.at to "X=${it.x}; Y=${it.y}; Z=${it.z}; módulo=${it.magnitude} µT; calidad=${accuracy(it.accuracy)}; reloj sensor=${it.sensorNanos} ns"})
+  "Límites" to "Campo magnético local, no radiación RF, detector de ataques, certificación sanitaria ni identificación de la fuente. La serie de 2 muestras/s no caracteriza exposición a 50 Hz. No mide campo eléctrico ni determina riesgo laboral. Imanes, orientación, metales y calibración afectan a la lectura.")+samples.map{it.at to "X=${it.x}; Y=${it.y}; Z=${it.z}; módulo=${it.magnitude} µT; calidad=${accuracy(it.accuracy)}; reloj sensor=${it.sensorNanos} ns"})
 }
 
 @Composable fun MagneticPanel(session:DeckSessionModel,save:(DiagnosticResult)->Unit){

@@ -1,4 +1,4 @@
-# Acciones del agente · CiberDeck 0.21
+# Acciones del agente · CiberDeck 0.22
 
 El agente de la aplicación ya no se limita a navegar hacia los módulos interactivos. `AgentActionRuntime` conecta el ejecutor suspendible a los controladores existentes; `AgentAndroidAccess` espera permisos, selectores y decisiones del usuario. Las 30 entradas tienen un adaptador explícito: 29 realizan una operación implementada y `modules` informa del hardware futuro. No significa acceso root ni que todas puedan ejecutarse sin intervención.
 
@@ -13,6 +13,12 @@ La cabecera del agente se ha reducido y la tarea principal aparece antes del cua
 ## Resultados primero
 
 Durante y después de ejecutar, un resumen muestra los pasos con resultado, su síntesis, errores y progreso. El guardado de la sesión está en ese resumen. «Ver detalles de resultados» despliega los métodos y datos completos; las interacciones pendientes mantienen sus controles visibles. Los pasos omitidos, las confirmaciones manuales y la IA se distinguen de resultados de herramientas. «Preparar de nuevo» no ejecuta nada y conserva la huella del modelo del plan.
+
+## Contexto del plan y del analista
+
+El planificador recibe una síntesis fechada del móvil ya observado en la sesión, si existe, además del catálogo de herramientas. Ese dato no acredita conexión actual al ESP ni concede permisos. El contexto se conserva al preparar de nuevo y al guardar el informe.
+
+El analista puede usar situación/objetivo declarados, una instantánea Android opcional tomada al generar y una lectura elegida o el resumen de la última sesión del agente. La entrada exacta y su huella quedan consultables. La calidad del modelo pequeño sigue siendo experimental y puede añadir inferencias sin respaldo: las fuentes se distinguen de la interpretación. [Método y validación 0.22](VALIDATION-022.md).
 
 ## Operaciones por entrada
 
@@ -73,4 +79,4 @@ Los planes permanecen en memoria; no hay ejecución persistente tras cerrar el p
 - Las funciones RF/IR y módulos industriales futuros siguen pendientes.
 - El ejecutor anterior de pausa y continuidad se conserva como contrato de compatibilidad; la app 0.19 utiliza el ejecutor de acciones cuando dispone del runtime Android.
 
-Pruebas y limitaciones de la candidata: [VALIDATION-021.md](VALIDATION-021.md). El catálogo 0.18 queda conservado como registro histórico.
+Pruebas y limitaciones de la candidata: [VALIDATION-022.md](VALIDATION-022.md). El catálogo 0.18 queda conservado como registro histórico.

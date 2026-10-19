@@ -47,7 +47,7 @@ class LocalAiService:Service() {
     AiWire.ASK,AiWire.PLAN->{if(busy || engine==null)return
      val prompt=msg.data.getString("prompt").orEmpty();if(prompt.isBlank() || prompt.length>4000){report("Pregunta no válida");return}
      busy=true;text="";chunks=0;started=SystemClock.elapsedRealtime();finalized.set(false);report("Generando en este móvil");armWatchdog()
-     val system=if(msg.what==AiWire.PLAN)AgentPolicy.SYSTEM else AiPolicy.SYSTEM
+     val system=if(msg.what==AiWire.PLAN)AgentPolicy.SYSTEM else AiPolicy.CONTEXT_SYSTEM
      worker.execute{try{
       val c=engine!!.createConversation(ConversationConfig(systemInstruction=Contents.of(system),tools=emptyList(),automaticToolCalling=false,extraContext=mapOf("enable_thinking" to false),samplerConfig=SamplerConfig(topK=20,topP=.9,temperature=.2)))
       conversation=c

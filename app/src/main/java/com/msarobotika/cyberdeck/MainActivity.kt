@@ -343,6 +343,7 @@ class MainActivity : ComponentActivity() {
                             change={success,action->run{val state=action();runOnUiThread{workState=state;workLoaded=true};success}},
                             export={work->run{val generated=workStore.report(work.id,store);runOnUiThread{report=generated;exporter.launch("CiberDeck-trabajo-${work.id.take(8)}.md")};"Informe del trabajo preparado para guardar"}},navigate={tab=it})}}
                         "IA", "Agente" -> {item(key="tool-ai"){LocalAiPanel(session,listOfNotNull(
+                            AiContext.agentResult(agentState)?.let{"Resumen del agente" to it},
                             phoneSnapshot?.diagnostic()?.let{"Chequeo del móvil" to it},
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},
                             diagnostic?.let{"Último diagnóstico" to it},

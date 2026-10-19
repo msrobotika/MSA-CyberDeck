@@ -2,9 +2,13 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.21 · Resultados claros del agente
+## Desarrollo 0.22 · IA con contexto local
 
-APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: compilación y lint correctos, 169 pruebas JVM y validación Android descrita en el informe. El OPPO no está conectado y no se ha actualizado en esta revisión. [Validación 0.21](docs/VALIDATION-021.md).
+APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada en Galaxy A15: compilación y lint correctos, pruebas de lógica y validación Android descritas en el informe. El OPPO no está conectado y no se ha actualizado en esta revisión. [Validación 0.22](docs/VALIDATION-022.md).
+
+**Contexto de IA**: describe la situación y el objetivo, elige una lectura/evidencia o el resumen del agente e incluye opcionalmente una instantánea Android obtenida al generar. El analista recibe fuentes fechadas y pide observaciones, interpretación justificada y siguiente comprobación. Puedes consultar y guardar la entrada exacta enviada al motor con su SHA-256. No supone entrenar un modelo nuevo ni garantiza razonamiento experto; la prueba real todavía mostró inferencias sin respaldo sobre permisos. Las respuestas requieren revisión.
+
+El magnetómetro sigue siendo una herramienta de observación local: no evalúa exposición laboral o riesgo sanitario. El ejemplo de un taller junto a un transformador incorpora esa limitación tanto en la interfaz como en la consulta. [Alcance, fuentes y pruebas](docs/VALIDATION-022.md).
 
 **Resultados primero**: al ejecutar, el agente muestra un resumen con progreso medido, síntesis de cada paso y guardado de la sesión. Los métodos y lecturas completos se despliegan al pedirlos. Distingue errores, interrupciones, interpretaciones de IA y pasos manuales u omitidos; terminar herramientas no es una puntuación de seguridad. «Preparar de nuevo» conserva el origen del plan y no repite operaciones automáticamente.
 

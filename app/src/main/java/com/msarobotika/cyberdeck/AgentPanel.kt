@@ -59,7 +59,7 @@ import java.time.Instant
  }
  fun chooseTask(task:AgentTask){if(session.agent.value.running || session.agent.value.planning || blocked)return;request=task.title;session.agent.value=task.session();queuedTask=if(task.instant)task else null}
  LaunchedEffect(queuedTask,scopeLoaded,blocked){if(queuedTask!=null && scopeLoaded && !blocked && !session.agent.value.running){queuedTask=null;execute()}}
- fun planWithAi(){session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty()))}
+ fun planWithAi(){val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty(),environment))}
  LaunchedEffect(agent.run?.startedAt){showResults=false}
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
   AgentSummary.from(agent)?.let{summary->
@@ -80,14 +80,15 @@ import java.time.Instant
     if(agent.running)OutlinedButton(onClick={executionJob?.cancel()}){Text("Detener ejecución")}
     else {
      if(agent.results.isNotEmpty())TextButton(onClick={showResults=!showResults}){Text(if(showResults)"Ocultar detalles de resultados" else "Ver detalles de resultados")}
-     agent.run?.let{run->OutlinedButton(enabled=editing,onClick={runCatching{run.diagnostic(agent.request,agent.modelHash,agent.evidenceScope,agent.origin)}.onSuccess(save).onFailure{e->session.agent.update{it.copy(error=e.message?:"No se pudo preparar el informe")}}}){Text("Guardar ejecución como evidencia")}}
-     TextButton(enabled=editing,onClick={session.agent.value=AgentSession(request=agent.request,plan=agent.plan,inputs=agent.inputs,origin=agent.origin,modelHash=agent.modelHash)}){Text("Preparar de nuevo")}
+     agent.run?.let{run->OutlinedButton(enabled=editing,onClick={runCatching{run.diagnostic(agent.request,agent.modelHash,agent.evidenceScope,agent.origin,agent.contextSnapshot)}.onSuccess(save).onFailure{e->session.agent.update{it.copy(error=e.message?:"No se pudo preparar el informe")}}}){Text("Guardar ejecución como evidencia")}}
+     TextButton(enabled=editing,onClick={session.agent.value=AgentSession(request=agent.request,plan=agent.plan,inputs=agent.inputs,origin=agent.origin,modelHash=agent.modelHash,contextSnapshot=agent.contextSnapshot)}){Text("Preparar de nuevo")}
     }
    }}
   }
   Text("Tu móvil es el equipo principal. El ESP32 es opcional.",style=MaterialTheme.typography.bodySmall)
   FilledTonalButton(enabled=editing,onClick={chooseTask(AgentTasks.phone)},modifier=Modifier.fillMaxWidth().testTag("agent-task-phone")){Column(Modifier.padding(vertical=4.dp)){Text("Revisar mi móvil");Text("Ajustes, conexión, batería y APK · comprobar ahora",style=MaterialTheme.typography.bodySmall)}}
   OutlinedTextField(request,{request=it.take(800)},label={Text("Qué quieres que haga CiberDeck")},placeholder={Text("Revisa mi móvil, busca Bluetooth…")},modifier=Modifier.fillMaxWidth(),enabled=editing,maxLines=3)
+  AiContext.domainGuidance(request).takeIf{it.isNotBlank()}?.let{DeckDisclosure("Alcance para campos y salud",it)}
   Button(modifier=Modifier.fillMaxWidth(),enabled=editing && request.isNotBlank(),onClick={
    val task=AgentTasks.match(request)
    if(task!=null){session.agent.value=task.session(request);queuedTask=if(task.instant)task else null}
@@ -157,6 +158,7 @@ import java.time.Instant
    }
   }}}
   if(agent.raw.isNotBlank())DeckDisclosure("Plan recibido de la IA",agent.raw)
+  if(agent.contextSnapshot.isNotBlank())DeckDisclosure("Contexto usado para preparar el plan",agent.contextSnapshot)
   DeckDisclosure("Acceso y límites","El agente utiliza las funciones implementadas de CiberDeck y permisos concedidos por Android. No tiene root, shell ni acceso a datos privados de otras apps. Las operaciones integradas conservan los permisos y selectores de Android; se espera la respuesta real antes de continuar. Borrar una copia requiere confirmación específica. Los resultados guardados se vuelven a verificar; confirmaciones manuales y texto generado se distinguen de lecturas. RF/IR y otros módulos del catálogo futuro siguen pendientes. La sesión permanece en memoria hasta guardarla; salir durante una ejecución la interrumpe. Un plan puede no corresponder a tu intención: revísalo.")
  }
 }
