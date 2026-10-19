@@ -15,6 +15,7 @@
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
     <application android:theme="@style/Theme.CyberDeck" android:label="CiberDeck" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher" android:allowBackup="false" android:fullBackupContent="false" android:dataExtractionRules="@xml/data_extraction_rules" android:usesCleartextTraffic="true" android:supportsRtl="true">
+        <service android:name=".LocalAiService" android:exported="false" android:process=":local_ai" />
         <service android:name=".CallGuardService" android:exported="true" android:permission="android.permission.BIND_SCREENING_SERVICE">
             <intent-filter><action android:name="android.telecom.CallScreeningService" /></intent-filter>
         </service>

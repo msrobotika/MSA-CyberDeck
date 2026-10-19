@@ -36,7 +36,7 @@ Se escribió exclusivamente la aplicación en 0x10000, tras autorización para r
 
 Prueba física desde PC: respuesta de identidad, redes auténticas, contador de tramas, pausa/reanudación y cinco capturas del framebuffer 240×135 correctas. Captura final: 11 redes, 2086 tramas; son valores puntuales, no especificaciones de rendimiento. Configuración y estado de monitor restaurados tras la prueba. Capturas con SSID/BSSID o postura de seguridad del móvil permanecen privadas. Radar y avisos genéricos se incluyen tras revisión visual.
 
-USB serie Android→ESP mediante OTG sigue pendiente de cableado físico y permiso del sistema. El ESP32 clásico no ofrece USB NCM nativo. RF externo, IR externo, GPIO, MQTT/Modbus/PLC e IA continúan como módulos pendientes: no se anuncian como implementados.
+USB serie Android→ESP mediante OTG sigue pendiente de cableado físico y permiso del sistema. El ESP32 clásico no ofrece USB NCM nativo. RF externo, IR externo, GPIO y MQTT/Modbus/PLC continúan como módulos pendientes: no se anuncian como implementados.
 
 ## Validación de esta candidata
 
@@ -61,3 +61,7 @@ La inspección se conserva en memoria al girar el móvil, permite guardar un inf
 Samsung SM-A155F/A15, Android 16/API 36, detectado y actualizado sobre 0.5.2 conservando sus datos. Las pruebas de enlaces, servicio de llamadas y recursos reales pasaron en 0.8.0. El OPPO dejó de estar conectado por USB al cambiar al A15: no se asume que ambos sigan conectados.
 
 Referencia: [PackageManager y metadatos de archivos APK](https://developer.android.com/reference/android/content/pm/PackageManager).
+
+## Continuación 0.9
+
+El asistente de Google local se documenta en [LOCAL-AI.md](LOCAL-AI.md). No sustituye pruebas o mediciones ni implica inferencia validada sin pesos. La versión 0.8.1 pasó 85 pruebas JVM y cuatro nativas en el A15, incluyendo inspección de su APK real, certificado, permiso del servicio de llamadas, rechazo de archivo inválido y eliminación de copia temporal. La continuación conserva esa base.

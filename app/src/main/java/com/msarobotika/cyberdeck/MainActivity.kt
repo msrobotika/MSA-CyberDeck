@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
         val store = remember { EvidenceStore(this) }
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
         val apkSnapshot by session.apk.collectAsState()
+        val exposureState by session.exposure.collectAsState()
         val phoneSnapshot by session.phone.collectAsState()
         val resourceSamples by session.samples.collectAsState()
         val phoneLive by session.phoneLive.collectAsState()
@@ -149,6 +150,17 @@ class MainActivity : ComponentActivity() {
             worker.execute {
                 val result = try { action() } catch (e: Exception) { "Error: ${e.message}" }
                 runOnUiThread { message = result; busy = false }
+            }
+        }
+        LaunchedEffect(Unit){session.aiModel.value=kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO){AiModelStore(applicationContext).current()}}
+        val aiPicker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->
+            if(uri!=null && !session.aiImporting.value){
+                session.aiImporting.value=true;session.aiImportStatus.value="Importando modelo local"
+                worker.execute{
+                    try{val result=AiModelStore(applicationContext).import(uri){size->session.aiImportStatus.value="Importando: ${displayBytes(size)}"};session.aiModel.value=result;session.aiImportStatus.value="Modelo importado; falta cargarlo"}
+                    catch(e:Exception){session.aiImportStatus.value="Importación: ${e.message}"}
+                    finally{session.aiImporting.value=false}
+                }
             }
         }
         val apkPicker=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()){uri->
@@ -267,7 +279,7 @@ class MainActivity : ComponentActivity() {
                 LazyColumn(Modifier.fillMaxSize().testTag("deck-list"),state=contentScroll,contentPadding=PaddingValues(horizontal=18.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
                     when(tab) {
                         "Resumen" -> {
-                            item { CiberDeckCommand(phoneSnapshot,busy,analyze={run{
+                            item { CiberDeckCommand(phoneSnapshot,busy,audit={tab="Equipo"},analyze={run{
                                 val result=PhoneAudit.read(this@MainActivity)
                                 runOnUiThread{session.phone.value=result;tab="Móvil"}
                                 "Chequeo local terminado"
@@ -293,6 +305,13 @@ class MainActivity : ComponentActivity() {
                                 DeckRecent(entry){evidenceQuery=entry.name;evidenceFilter="Todas";tab="Evidencias"}
                             }
                         }
+                        "Equipo" -> {item{ExposurePanel(session,save={saveDiagnostic(it)})}}
+                        "IA" -> {item{LocalAiPanel(session,listOfNotNull(
+                            phoneSnapshot?.diagnostic()?.let{"Chequeo del móvil" to it},
+                            apkSnapshot?.diagnostic()?.let{"Última APK" to it},
+                            diagnostic?.let{"Último diagnóstico" to it},
+                            exposureState.result?.diagnostic(exposureState.reference)?.let{"Auditoría del equipo" to it}),
+                            pick={aiPicker.launch(arrayOf("*/*"))},save={saveDiagnostic(it)})}}
                         "APK" -> {item{ApkInspectorPanel(apkSnapshot,busy,
                             pick={apkPicker.launch(arrayOf("application/vnd.android.package-archive","application/octet-stream"))},
                             self={run{val result=ApkInspector.inspectFile(this@MainActivity,java.io.File(applicationInfo.sourceDir));runOnUiThread{session.apk.value=result};"CiberDeck inspeccionada desde su APK instalado"}},

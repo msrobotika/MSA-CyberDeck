@@ -2,8 +2,12 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
-## Desarrollo 0.8.1
+## Desarrollo 0.10 · Comprobar, comparar y explicar
 
+APK candidata para Android 8 o posterior **de 64 bits** (ARM64/x86_64). Instalada y comprobada en Galaxy A15; esta revisión no se ha instalado en el OPPO desconectado.
+
+- **Auditar un equipo**: flujo guiado desde el inicio. Resuelve un destino, confirma una IP y hasta ocho puertos, acepta el alcance autorizado y comprueba conexiones TCP sin enviar datos de aplicación. Gráfico de resultados, tiempos medidos, referencia temporal, comparación e informe verificable. La red queda fijada y un cambio interrumpe la prueba. Un puerto accesible no acredita una vulnerabilidad ni una intrusión.
+- **Asistente IA local**: motor Google LiteRT-LM, importación privada de Gemma `.litertlm`, elección de contexto, respuestas por streaming, parada y liberación de memoria. Sin nube ni ejecución de acciones. **Pesos no incluidos; generación pendiente de un modelo real**, por elección del propietario. [Configuración y límites](docs/LOCAL-AI.md).
 - Inicio con cuatro accesos directos y menú lateral por áreas desplegables.
 - **Mi móvil**: bloqueo, fecha del parche, depuración USB, conexión/VPN/DNS privado, RAM, almacenamiento, batería y hardware según las API públicas de Android.
 - **Gráficas reales**: RAM y batería cada dos segundos al iniciarlas; máximo 60 muestras, pausa al salir. Sin muestras ficticias ni carga artificial de CPU.
@@ -14,15 +18,19 @@ Aplicación Android local para comprobar, observar y documentar dispositivos pro
 - **Guardia de llamadas**, experimental: API oficial Android de filtrado con elección expresa de la app por el usuario. Registro privado limitado a 100 eventos entrantes, lista personal de revisión, avisos por coincidencia exacta o verificación de operador fallida. No consulta reputación externa, no graba ni bloquea llamadas. Sin llamada física de validación todavía.
 - ESP32 con cinco pantallas horizontales y la misma paleta/identidad: Radar, Redes, Ficha, Avisos y USB. BOOT cambia de vista; no es táctil.
 
-[Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
+[Validación de esta candidata](docs/VALIDATION-010.md) · [Pruebas, límites y privacidad 0.8](docs/CIBERDECK-08.md) · [Contrato USB](docs/SUPERFLYPER-USB-PROTOCOL.md) · [Continuidad anterior](docs/SUPERFLYPER_WORK_HANDOFF.md).
 
 PC→ESP y PC→OPPO funcionan por separado. Esto **no valida** la conexión directa Android→ESP mediante OTG, que sigue pendiente. El firmware real conserva el protocolo WiFi Sentinel; no se ha sustituido por el firmware genérico candidato.
 
-<img src="docs/screenshots/ciberdeck-home.png" width="280" alt="Inicio real de CiberDeck en OPPO"> <img src="docs/screenshots/ciberdeck-esp-radar.png" width="480" alt="Framebuffer real del radar del ESP32, 240 por 135">
+<img src="docs/screenshots/ciberdeck-home.png" width="260" alt="Inicio real de CiberDeck en Galaxy A15"> <img src="docs/screenshots/ciberdeck-equipo.png" width="260" alt="Auditoría TCP real contra un servicio de prueba en el propio A15"> <img src="docs/screenshots/ciberdeck-local-ai.png" width="260" alt="Motor local disponible, sin modelo ni respuestas inventadas">
+
+La captura de auditoría corresponde a una conexión real a un servicio local de prueba; no representa un incidente. Las pantallas proceden de la app ejecutada en el A15. El radar siguiente procede del framebuffer de la placa real.
+
+<img src="docs/screenshots/ciberdeck-esp-radar.png" width="480" alt="Framebuffer real del radar del ESP32, 240 por 135">
 
 ## Base CyberDeck conservada
 
-Kit Android local para observar, comprobar y documentar auditorías autorizadas. Las funciones de la base 0.6 se mantienen en la candidata 0.8.
+Kit Android local para observar, comprobar y documentar auditorías autorizadas. Las funciones de la base 0.6 se mantienen en la candidata actual.
 
 ## Experiencia 0.6
 

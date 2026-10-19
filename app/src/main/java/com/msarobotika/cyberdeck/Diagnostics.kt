@@ -43,7 +43,7 @@ object Diagnostics {
         return URI(uri.toString().substringBefore('#')).toURL()
     }
 
-    private fun addresses(host: String): List<InetAddress> {
+    internal fun addresses(host: String): List<InetAddress> {
         val pending = resolver.submit<List<InetAddress>> { InetAddress.getAllByName(host).toList() }
         try { return pending.get(5, TimeUnit.SECONDS) }
         finally { pending.cancel(true) }

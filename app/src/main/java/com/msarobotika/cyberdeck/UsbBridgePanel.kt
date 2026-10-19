@@ -74,7 +74,7 @@ object SuperModules {
         SuperModule("gpio","GPIO, sensores y electrónica",ModuleStage.PENDING,"Requiere perfil eléctrico real de placa y confirmación para salidas."),
         SuperModule("industrial","MQTT, Modbus, PLC y domótica",ModuleStage.PENDING,"Requiere destino autorizado y control explícito de escrituras."),
         SuperModule("protocols","Analizador de protocolos",ModuleStage.EXPERIMENTAL,"Análisis de tramas JSONL USB; sin captura lógica de buses aún."),
-        SuperModule("ai","Asistente IA",ModuleStage.PENDING,"Sin proveedor ni modelo configurado. No se envían evidencias a servicios de IA."))
+        SuperModule("ai","Asistente IA",ModuleStage.EXPERIMENTAL,"Motor Google LiteRT-LM e importación de Gemma local. Generación pendiente de validar con un modelo real; sin nube ni acciones automáticas."))
 }
 @Composable fun SuperModulesPanel() {
     Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {

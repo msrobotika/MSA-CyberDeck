@@ -31,7 +31,7 @@ class SuperFlyperDeviceTest {
         ui.openDeck("Módulos")
         ui.onNodeWithText("CIBERDECK · MÓDULOS").assertIsDisplayed()
         ui.onNodeWithText("Asistente IA").performScrollTo().assertExists()
-        ui.onNodeWithText("Sin proveedor ni modelo configurado. No se envían evidencias a servicios de IA.").assertExists()
+        ui.onNodeWithText("Motor Google LiteRT-LM e importación de Gemma local. Generación pendiente de validar con un modelo real; sin nube ni acciones automáticas.").assertExists()
         ui.openDeck("NFC")
         ui.onNodeWithText("Leer etiqueta NFC · 30 s").assertIsDisplayed()
     }
