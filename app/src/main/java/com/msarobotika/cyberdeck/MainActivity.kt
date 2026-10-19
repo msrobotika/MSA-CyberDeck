@@ -318,6 +318,7 @@ class MainActivity : ComponentActivity() {
                         "Equipo" -> {item{ExposurePanel(session,save={saveDiagnostic(it)})}}
                         "Magnético" -> {item{MagneticPanel(session,save={saveDiagnostic(it)})}}
                         "CIDR" -> {item{NetworkPlanPanel(save={saveDiagnostic(it)})}}
+                        "Comparar" -> {item{ComparisonPanel(entries,workState.works.firstOrNull{it.id==workState.activeId},busy,save={saveDiagnostic(it)})}}
                         "Trabajos" -> {item{AuditWorkPanel(workState,workStore,entries,workLoaded,busy,
                             change={success,action->run{val state=action();runOnUiThread{workState=state;workLoaded=true};success}},
                             export={work->run{val generated=workStore.report(work.id,store);runOnUiThread{report=generated;exporter.launch("CiberDeck-trabajo-${work.id.take(8)}.md")};"Informe del trabajo preparado para guardar"}},navigate={tab=it})}}
@@ -474,6 +475,7 @@ class MainActivity : ComponentActivity() {
                                 OutlinedButton(enabled=!busy,onClick={manageEvidence=!manageEvidence},modifier=Modifier.weight(1f)){Text(if(manageEvidence)"Cerrar gestión" else "Gestionar")}
                             } }
                             item { Text("${displayBytes(entries.sumOf{it.bytes})} en copias privadas · ${displayBytes(filtered.sumOf{it.bytes})} visibles",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
+                            item{OutlinedButton(onClick={tab="Comparar"},enabled=!busy){Text("Comparar diagnósticos guardados")}}
                             if(manageEvidence) {
                                 item { OutlinedButton(enabled=!busy && entries.isNotEmpty(),onClick={run{store.verify(entries)}}){Text("Verificar copias")} }
                                 item { OutlinedButton(enabled=!busy && filtered.isNotEmpty(),onClick={pendingDelete=filtered.toList()}){Text("Borrar resultados visibles",color=MaterialTheme.colorScheme.error)} }

@@ -75,7 +75,7 @@ import androidx.compose.ui.unit.dp
  if(!work.archived){
   Text("Continuar la revisión",style=MaterialTheme.typography.titleMedium)
   Text(if(active)"Los diagnósticos que guardes se vinculan a este trabajo." else "Activa este trabajo para asociarle automáticamente los nuevos diagnósticos.",style=MaterialTheme.typography.bodySmall)
-  listOf("Móvil" to "Revisar este móvil","Equipo" to "Comprobar un equipo autorizado","APK" to "Inspeccionar una APK","USB" to "Consultar el ESP32 por USB").forEach{(route,label)->OutlinedButton(enabled=!busy && active,onClick={navigate(route)},modifier=Modifier.fillMaxWidth()){Text(label)}}
+  listOf("Comparar" to "Comparar lecturas guardadas","Móvil" to "Revisar este móvil","Equipo" to "Comprobar un equipo autorizado","APK" to "Inspeccionar una APK","USB" to "Consultar el ESP32 por USB").forEach{(route,label)->OutlinedButton(enabled=!busy && active,onClick={navigate(route)},modifier=Modifier.fillMaxWidth()){Text(label)}}
   TextButton(onClick={picking=!picking}){Text(if(picking)"Cerrar selector de evidencias" else "Añadir evidencias existentes")}
   if(picking){
    OutlinedTextField(query,{query=it.take(160)},label={Text("Buscar copia por nombre")},modifier=Modifier.fillMaxWidth())

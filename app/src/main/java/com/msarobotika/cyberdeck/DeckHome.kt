@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 
 data class DeckTool(val route:String,val title:String,val subtitle:String,val group:String,val glyph:String,val badge:String)
 val deckTools=listOf(
+    DeckTool("Comparar","Comparar lecturas","Diferencias verificadas entre diagnósticos guardados","Auditoría","report","Sin tráfico"),
     DeckTool("Trabajos","Trabajos de auditoría","Objetivos, evidencias fijadas e informe por trabajo","Auditoría","report","Guardado local"),
     DeckTool("CIDR","Plan de red","IPv4, máscara, rango y direcciones utilizables","Conectividad","tools","Cálculo local"),
     DeckTool("Magnético","Campo magnético","µT, ejes, gráfica y referencia del sensor real","Electrónica","radio","Requiere magnetómetro"),
