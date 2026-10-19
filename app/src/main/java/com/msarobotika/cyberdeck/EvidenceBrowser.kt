@@ -47,7 +47,7 @@ fun evidenceMatches(entry: Evidence, query: String, filter: String): Boolean {
 }
 
 @Composable fun EvidenceFileCard(entry:Evidence,busy:Boolean,open:()->Unit,export:()->Unit,delete:()->Unit,
-    report:()->Unit,reference:()->Unit,referenceLabel:String,referenceEnabled:Boolean) {
+    report:()->Unit,reference:()->Unit,referenceLabel:String,referenceEnabled:Boolean,analyze:(()->Unit)?=null) {
     var details by rememberSaveable(entry.id){mutableStateOf(false)}
     var menu by remember {mutableStateOf(false)}
     val kind=when {
@@ -75,6 +75,7 @@ fun evidenceMatches(entry: Evidence, query: String, filter: String): Boolean {
                 OutlinedButton(enabled=!busy,onClick=export,modifier=Modifier.weight(1f)){Text("Guardar en el móvil")}
             }
             if(entry.name.startsWith("diagnostico-"))OutlinedButton(enabled=!busy,onClick=report,modifier=Modifier.fillMaxWidth()){Text("Abrir informe guardado")}
+            if(analyze!=null && entry.name.startsWith("diagnostico-") && !entry.name.startsWith("diagnostico-ai-"))TextButton(enabled=!busy,onClick=analyze,modifier=Modifier.testTag("evidence-ai-${entry.id}")){Text("Explicar con IA local")}
             if(entry.name.startsWith("diagnostico-nfc-"))TextButton(enabled=!busy && referenceEnabled,onClick=reference){Text(referenceLabel)}
             TextButton(onClick={details=!details}){Text(if(details) "Ocultar detalles" else "Detalles y SHA-256")}
             if(details)SelectionContainer {Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {

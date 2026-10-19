@@ -15,9 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.*
 import java.time.Instant
 
-@Composable fun LocalAiPanel(session:DeckSessionModel,contexts:List<Pair<String,DiagnosticResult>>,pick:()->Unit,save:(DiagnosticResult)->Unit) {
+@Composable fun LocalAiPanel(session:DeckSessionModel,contexts:List<Pair<String,DiagnosticResult>>,pick:()->Unit,save:(DiagnosticResult)->Unit,savedContext:SavedAiContext?=null,clearSaved:()->Unit={}) {
  val context=LocalContext.current
  val state by session.ai.collectAsState()
  val model by session.aiModel.collectAsState()
@@ -30,13 +31,39 @@ import java.time.Instant
  var chosen by rememberSaveable{mutableStateOf("Sin contexto")}
  var expanded by remember{mutableStateOf(false)}
  var deleting by remember{mutableStateOf(false)}
- val selected=contexts.firstOrNull{it.first==chosen}?.second
- val blocked=state.busy || importing
+ val savedChosen=chosen=="Evidencia seleccionada" && savedContext!=null
+ val selected=if(savedChosen)savedContext?.input() else contexts.firstOrNull{it.first==chosen}?.second
+ var preparing by remember{mutableStateOf(false)}
+ var preparationError by remember{mutableStateOf("")}
+ var preparation by remember{mutableStateOf<Job?>(null)}
+ val scope=rememberCoroutineScope()
+ val sourceStore=remember(context){EvidenceStore(context)}
+ val blocked=state.busy || importing || preparing
+ LaunchedEffect(savedContext?.entry?.id){
+  if(savedContext!=null)chosen="Evidencia seleccionada" else if(chosen=="Evidencia seleccionada")chosen="Sin contexto"
+ }
+ fun ask(){
+  val questionSnapshot=question;val selectedSnapshot=selected;val modelSnapshot=model
+  val source=if(savedChosen)savedContext else null
+  preparing=true;preparationError=""
+  preparation=scope.launch{
+   try{
+    val checked=source?.let{withContext(Dispatchers.IO){loadSavedAiContext(sourceStore,it.entry)}}
+    val input=checked?.input()?:selectedSnapshot
+    val live=session.ai.value
+    if(!live.connected || !live.loaded || live.busy)error("Carga el modelo local y vuelve a intentarlo")
+    session.aiRequest.value=AiRequest(questionSnapshot,input?.let{"${it.kind.take(64)}: ${it.target.take(200)} · ${it.checkedAt.take(100)} · primeros 2200 caracteres"}?:"Ninguno",modelSnapshot?.name?.take(300).orEmpty(),modelSnapshot?.sha256.orEmpty(),Instant.now().toString(),checked?.entry?.id.orEmpty(),checked?.entry?.sha256.orEmpty(),checked?.verifiedAt.orEmpty())
+    client.send(AiWire.ASK,AiPolicy.modelPrompt(questionSnapshot,input,modelSnapshot?.name.orEmpty()))
+   }catch(e:CancellationException){throw e}
+   catch(e:Exception){preparationError=e.message?:"No se pudo verificar el contexto"}
+   finally{preparing=false}
+  }
+ }
  DisposableEffect(client,owner){
   client.connect()
-  val observer=LifecycleEventObserver{_,event->when(event){Lifecycle.Event.ON_STOP->client.disconnect();Lifecycle.Event.ON_RESUME->client.connect();else->Unit}}
+  val observer=LifecycleEventObserver{_,event->when(event){Lifecycle.Event.ON_STOP->{preparation?.cancel();client.disconnect()};Lifecycle.Event.ON_RESUME->client.connect();else->Unit}}
   owner.lifecycle.addObserver(observer)
-  onDispose{owner.lifecycle.removeObserver(observer);client.disconnect()}
+  onDispose{preparation?.cancel();owner.lifecycle.removeObserver(observer);client.disconnect()}
  }
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
   Card(Modifier.fillMaxWidth()){Row(Modifier.padding(16.dp),horizontalArrangement=Arrangement.spacedBy(12.dp)){
@@ -70,18 +97,32 @@ import java.time.Instant
   HorizontalDivider()
   Text("Qué quieres analizar",style=MaterialTheme.typography.titleMedium)
   Box{OutlinedButton(onClick={expanded=true},enabled=!blocked){Text(if(selected==null)"Sin contexto adjunto" else "Contexto: $chosen")};DropdownMenu(expanded,onDismissRequest={expanded=false}){
-   (listOf("Sin contexto")+contexts.map{it.first}).forEach{name->DropdownMenuItem(text={Text(name)},onClick={chosen=name;expanded=false})}
+   (listOf("Sin contexto")+(if(savedContext!=null)listOf("Evidencia seleccionada") else emptyList())+contexts.map{it.first}).forEach{name->DropdownMenuItem(text={Text(name)},onClick={chosen=name;expanded=false})}
   }}
+  if(savedChosen)savedContext?.let{source->
+   Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+    Text("FUENTE GUARDADA",style=MaterialTheme.typography.labelLarge,color=DeckMint)
+    Text(source.entry.name,style=MaterialTheme.typography.bodyMedium,maxLines=2)
+    Text("Verificada: ${displayTime(source.verifiedAt)}. Se vuelve a comprobar antes de generar.",style=MaterialTheme.typography.bodySmall)
+    DeckDisclosure("Referencia de la fuente","ID: ${source.entry.id}\nSHA-256: ${source.entry.sha256}")
+    TextButton(enabled=!blocked,onClick=clearSaved){Text("Retirar contexto guardado")}
+   }}
+  }
+  Text("Preguntas rápidas",style=MaterialTheme.typography.titleMedium)
+  listOf("Explicar" to "Explica estas observaciones en español. Separa datos observados e incertidumbres.","Comprobar" to "Propón tres comprobaciones defensivas sobre mis equipos para aclarar este resultado. No afirmes haberlas ejecutado.","Preparar informe" to "Redacta una nota breve de auditoría: observaciones, límites y próximos pasos. No inventes ataques ni vulnerabilidades.").forEach{(label,prompt)->OutlinedButton(enabled=!blocked,onClick={question=prompt}){Text(label)}}
   selected?.let{result->DeckDisclosure("Ver datos incluidos",AiPolicy.prompt("Explicar resultado",result))}
   OutlinedTextField(question,{question=it.take(800)},label={Text("Pregunta al analista")},supportingText={Text("${question.length}/800 · solo el contexto que elijas, hasta 2200 caracteres")},modifier=Modifier.fillMaxWidth(),maxLines=5,enabled=!blocked)
-  Button(enabled=state.loaded && !blocked && question.isNotBlank(),onClick={session.aiRequest.value=AiRequest(question,selected?.let{"${it.kind}: ${it.target} · ${it.checkedAt} · primeros 2200 caracteres"}?:"Ninguno",model?.name.orEmpty(),model?.sha256.orEmpty(),Instant.now().toString());client.send(AiWire.ASK,AiPolicy.modelPrompt(question,selected,model?.name.orEmpty()))}){Text("Analizar en este móvil")}
+  Button(enabled=state.loaded && !blocked && question.isNotBlank(),onClick={ask()}){Text("Analizar en este móvil")}
+  if(preparing)Text("Verificando la fuente seleccionada…",style=MaterialTheme.typography.bodySmall)
+  if(preparationError.isNotBlank())Text(preparationError,color=MaterialTheme.colorScheme.error)
   if(state.busy && state.loaded)OutlinedButton(onClick={client.send(AiWire.STOP)}){Text("Detener generación")}
   if(!state.loaded)Text("Importa y carga un modelo para habilitar la generación. Motor nativo: ${if(state.runtime)"cargado" else "sin verificar"}.",style=MaterialTheme.typography.bodySmall)
   if(state.output.isNotEmpty()){
    Text("INTERPRETACIÓN GENERADA · REVISAR",color=DeckViolet,style=MaterialTheme.typography.labelLarge)
+   request?.let{Text("Contexto utilizado: ${it.context}",style=MaterialTheme.typography.bodySmall)}
    SelectionContainer{Text(state.output)}
    Text("${state.elapsed/1000} s · ${state.chunks} fragmentos recibidos (no tokens). Puede contener errores; no acredita ataques ni sustituye las lecturas originales.",style=MaterialTheme.typography.bodySmall)
-   OutlinedButton(enabled=!blocked,onClick={save(DiagnosticResult("ai","Modelo local",Instant.now().toString(),"Interpretación de IA; no es una medición",listOf("Motor" to "Google LiteRT-LM 0.13.1 · CPU local","Modelo" to (request?.model?:"No disponible"),"SHA-256 modelo" to (request?.modelHash?:"No disponible"),"Pregunta" to (request?.question?:"No disponible"),"Contexto seleccionado" to (request?.context?:"No disponible"),"Fecha de solicitud" to (request?.at?:"No disponible"),"Estado" to if(state.error.isBlank())"Finalizada por el motor; pendiente de revisión" else "Interrumpida: ${state.error}","Respuesta generada" to state.output,"Límite" to "Texto de IA no verificado. Sin ejecución de herramientas ni acciones sobre equipos.")))}){Text("Guardar interpretación")}
+   OutlinedButton(enabled=!blocked,onClick={save(DiagnosticResult("ai","Modelo local",Instant.now().toString(),"Interpretación de IA; no es una medición",listOf("Motor" to "Google LiteRT-LM 0.13.1 · CPU local","Modelo" to (request?.model?:"No disponible"),"SHA-256 modelo" to (request?.modelHash?:"No disponible"),"Pregunta" to (request?.question?:"No disponible"),"Contexto seleccionado" to (request?.context?:"No disponible"),"Fecha de solicitud" to (request?.at?:"No disponible"),"ID fuente guardada" to (request?.sourceId?.ifBlank{"No adjunta"}?:"No disponible"),"SHA-256 fuente guardada" to (request?.sourceHash?.ifBlank{"No adjunta"}?:"No disponible"),"Fecha de verificación de fuente" to (request?.sourceVerifiedAt?.ifBlank{"No adjunta"}?:"No disponible"),"Estado" to if(state.error.isBlank())"Finalizada por el motor; pendiente de revisión" else "Interrumpida: ${state.error}","Respuesta generada" to state.output,"Límite" to "Texto de IA no verificado. Sin ejecución de herramientas ni acciones sobre equipos.")))}){Text("Guardar interpretación")}
   }
   DeckDisclosure("Privacidad y límites","No incluye Gemini en la nube, clave API ni automatización de herramientas. El modelo se copia a almacenamiento privado y no se distribuye en GitHub. El motor corre en otro proceso de CiberDeck para contener fallos nativos; tiene los permisos de la app, pero esta integración no realiza peticiones de red. Puede equivocarse o seguir texto malicioso del contexto: revisa la respuesta. Ninguna salida se ejecuta. No se graba micrófono ni se leen llamadas, mensajes o archivos no seleccionados para la IA. Las respuestas pueden ser inexactas y no son un diagnóstico de seguridad.")
  }

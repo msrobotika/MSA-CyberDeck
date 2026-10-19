@@ -71,6 +71,7 @@ class MainActivity : ComponentActivity() {
         var workState by remember{mutableStateOf(AuditWorkState())}
         var workLoaded by remember{mutableStateOf(false)}
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
+        val savedAiContext by session.aiSource.collectAsState()
         val apkSnapshot by session.apk.collectAsState()
         val exposureState by session.exposure.collectAsState()
         val phoneSnapshot by session.phone.collectAsState()
@@ -327,7 +328,7 @@ class MainActivity : ComponentActivity() {
                             apkSnapshot?.diagnostic()?.let{"Última APK" to it},
                             diagnostic?.let{"Último diagnóstico" to it},
                             exposureState.result?.diagnostic(exposureState.reference)?.let{"Auditoría del equipo" to it}),
-                            pick={aiPicker.launch(arrayOf("*/*"))},save={saveDiagnostic(it)})}}
+                            pick={aiPicker.launch(arrayOf("*/*"))},save={saveDiagnostic(it)},savedContext=savedAiContext,clearSaved={session.aiSource.value=null})}}
                         "APK" -> {item{ApkInspectorPanel(apkSnapshot,busy,
                             pick={apkPicker.launch(arrayOf("application/vnd.android.package-archive","application/octet-stream"))},
                             self={run{val result=ApkInspector.inspectFile(this@MainActivity,java.io.File(applicationInfo.sourceDir));runOnUiThread{session.apk.value=result};"CiberDeck inspeccionada desde su APK instalado"}},
@@ -504,7 +505,11 @@ class MainActivity : ComponentActivity() {
                                                 "Comparación de observaciones · no acredita autenticidad",compareNfc(baseline,result))
                                             runOnUiThread{openedEvidence=comparison};"Comparación NFC preparada · copias verificadas"
                                         }
-                                    }},referenceLabel=if(nfcReference==null)"Usar como referencia NFC" else "Comparar con referencia NFC",referenceEnabled=entry.id!=nfcReference?.first)
+                                    }},referenceLabel=if(nfcReference==null)"Usar como referencia NFC" else "Comparar con referencia NFC",referenceEnabled=entry.id!=nfcReference?.first,analyze={run{
+                                        val source=loadSavedAiContext(store,entry)
+                                        runOnUiThread{session.aiSource.value=source;tab="IA"}
+                                        "Fuente verificada; elige una pregunta y carga el modelo para analizarla"
+                                    }})
                             }
                         }
                         "Informes" -> {

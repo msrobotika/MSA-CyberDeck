@@ -12,6 +12,7 @@ class DeckSessionModel:ViewModel() {
     val magneticReference=MutableStateFlow<Double?>(null)
     var exposureRunner:ExposureRunner?=null
     val ai=MutableStateFlow(LocalAiState())
+    val aiSource=MutableStateFlow<SavedAiContext?>(null)
     val aiRequest=MutableStateFlow<AiRequest?>(null)
     val aiImporting=MutableStateFlow(false)
     val aiImportStatus=MutableStateFlow("")
