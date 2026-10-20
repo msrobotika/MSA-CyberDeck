@@ -4,6 +4,9 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class DeckCatalogTest {
+ @Test fun recentToolsAreMostRecentFirstWithoutDuplicates(){assertEquals(listOf("NFC","USB","Red"),DeckCatalog.recent(listOf("USB","NFC","Red"),"NFC"))}
+ @Test fun recentToolsDiscardUnknownAndRootRoutes(){assertEquals(listOf("USB"),DeckCatalog.recent(listOf("USB","Resumen","unknown"),"Herramientas"))}
+ @Test fun recentToolsStayBoundedAcrossRestoration(){assertEquals(listOf("NFC","USB","Red"),DeckCatalog.recent(listOf("NFC","USB","NFC","Red","Web")))}
  @Test fun everyExistingToolHasExactlyOneArea(){
   val routes=DeckCatalog.areas.flatMap{it.routes}
   assertEquals(routes.size,routes.distinct().size)

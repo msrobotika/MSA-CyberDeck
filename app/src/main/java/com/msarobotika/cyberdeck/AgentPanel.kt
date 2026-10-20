@@ -20,6 +20,7 @@ import java.time.Instant
  var work by remember{mutableStateOf<AuditWork?>(null)};var scopeLoaded by remember{mutableStateOf(false)}
  var scopeError by remember{mutableStateOf("")};var executionJob by remember{mutableStateOf<Job?>(null)}
  var quickExpanded by rememberSaveable{mutableStateOf(false)};var queuedTask by remember{mutableStateOf<AgentTask?>(null)}
+ var choosingTask by rememberSaveable{mutableStateOf(false)}
  var catalog by rememberSaveable{mutableStateOf(false)};var search by rememberSaveable{mutableStateOf("")}
  var picked by rememberSaveable{mutableStateOf(arrayListOf<String>())};var manualNote by rememberSaveable{mutableStateOf("")}
  val actionStatus by (runtime?.status?:remember{ kotlinx.coroutines.flow.MutableStateFlow("") }).collectAsState()
@@ -57,9 +58,9 @@ import java.time.Instant
    catch(e:Exception){session.agent.update{it.copy(error=e.message?:"Error de ejecución")}}
    finally{session.agent.update{it.copy(running=false,activeTool=null)}}}
  }
- fun chooseTask(task:AgentTask){if(session.agent.value.running || session.agent.value.planning || blocked)return;request=task.title;session.agent.value=task.session();queuedTask=if(task.instant)task else null}
+ fun chooseTask(task:AgentTask){if(session.agent.value.running || session.agent.value.planning || blocked)return;choosingTask=false;request=task.title;session.agent.value=task.session();queuedTask=if(task.instant)task else null}
  LaunchedEffect(queuedTask,scopeLoaded,blocked){if(queuedTask!=null && scopeLoaded && !blocked && !session.agent.value.running){queuedTask=null;execute()}}
- fun planWithAi(){val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty(),environment))}
+ fun planWithAi(){choosingTask=false;val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty(),environment))}
  LaunchedEffect(agent.run?.startedAt){showResults=false}
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
   AgentTeamPanel(agent)
@@ -86,13 +87,17 @@ import java.time.Instant
     }
    }}
   }
+  val taskFocused=agent.plan!=null || agent.run!=null || agent.planning
+  if(taskFocused && !agent.running && !agent.planning)OutlinedButton(enabled=editing,onClick={choosingTask=!choosingTask},modifier=Modifier.fillMaxWidth().testTag("agent-change-task")){Text(if(choosingTask)"Volver a la tarea actual" else "Elegir otra tarea")}
+  if(!taskFocused || choosingTask) {
+  if(choosingTask)Text("La tarea actual se conserva mientras eliges. Al preparar otra se sustituye la sesión; guarda antes los resultados que quieras conservar.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
   Text("Tu móvil es el equipo principal. El ESP32 es opcional.",style=MaterialTheme.typography.bodySmall)
   FilledTonalButton(enabled=editing,onClick={chooseTask(AgentTasks.phone)},modifier=Modifier.fillMaxWidth().testTag("agent-task-phone")){Column(Modifier.padding(vertical=4.dp)){Text("Revisar mi móvil");Text("Ajustes, conexión, batería y APK · comprobar ahora",style=MaterialTheme.typography.bodySmall)}}
   OutlinedTextField(request,{request=it.take(800)},label={Text("Qué quieres que haga CiberDeck")},placeholder={Text("Revisa mi móvil, busca Bluetooth…")},modifier=Modifier.fillMaxWidth(),enabled=editing,maxLines=3)
   AiContext.domainGuidance(request).takeIf{it.isNotBlank()}?.let{DeckDisclosure("Alcance para campos y salud",it)}
   Button(modifier=Modifier.fillMaxWidth(),enabled=editing && request.isNotBlank(),onClick={
    val task=AgentTasks.match(request)
-   if(task!=null){session.agent.value=task.session(request);queuedTask=if(task.instant)task else null}
+   if(task!=null){choosingTask=false;session.agent.value=task.session(request);queuedTask=if(task.instant)task else null}
    else if(ai.connected && ai.loaded)planWithAi()
    else session.agent.update{it.copy(error="",notice="Prueba una tarea de abajo. Para otras peticiones puedes cargar la IA local en sus ajustes.")}
   }){Text("Preparar tarea")}
@@ -117,7 +122,8 @@ import java.time.Instant
      Column(Modifier.weight(1f).padding(top=8.dp)){Text(tool.label);Text(if(runtime!=null && tool==AgentTool.MODULES)"Consulta del catálogo futuro · no ejecuta RF/IR" else if(runtime!=null && tool.assisted)"Ejecutable · puede pedir permiso o selección" else if(tool.assisted)"Asistida · se pausa en su pantalla" else if(tool.network)"Directa · requiere destino autorizado" else "Directa · lectura o cálculo local",style=MaterialTheme.typography.bodySmall)}
     }}
    }
-   Button(enabled=editing && picked.isNotEmpty(),onClick={session.agent.value=AgentSession(request="Plan elegido: "+picked.joinToString{wire->AgentTool.entries.first{it.wire==wire}.label},plan=AgentPlan(picked.map{wire->AgentTool.entries.first{it.wire==wire}}),origin="Selección manual");catalog=false}){Text("Preparar selección · ${picked.size}/8")}
+   Button(enabled=editing && picked.isNotEmpty(),onClick={choosingTask=false;session.agent.value=AgentSession(request="Plan elegido: "+picked.joinToString{wire->AgentTool.entries.first{it.wire==wire}.label},plan=AgentPlan(picked.map{wire->AgentTool.entries.first{it.wire==wire}}),origin="Selección manual");catalog=false}){Text("Preparar selección · ${picked.size}/8")}
+  }
   }
   if(agent.planning){LinearProgressIndicator(Modifier.fillMaxWidth());OutlinedButton(onClick={send(AiWire.STOP,"")}){Text("Detener planificación")}}
   if(agent.error.isNotBlank())Text(agent.error,color=MaterialTheme.colorScheme.error)

@@ -37,6 +37,18 @@ import androidx.compose.ui.unit.dp
 @Composable fun CiberDeckActions(openArea:(String)->Unit) {
     DeckAreaGrid("home-area",openArea)
 }
+@Composable fun DeckRecentTools(routes:List<String>,open:(String)->Unit,clear:()->Unit) {
+    Column(Modifier.fillMaxWidth().testTag("home-recent-tools"),verticalArrangement=Arrangement.spacedBy(4.dp)){
+        DeckSection("Volver a una herramienta",action="Limpiar",click=clear)
+        routes.mapNotNull{route->deckTools.firstOrNull{it.route==route}}.forEach { tool ->
+            OutlinedButton(onClick={open(tool.route)},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("recent-${tool.route}")) {
+                DeckGlyph(tool.glyph,Modifier.size(20.dp))
+                Text(tool.title,Modifier.weight(1f).padding(horizontal=12.dp))
+                Text("Abrir",style=MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
 @Composable fun DeckAreaGrid(tagPrefix:String="tool-area",openArea:(String)->Unit) {
     val large=androidx.compose.ui.platform.LocalConfiguration.current.fontScale>1.3f
     Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {

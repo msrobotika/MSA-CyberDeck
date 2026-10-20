@@ -97,9 +97,17 @@ class MainActivity : ComponentActivity() {
         var usbMode by rememberSaveable { mutableStateOf("Consola") }
         var toolQuery by rememberSaveable { mutableStateOf("") }
         var toolArea by rememberSaveable { mutableStateOf("") }
+        val navigationPrefs=remember{getSharedPreferences("deck-navigation",Context.MODE_PRIVATE)}
+        var recentTools by remember{mutableStateOf(DeckCatalog.recent(navigationPrefs.getString("recent-tools","").orEmpty().split("|")))}
         var manageEvidence by rememberSaveable { mutableStateOf(false) }
         var entries by remember { mutableStateOf(emptyList<Evidence>()) }
         var tab by rememberSaveable { mutableStateOf("Resumen") }
+        LaunchedEffect(tab){
+            if(deckTools.any{it.route==tab}){
+                recentTools=DeckCatalog.recent(recentTools,tab)
+                navigationPrefs.edit().putString("recent-tools",recentTools.joinToString("|")).apply()
+            }
+        }
         var rootNavigationEvent by remember {mutableIntStateOf(0)}
         val screenStates=androidx.compose.runtime.saveable.rememberSaveableStateHolder()
         LaunchedEffect(agentRequested){if(agentRequested){tab="Agente";session.agentMode.value=true;agentRequested=false}}
@@ -309,6 +317,7 @@ class MainActivity : ComponentActivity() {
                     if(agentState.run?.steps?.lastOrNull()?.awaiting==true && (tab !in listOf("IA","Agente") || !agentMode))item(key="agent-resume"){
                         FilledTonalButton(onClick={session.agentMode.value=true;tab="Agente"}){Text("Volver al agente · paso pendiente")}
                     }
+                    if(hasToolGuide(tab))item(key="tool-guide-$tab"){DeckToolGuide(tab)}
                     when(tab) {
                         "Resumen" -> {
                             item { CiberDeckCommand(phoneSnapshot,busy,agent={tab="Agente"},analyze={run{
@@ -316,6 +325,7 @@ class MainActivity : ComponentActivity() {
                                 runOnUiThread{session.phone.value=result;tab="Móvil"}
                                 "Chequeo local terminado"
                             }}) }
+                            if(recentTools.isNotEmpty())item{DeckRecentTools(recentTools,open={tab=it},clear={recentTools=emptyList();navigationPrefs.edit().remove("recent-tools").apply()})}
                             item { DeckSection("¿Qué quieres comprobar?",subtitle="Elige un área para ver sus herramientas.",action="Ver kit",click={toolArea="";toolQuery="";tab="Herramientas"}) }
                             item { CiberDeckActions { toolArea=it;toolQuery="";tab="Herramientas" } }
                             item {

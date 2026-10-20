@@ -6,6 +6,10 @@ import java.util.Locale
 data class DeckArea(val id:String,val title:String,val description:String,val glyph:String,val routes:List<String>)
 
 object DeckCatalog {
+    fun recent(previous:List<String>,opened:String?=null):List<String> {
+        val valid=deckTools.map{it.route}.toSet()
+        return (listOfNotNull(opened?.takeIf{it in valid})+previous).filter{it in valid}.distinct().take(3)
+    }
     val areas=listOf(
         DeckArea("phone","Móvil y protección","Ajustes, APK, enlaces y llamadas","home",listOf("Móvil","APK","Enlaces","Llamadas")),
         DeckArea("network","Red e Internet","Equipos, DNS, puertos y sitios web","radio",listOf("Equipo","Mi red","Red","Web","CIDR")),
