@@ -15,10 +15,20 @@ import androidx.compose.ui.unit.dp
     onSave: (DiagnosticResult) -> Unit
 ) {
     val focus=androidx.compose.ui.platform.LocalFocusManager.current
+    val context=androidx.compose.ui.platform.LocalContext.current
     var host by rememberSaveable { mutableStateOf("") }
     var port by rememberSaveable { mutableStateOf("443") }
     var url by rememberSaveable { mutableStateOf("") }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        result?.let { observation ->
+            DiagnosticResultCard(observation,busy,onSave){text->
+                val clip=android.content.ClipData.newPlainText("CiberDeck · resumen",text)
+                if(android.os.Build.VERSION.SDK_INT>=33)clip.description.extras=android.os.PersistableBundle().apply{putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE,true)}
+                (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(clip)
+            }
+            HorizontalDivider()
+            Text("Otra comprobación",style=MaterialTheme.typography.titleMedium)
+        }
         if (mode == "Web") {
             Text("CERTIFICADO · CABECERAS · REDIRECCIÓN", color = MaterialTheme.colorScheme.primary)
             OutlinedTextField(url, { url = it }, label = { Text("URL http:// o https://") },
@@ -46,21 +56,6 @@ import androidx.compose.ui.unit.dp
             }
             Text("Consulta solo equipos de tu ámbito autorizado. Una conexión aceptada no identifica el servicio.",
                 style = MaterialTheme.typography.bodySmall)
-        }
-        result?.let { observation ->
-            HorizontalDivider()
-            Text(observation.summary, style = MaterialTheme.typography.titleMedium)
-            Text(observation.target)
-            Text(observation.checkedAt, style = MaterialTheme.typography.bodySmall)
-            Button(enabled = !busy, onClick = { onSave(observation) },modifier=Modifier.fillMaxWidth()) { Text("Guardar resultado como evidencia") }
-            observation.details.forEach { (key, value) ->
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(12.dp)) {
-                        Text(key, color = MaterialTheme.colorScheme.primary)
-                        Text(value)
-                    }
-                }
-            }
         }
     }
 }

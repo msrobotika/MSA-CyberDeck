@@ -90,7 +90,7 @@ class DeviceWorkflowTest {
         ui.waitForIdle()
         assertEquals(saved.size, EvidenceStore(ui.activity).list().size)
         ui.openDeck("Resumen")
-        ui.onNodeWithText("TU LABORATORIO").assertIsDisplayed()
+        ui.onNodeWithTag("home-phone").assertIsDisplayed()
         shot("android-home-actions")
     }
 }

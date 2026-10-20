@@ -122,7 +122,7 @@ class MainActivity : ComponentActivity() {
         var permissionPending by remember { mutableStateOf(false) }
         val usb = remember { getSystemService(USB_SERVICE) as UsbManager }
         var report by remember { mutableStateOf("") }
-        var diagnostic by remember { mutableStateOf<DiagnosticResult?>(null) }
+        val diagnostic by session.diagnostic.collectAsState()
         var evidenceQuery by rememberSaveable { mutableStateOf("") }
         var evidenceFilter by rememberSaveable { mutableStateOf("Todas") }
         var evidenceNewest by rememberSaveable { mutableStateOf(true) }
@@ -308,6 +308,7 @@ class MainActivity : ComponentActivity() {
             DeckShell(tab,busy,message,navigate={tab=it;rootNavigationEvent++},receiving=browserState.active) {
                 screenStates.SaveableStateProvider(if(tab=="Agente")"IA" else tab) {
                 val contentScroll=rememberLazyListState()
+                LaunchedEffect(diagnostic){if(tab in listOf("Red","Web") && diagnostic!=null)contentScroll.scrollToItem(0)}
                 LaunchedEffect(toolArea,toolQuery){if(tab=="Herramientas")contentScroll.scrollToItem(0)}
                 LaunchedEffect(tab){if(tab in listOf("IA","Agente"))contentScroll.scrollToItem(0)}
                 LaunchedEffect(rootNavigationEvent){if(tab in listOf("Resumen","Evidencias","Informes"))contentScroll.scrollToItem(0)}
@@ -447,14 +448,14 @@ class MainActivity : ComponentActivity() {
                             item {
                                 DiagnosticsPanel(tab, busy, diagnostic?.takeIf { (it.kind == "web") == (tab == "Web") },
                                     onRun = { kind, target, action ->
-                                        diagnostic = null
+                                        session.diagnostic.value = null
                                         run {
                                             val result = try { action() } catch (e: Exception) {
                                                 val cause = e.cause ?: e
                                                 DiagnosticResult(kind, target, java.time.Instant.now().toString(),
                                                     "Comprobación no completada", listOf("Error" to "${cause.javaClass.simpleName}: ${cause.message ?: "sin detalle"}"))
                                             }
-                                            runOnUiThread { diagnostic = result }
+                                            runOnUiThread { session.diagnostic.value = result }
                                             result.summary
                                         }
                                     }, onSave = { result ->saveDiagnostic(result) })
