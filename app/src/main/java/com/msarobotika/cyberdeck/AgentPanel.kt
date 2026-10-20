@@ -73,7 +73,7 @@ import java.time.Instant
     if(agent.error.isNotBlank())Text(agent.error,color=MaterialTheme.colorScheme.error)
     if(agent.notice.isNotBlank())Text(agent.notice,style=MaterialTheme.typography.bodySmall)
     if(actionStatus.isNotBlank())Text(actionStatus,color=DeckCyan)
-    agent.results.forEach{step->
+    agent.results.lastOrNull()?.let{step->
      Text(step.tool.label,style=MaterialTheme.typography.titleSmall)
      Text(when{step.error.isNotBlank()->"Error: ${step.error}";step.awaiting->"Espera tu intervención";step.skipped->"Paso omitido";step.manual->"Confirmación manual · sin lectura verificada";step.tool==AgentTool.ANALYST && step.result!=null->"Interpretación de IA · revisar";else->step.result?.summary?:"Sin resultado"},maxLines=2,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall)
     }

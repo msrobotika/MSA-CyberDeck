@@ -35,6 +35,8 @@ import java.time.Instant
  var objective by rememberSaveable{mutableStateOf("")}
  var chosen by rememberSaveable{mutableStateOf("Sin contexto")}
  var expanded by remember{mutableStateOf(false)}
+ var showInterpretation by rememberSaveable{mutableStateOf(false)}
+ LaunchedEffect(request?.at){showInterpretation=false}
  var deleting by remember{mutableStateOf(false)}
  var engineOptions by rememberSaveable{mutableStateOf(false)}
  val savedChosen=chosen=="Evidencia seleccionada" && savedContext!=null
@@ -48,7 +50,7 @@ import java.time.Instant
  LaunchedEffect(savedContext?.entry?.id){
   if(savedContext!=null)chosen="Evidencia seleccionada" else if(chosen=="Evidencia seleccionada")chosen="Sin contexto"
  }
- fun ask(){
+ fun ask(generate:Boolean=true){
   val questionSnapshot=question;val selectedSnapshot=selected;val modelSnapshot=model
   val includePhoneSnapshot=includePhone;val objectiveSnapshot=objective
   val source=if(savedChosen)savedContext else null
@@ -60,10 +62,13 @@ import java.time.Instant
     val phone=if(includePhoneSnapshot)withContext(Dispatchers.IO){PhoneAudit.read(context).diagnostic()} else null
     val environment=AiContext.snapshot(phone,objectiveSnapshot)
     val live=session.ai.value
-    if(!live.connected || !live.loaded || live.busy)error("Carga el modelo local y vuelve a intentarlo")
-    val prompt=AiPolicy.modelPrompt(questionSnapshot,input,modelSnapshot?.name.orEmpty(),environment)
-    session.aiRequest.value=AiRequest(questionSnapshot,input?.let{"${it.kind.take(64)}: ${it.target.take(200)} · ${it.checkedAt.take(100)} · hasta 1200 caracteres"}?:(if(environment.hasPhone)"Instantánea Android · sin evidencia adicional" else "Situación y objetivo · sin lectura adjunta"),modelSnapshot?.name?.take(300).orEmpty(),modelSnapshot?.sha256.orEmpty(),Instant.now().toString(),checked?.entry?.id.orEmpty(),checked?.entry?.sha256.orEmpty(),checked?.verifiedAt.orEmpty(),environment.text,environment.sha256,prompt,PeerProtocol.sha256(prompt.toByteArray(Charsets.UTF_8)))
-    client.send(AiWire.ASK,prompt)
+    if(generate && (!live.connected || !live.loaded || live.busy))error("Carga el modelo local y vuelve a intentarlo")
+    val prompt=if(generate)AiPolicy.modelPrompt(questionSnapshot,input,modelSnapshot?.name.orEmpty(),environment) else ""
+    val capturedAt=Instant.now().toString()
+    val sources=AiSources.capture(input,phone,environment,capturedAt,checked?.entry?.id.orEmpty(),checked?.entry?.sha256.orEmpty(),checked?.verifiedAt.orEmpty())
+    session.ai.update{it.copy(output="")}
+    session.aiRequest.value=AiRequest(questionSnapshot,input?.let{"${it.kind.take(64)}: ${it.target.take(200)} · ${it.checkedAt.take(100)} · hasta 1200 caracteres"}?:(if(environment.hasPhone)"Instantánea Android · sin evidencia adicional" else "Situación y objetivo · sin lectura adjunta"),modelSnapshot?.name?.take(300).orEmpty(),modelSnapshot?.sha256.orEmpty(),capturedAt,checked?.entry?.id.orEmpty(),checked?.entry?.sha256.orEmpty(),checked?.verifiedAt.orEmpty(),environment.text,environment.sha256,prompt,if(generate)PeerProtocol.sha256(prompt.toByteArray(Charsets.UTF_8)) else "",sources,generate)
+    if(generate)client.send(AiWire.ASK,prompt) else session.ai.update{it.copy(output="",error="")}
    }catch(e:CancellationException){throw e}
    catch(e:Exception){preparationError=e.message?:"No se pudo verificar el contexto"}
    finally{preparing=false}
@@ -88,7 +93,19 @@ import java.time.Instant
     if(!agentMode)Text(if(model==null)"SIN MODELO IMPORTADO" else if(state.loaded)"MODELO EN MEMORIA" else "ARCHIVO IMPORTADO · SIN CARGAR",style=MaterialTheme.typography.labelSmall)
    }
   }}
-  if(!agentMode || engineOptions){
+  if(!agentMode){
+   Text("Consulta tus fuentes sin cargar un modelo. La interpretación de IA es opcional.",style=MaterialTheme.typography.bodySmall)
+   TextButton(enabled=!blocked,onClick={engineOptions=!engineOptions}){Text(if(engineOptions)"Ocultar ajustes de IA" else "Modelo y ajustes de IA")}
+   if(!engineOptions && !state.loaded && model!=null)Button(enabled=!blocked && state.runtime,onClick={client.send(AiWire.LOAD)}){Text("Cargar IA local")}
+   if(!engineOptions && model==null)OutlinedButton(enabled=!blocked,onClick=pick){Text("Importar modelo .litertlm")}
+  }
+  if(!agentMode && !engineOptions){
+   if(importing || state.busy){LinearProgressIndicator(Modifier.fillMaxWidth());Text(if(importing)importStatus.ifBlank{"Importando modelo…"} else state.phase,style=MaterialTheme.typography.bodySmall)}
+   if(importStatus.isNotBlank() && !importing)Text(importStatus,style=MaterialTheme.typography.bodySmall)
+   if(state.error.isNotBlank())Text(state.error,color=MaterialTheme.colorScheme.error)
+   if(!state.connected && !blocked)OutlinedButton(onClick={client.disconnect();client.connect()}){Text("Reconectar motor")}
+  }
+  if(engineOptions){
   Text("Explica tus resultados y prepara comprobaciones defensivas. Sin enviar preguntas o informes a un servidor.")
   Text(if(importing)importStatus else state.phase,color=DeckCyan,style=MaterialTheme.typography.bodySmall)
   if(importStatus.isNotBlank() && !importing)Text(importStatus,style=MaterialTheme.typography.bodySmall)
@@ -97,7 +114,7 @@ import java.time.Instant
   if(!state.connected && !blocked)OutlinedButton(onClick={client.disconnect();client.connect()}){Text("Reconectar motor")}
   Button(enabled=!blocked && !state.loaded,onClick=pick){Text(if(model==null)"Importar modelo .litertlm" else "Cambiar modelo")}
   if(model==null){
-   Text("Modelo recomendado sin registro: Qwen3 0,6B mixed INT4, unos 498 MB, licencia Apache 2.0. Descarga el archivo .litertlm desde LiteRT Community e impórtalo. Los pesos no vienen incluidos en la APK.",style=MaterialTheme.typography.bodySmall)
+   Text("Modelo ligero de compatibilidad: Qwen3 0,6B mixed INT4, unos 498 MB, licencia Apache 2.0. Su calidad es experimental y ha producido afirmaciones sin respaldo. Descarga el .litertlm desde LiteRT Community e impórtalo; los pesos no vienen incluidos en la APK.",style=MaterialTheme.typography.bodySmall)
    TextButton(onClick={context.startActivity(Intent(Intent.ACTION_VIEW,Uri.parse("https://huggingface.co/litert-community/Qwen3-0.6B/blob/e6687177e00897731e7716267eebd4eba0dde7c2/qwen3_0_6b_mixed_int4.litertlm")))}){Text("Abrir modelo sin registro")}
   }else model?.let{m->
    Text(m.name+" · "+displayBytes(m.bytes),style=MaterialTheme.typography.bodySmall)
@@ -136,6 +153,8 @@ import java.time.Instant
   }
   OutlinedTextField(objective,{objective=it.take(240)},label={Text("Situación y objetivo · opcional")},placeholder={Text("Qué estás revisando y para qué")},modifier=Modifier.fillMaxWidth(),enabled=!blocked,maxLines=3)
   Row{Checkbox(includePhone,onCheckedChange={includePhone=it},enabled=!blocked,modifier=Modifier.testTag("ai-include-phone"));Text("Incluir estado actual del móvil al generar",Modifier.weight(1f).padding(top=10.dp),style=MaterialTheme.typography.bodySmall)}
+  FilledTonalButton(enabled=!blocked,onClick={ask(false)},modifier=Modifier.fillMaxWidth().testTag("ai-review-sources")){Text("Revisar fuentes · sin IA")}
+  request?.sources?.let{AiSourcesPanel(it,!blocked,save)}
   DeckDisclosure("Qué sabe de CiberDeck",AiContext.CAPABILITIES+" Se incluyen solo Android, BLE, NFC, USB Host, VPN, DNS privado y batería; no se incluyen IP, SSID ni identificadores en este resumen. Las evidencias que elijas pueden contener datos adicionales.")
   val domainGuidance=AiContext.domainGuidance(question+" "+objective)
   if(domainGuidance.isNotBlank())DeckDisclosure("Alcance para campos y salud",domainGuidance)
@@ -148,12 +167,13 @@ import java.time.Instant
   if(preparationError.isNotBlank())Text(preparationError,color=MaterialTheme.colorScheme.error)
   if(state.busy && state.loaded)OutlinedButton(onClick={client.send(AiWire.STOP)}){Text("Detener generación")}
   if(!state.loaded)Text("Importa y carga un modelo para habilitar la generación. Motor nativo: ${if(state.runtime)"cargado" else "sin verificar"}.",style=MaterialTheme.typography.bodySmall)
-  if(state.output.isNotEmpty()){
+  if(state.output.isNotEmpty() && request?.generationRequested!=false){
    Text("INTERPRETACIÓN GENERADA · REVISAR",color=DeckViolet,style=MaterialTheme.typography.labelLarge)
    request?.let{if(AiContext.domainGuidance(it.question+" "+it.environment).isNotBlank())Text("El móvil no permite evaluar la exposición sanitaria del taller. Su serie magnética no caracteriza 50 Hz; hace falta una evaluación profesional con equipo adecuado.",style=MaterialTheme.typography.bodyMedium)}
    request?.let{Text("Contexto utilizado: ${it.context}",style=MaterialTheme.typography.bodySmall)}
    request?.takeIf{it.environment.isNotBlank()}?.let{DeckDisclosure("Contexto usado en esta respuesta",it.prompt.ifBlank{it.environment}+"\nSHA-256 de la entrada: "+it.promptHash)}
-   SelectionContainer{Text(state.output)}
+   TextButton(onClick={showInterpretation=!showInterpretation},modifier=Modifier.testTag("ai-show-interpretation")){Text(if(showInterpretation)"Ocultar interpretación de IA" else "Ver interpretación de IA")}
+   if(showInterpretation)SelectionContainer{Text(state.output)}
    Text("${state.elapsed/1000} s · ${state.chunks} fragmentos recibidos (no tokens). Puede contener errores; no acredita ataques ni sustituye las lecturas originales.",style=MaterialTheme.typography.bodySmall)
    OutlinedButton(enabled=!blocked,onClick={save(DiagnosticResult("ai","Modelo local",Instant.now().toString(),"Interpretación de IA; no es una medición",listOf("Motor" to "Google LiteRT-LM 0.13.1 · CPU local","Modelo" to (request?.model?:"No disponible"),"SHA-256 modelo" to (request?.modelHash?:"No disponible"),"Pregunta" to (request?.question?:"No disponible"),"Contexto seleccionado" to (request?.context?:"No disponible"),"Fecha de solicitud" to (request?.at?:"No disponible"),"ID fuente guardada" to (request?.sourceId?.ifBlank{"No adjunta"}?:"No disponible"),"SHA-256 fuente guardada" to (request?.sourceHash?.ifBlank{"No adjunta"}?:"No disponible"),"Fecha de verificación de fuente" to (request?.sourceVerifiedAt?.ifBlank{"No adjunta"}?:"No disponible"),"Estado" to if(state.error.isBlank())"Finalizada por el motor; pendiente de revisión" else "Interrumpida: ${state.error}","Contexto de entorno utilizado" to request?.environment.orEmpty(),"SHA-256 del contexto de entorno" to request?.environmentHash.orEmpty(),"Entrada enviada al motor" to request?.prompt.orEmpty(),"SHA-256 de la entrada al motor" to request?.promptHash.orEmpty(),"Respuesta generada" to state.output,"Límite" to "Texto de IA no verificado. Sin ejecución de herramientas ni acciones sobre equipos.")))}){Text("Guardar interpretación")}
   }

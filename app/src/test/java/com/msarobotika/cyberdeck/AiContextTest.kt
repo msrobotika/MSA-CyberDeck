@@ -4,6 +4,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AiContextTest {
+ @Test fun androidVersionIsPrioritizedWhenInputFieldsArriveInAnotherOrder(){val d=DiagnosticResult("phone","Fixture","date","Fixture",listOf("Batería" to "Fixture","NFC" to "Fixture","Android" to "16 API 36"));assertEquals("Android",AiContext.observedFields(d).first().first);val s=AiContext.snapshot(d,"x".repeat(240));assertTrue(s.text.indexOf("Android: 16")<s.text.indexOf("NFC: Fixture"))}
  private val phone=DiagnosticResult("phone","Owned test phone","2026-10-19T10:00:00Z","Fixture",listOf("Android" to "16 API 36","NFC" to "Disponible","USB Host" to "Anunciado","IP" to "PRIVATE-IP-FIXTURE","SSID" to "PRIVATE-SSID-FIXTURE","Contraseña" to "PRIVATE-SECRET-FIXTURE"))
  @Test fun missingObservationIsNotAssumedConnected(){val s=AiContext.snapshot(null);assertTrue(s.text.contains("sin lectura"));assertFalse(s.text.contains("Equipo Android:"));assertTrue(s.text.contains("No asumir"))}
  @Test fun datesAndCapabilitiesDoNotLeakUnselectedFields(){val s=AiContext.snapshot(phone);assertTrue(s.text.contains(phone.checkedAt));assertTrue(s.text.contains("16 API 36"));assertTrue(s.text.contains(phone.target));assertFalse(s.text.contains("PRIVATE-"));assertTrue(s.text.contains("no identifica un ESP32"))}

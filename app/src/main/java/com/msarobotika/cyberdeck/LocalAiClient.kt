@@ -5,7 +5,7 @@ import android.os.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
-data class AiRequest(val question:String,val context:String,val model:String,val modelHash:String,val at:String,val sourceId:String="",val sourceHash:String="",val sourceVerifiedAt:String="",val environment:String="",val environmentHash:String="",val prompt:String="",val promptHash:String="")
+data class AiRequest(val question:String,val context:String,val model:String,val modelHash:String,val at:String,val sourceId:String="",val sourceHash:String="",val sourceVerifiedAt:String="",val environment:String="",val environmentHash:String="",val prompt:String="",val promptHash:String="",val sources:AiSourcePacket?=null,val generationRequested:Boolean=true)
 data class LocalAiState(val connected:Boolean=false,val runtime:Boolean=false,val loaded:Boolean=false,val busy:Boolean=false,
  val phase:String="Sin modelo cargado",val error:String="",val output:String="",val elapsed:Long=0,val chunks:Int=0)
 class LocalAiClient(context:Context,private val state:MutableStateFlow<LocalAiState>) {

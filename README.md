@@ -2,6 +2,16 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.24 · Fuentes primero
+
+«Revisar fuentes · sin IA» prepara y guarda una instantánea fechada de Android y de la fuente elegida, sin cargar un modelo. El resumen procede de código; declaraciones del usuario, resúmenes y texto generado conservan su procedencia. La interpretación de IA se abre por separado y queda plegada por defecto. Esto no elimina los errores del modelo.
+
+El equipo del agente es compacto: nombre y estado por especialista, operaciones desplegables y último resultado con acceso al detalle completo. Los ajustes del modelo quedan plegados sin ocultar errores ni progreso. [Método, pruebas y límites 0.24](docs/VALIDATION-024.md).
+
+Instalada en A15: **200 pruebas JVM y 12 pruebas Android correctas**; limpieza del ensayo de guardado comprobada por separado. OPPO pendiente de conexión para esta versión.
+
+<img src="docs/screenshots/ciberdeck-sources-024.png" width="260" alt="Fuentes reales sin IA en A15"> <img src="docs/screenshots/ciberdeck-team-024.png" width="260" alt="Equipo del agente compacto en A15">
+
 ## Desarrollo 0.23 · Coordinador y especialistas
 
 El agente delega las treinta herramientas entre trabajadores de Móvil, Red, Sensores, Hardware, Evidencias y Analista. El panel muestra solo los necesarios y sus estados reales. Se conserva el orden del plan; errores y cancelaciones detienen el resto. Un solo motor local, sin seis modelos cargados ni razonamiento independiente por trabajador. El balance final es código, no una conclusión generada. Versión instalada en A15: 190 pruebas JVM, dos pruebas Android de ejecución/modelo y seis pruebas de interfaz correctas. Capturas reales del equipo y balance disponibles. La respuesta del analista sigue conteniendo inferencias sin respaldo, incluso con el muestreo nuevo. Temperatura 0,01 y top-k 1 reducen variación, sin garantizar exactitud. [Implementación, pruebas y límites](docs/VALIDATION-023.md).

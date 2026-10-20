@@ -13,6 +13,7 @@ data class AiContextSnapshot(val text:String,val hasPhone:Boolean=false) {
 object AiContext {
  const val CAPABILITIES="CiberDeck es una app Android local. Diagnóstico del móvil, conexión, BLE, NFC, APK, archivos e informes funcionan sin ESP32. USB/radar requieren un periférico compatible por OTG; RF/IR externos siguen pendientes. El analista explica; Agente ejecuta herramientas tipadas. Una capacidad anunciada no acredita permiso ni conexión."
  private val fields=setOf("Android","Bluetooth LE","NFC","USB Host","VPN en la red activa","DNS privado del enlace","Batería")
+ fun observedFields(phone:DiagnosticResult):List<Pair<String,String>> = if(phone.kind!="phone")emptyList() else fields.mapNotNull{key->phone.details.firstOrNull{it.first==key}}.map{it.first to it.second.replace('\n',' ').replace('\r',' ').take(90)}
  fun agentResult(session:AgentSession):DiagnosticResult? {
   val run=session.run?:return null
   if(session.results.isEmpty())return null
@@ -37,7 +38,7 @@ object AiContext {
   else {
    lines+="Instantánea Android tomada en ${phone.checkedAt.take(80)}; no es monitorización continua."
    lines+="Equipo Android: ${phone.target.take(60)}"
-   phone.details.filter{it.first in fields}.take(7).forEach{(key,value)->lines+="$key: ${value.replace('\n',' ').replace('\r',' ').take(90)}"}
+   observedFields(phone).forEach{(key,value)->lines+="$key: $value"}
    lines+="USB Host anuncia capacidad/dispositivos; no identifica un ESP32. Sin datos sobre otros móviles."
   }
   val text=lines.joinToString("\n")

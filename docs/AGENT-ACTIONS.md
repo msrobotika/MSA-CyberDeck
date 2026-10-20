@@ -1,4 +1,8 @@
-# Acciones del agente · CiberDeck 0.23
+# Acciones del agente · CiberDeck 0.24
+
+## Presentación compacta y fuentes sin IA
+
+El equipo muestra nombre/estado; «Ver tareas de especialistas» despliega sus operaciones. El resumen principal muestra el último resultado y mantiene progreso, errores y acceso al detalle completo. En el analista, «Revisar fuentes · sin IA» permite preparar/guardar los datos consultados sin generación; las respuestas del modelo quedan plegadas y separadas. No es una herramienta de detección de alucinaciones ni un trabajador nuevo. Se conservan los treinta adaptadores y la misma ejecución. [Validación 0.24](VALIDATION-024.md).
 
 ## Coordinador y especialistas
 
