@@ -6,7 +6,9 @@ Aplicación Android local para comprobar, observar y documentar dispositivos pro
 
 «Enlaces y QR» lee un código desde una imagen elegida, identifica su tipo y analiza localmente los enlaces HTTP(S). Puede reconocer configuraciones Wi-Fi, contactos y otros esquemas sin conectarlos, importarlos o ejecutarlos. El contenido completo se oculta por defecto; el informe conserva metadatos y huella de imagen, sin el payload completo ni claves Wi-Fi. El agente incorpora «Lee un QR de una imagen» usando el selector Android mediante la acción LINK.
 
-APK 0.29 instalada en A15: **226 pruebas JVM y dos pruebas nativas Android correctas**. La prueba de interfaz se interrumpió porque el A15 volvió a bloquearse; selección mediante el selector real, botones de mostrar/ocultar y flujo del agente quedan pendientes de comprobación física. [Implementación, pruebas y límites](docs/VALIDATION-029.md).
+APK 0.29 instalada en A15: **226 pruebas JVM y 15 pruebas Android correctas** con el teléfono desbloqueado. Comprobadas lectura nativa, privacidad, mostrar/ocultar/descartar QR, navegación y tareas del móvil. Comprobados también el selector real de Android y el guardado del informe sin SSID ni contraseña. El flujo QR completo del agente continúa pendiente de prueba física. [Implementación, pruebas y límites](docs/VALIDATION-029.md).
+
+<img src="docs/screenshots/ciberdeck-qr-entry-029.png" width="320" alt="Captura real del A15 con el lector QR de CiberDeck 0.29, sin contenido revelado">
 
 ## Desarrollo 0.28 · Identidad visual de campo
 
