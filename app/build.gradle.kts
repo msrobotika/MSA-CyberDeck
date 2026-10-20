@@ -1,7 +1,7 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.android"); id("org.jetbrains.kotlin.plugin.compose") }
 
 android { namespace = "com.msarobotika.cyberdeck"; compileSdk = 35
-    defaultConfig { applicationId = "com.msarobotika.cyberdeck"; minSdk = 26; targetSdk = 35; versionCode = 36; versionName = "0.29.0-ciberdeck-dev"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
+    defaultConfig { applicationId = "com.msarobotika.cyberdeck"; minSdk = 26; targetSdk = 35; versionCode = 37; versionName = "0.30.0-ciberdeck-dev"; testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" }
     buildFeatures { compose = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

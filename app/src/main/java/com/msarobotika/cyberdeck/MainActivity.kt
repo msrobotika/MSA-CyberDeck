@@ -326,6 +326,7 @@ class MainActivity : ComponentActivity() {
                                 runOnUiThread{session.phone.value=result;tab="Móvil"}
                                 "Chequeo local terminado"
                             }}) }
+                            item { OutlinedButton(onClick={tab="Investigar"},modifier=Modifier.fillMaxWidth().testTag("home-investigation")){Text("Misión · ¿Qué cambió?")} }
                             if(recentTools.isNotEmpty())item{DeckRecentTools(recentTools,open={tab=it},clear={recentTools=emptyList();navigationPrefs.edit().remove("recent-tools").apply()})}
                             item { DeckSection("¿Qué quieres comprobar?",subtitle="Elige un área para ver sus herramientas.",action="Ver kit",click={toolArea="";toolQuery="";tab="Herramientas"}) }
                             item { CiberDeckActions { toolArea=it;toolQuery="";tab="Herramientas" } }
@@ -351,6 +352,7 @@ class MainActivity : ComponentActivity() {
                         "Equipo" -> {item{ExposurePanel(session,save={saveDiagnostic(it)})}}
                         "Magnético" -> {item{MagneticPanel(session,save={saveDiagnostic(it)})}}
                         "CIDR" -> {item{NetworkPlanPanel(save={saveDiagnostic(it)})}}
+                        "Investigar" -> {item{FieldInvestigationPanel(entries,workState.works.firstOrNull{it.id==workState.activeId},busy,save={saveDiagnostic(it)},compare={pair->comparisonSelection.chooseFirst(pair.first.id);comparisonSelection.chooseSecond(pair.second.id);tab="Comparar"},navigate={tab=it})}}
                         "Comparar" -> {item(key="tool-comparison"){ComparisonPanel(comparisonSelection,entries,workState.works.firstOrNull{it.id==workState.activeId},busy,save={saveDiagnostic(it)})}}
                         "Trabajos" -> {item{AuditWorkPanel(workState,workStore,entries,workLoaded,busy,
                             change={success,action->run{val state=action();runOnUiThread{workState=state;workLoaded=true};success}},

@@ -15,7 +15,7 @@ object DeckCatalog {
         DeckArea("network","Red e Internet","Equipos, DNS, puertos y sitios web","network",listOf("Equipo","Mi red","Red","Web","CIDR")),
         DeckArea("proximity","Bluetooth y NFC","Dispositivos cercanos y etiquetas","bluetooth",listOf("Bluetooth","NFC")),
         DeckArea("hardware","ESP32 y sensores","USB, Wi-Fi del ESP y campo magnético","chip",listOf("USB","Radio","Magnético","Módulos")),
-        DeckArea("evidence","Archivos y trabajos","Recibir, organizar y comparar pruebas","files",listOf("Recibir","Sesiones","Trabajos","Comparar")),
+        DeckArea("evidence","Archivos y trabajos","Recibir, organizar y comparar pruebas","files",listOf("Recibir","Sesiones","Trabajos","Comparar","Investigar")),
         DeckArea("assistant","Agente e IA","Ejecutar tareas o interpretar resultados","spark",listOf("Agente","IA"))
     )
     private val aliases=mapOf(
@@ -37,6 +37,7 @@ object DeckCatalog {
         "Sesiones" to "transferir compartir cifrado archivos",
         "Trabajos" to "organizar objetivo informe evidencias",
         "Comparar" to "cambios diferencias diagnosticos",
+        "Investigar" to "mision investigar cambios fuentes pruebas antes despues",
         "Agente" to "tareas automaticas coordinador asistentes",
         "IA" to "inteligencia artificial modelo local analizar explicar"
     )

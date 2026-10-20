@@ -27,7 +27,7 @@ class ComparisonSelectionModel(private val saved:SavedStateHandle):ViewModel(){
  val store=remember(context){EvidenceStore(context)}
  val scope=rememberCoroutineScope()
  val first by selection.first.collectAsState();val second by selection.second.collectAsState()
- var workOnly by rememberSaveable(work?.id){mutableStateOf(work!=null)}
+ var workOnly by rememberSaveable(work?.id){mutableStateOf(work!=null && listOfNotNull(first,second).all{id->work.evidence.any{it.id==id}})}
  var query by rememberSaveable{mutableStateOf("")};var changesOnly by rememberSaveable{mutableStateOf(true)}
  var running by remember{mutableStateOf(false)};var error by remember{mutableStateOf("")}
  var result by remember{mutableStateOf<SavedComparison?>(null)}

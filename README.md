@@ -2,6 +2,12 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.30 · Misión «¿Qué cambió?»
+
+Inicio ofrece una investigación local de las lecturas guardadas: verifica las copias, reúne parejas del mismo tipo y destino y muestra los cambios con sus fuentes. Las barras cuentan campos textuales; no representan riesgo. Cada pareja se puede abrir en Comparar y el informe de misión conserva referencias y SHA-256 sin copiar los valores originales. No genera tráfico ni necesita IA. [Implementación y límites](docs/VALIDATION-030.md).
+
+Instalada en A15: **234 pruebas JVM y cinco pruebas Android correctas**. [Captura real de la misión](docs/screenshots/ciberdeck-investigation-030.png). El detalle de qué botones se han probado y cuáles quedan pendientes está en el informe de validación.
+
 ## Desarrollo 0.29 · Inspección de QR
 
 «Enlaces y QR» lee un código desde una imagen elegida, identifica su tipo y analiza localmente los enlaces HTTP(S). Puede reconocer configuraciones Wi-Fi, contactos y otros esquemas sin conectarlos, importarlos o ejecutarlos. El contenido completo se oculta por defecto; el informe conserva metadatos y huella de imagen, sin el payload completo ni claves Wi-Fi. El agente incorpora «Lee un QR de una imagen» usando el selector Android mediante la acción LINK.
