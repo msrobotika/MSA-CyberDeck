@@ -1,4 +1,8 @@
-# Acciones del agente · CiberDeck 0.22
+# Acciones del agente · CiberDeck 0.23
+
+## Coordinador y especialistas
+
+Los planes se delegan ahora entre trabajadores de Móvil, Red, Sensores, Hardware, Evidencias y Analista. Solo se activan los ámbitos necesarios, por turnos, con resultados reales de los controladores existentes. No son seis modelos independientes: hay un único motor local para planificación e interpretación. La interfaz muestra asignación, actividad y resultados pendientes; el balance final es un recuento sin IA. Temperatura 0,01 y top-k 1 reducen variación, sin garantizar veracidad. [Implementación, pruebas y límites](VALIDATION-023.md).
 
 El agente de la aplicación ya no se limita a navegar hacia los módulos interactivos. `AgentActionRuntime` conecta el ejecutor suspendible a los controladores existentes; `AgentAndroidAccess` espera permisos, selectores y decisiones del usuario. Las 30 entradas tienen un adaptador explícito: 29 realizan una operación implementada y `modules` informa del hardware futuro. No significa acceso root ni que todas puedan ejecutarse sin intervención.
 

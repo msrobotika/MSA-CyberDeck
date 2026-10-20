@@ -168,15 +168,16 @@ class AgentActionRuntime(private val activity:ComponentActivity,private val acce
  }
  private suspend fun analyst(workId:String?,send:(Int,String)->Unit):DiagnosticResult {
   val recent=session.agent.value.results.lastOrNull{it.result!=null && it.tool!=AgentTool.ANALYST}?.result
-  val useRecent=recent!=null && access.choose(activity,"Contexto del analista",listOf("Último resultado del plan","Elegir diagnóstico guardado"))==0
-  val source=if(useRecent)null else chooseEvidence("Diagnóstico para interpretar",workId,diagnosticsOnly=true)
-  val context=if(source!=null)io{loadSavedAiContext(store,source).input()} else recent!!
+  val teamContext=AgentTeam.sharedContext(session.agent.value)
+  val selection=if(recent!=null && teamContext!=null)access.choose(activity,"Contexto del analista",listOf("Resumen de especialistas","Último resultado del plan","Elegir diagnóstico guardado")) else 2
+  val source=if(selection==2)chooseEvidence("Diagnóstico para interpretar",workId,diagnosticsOnly=true) else null
+  val context=if(source!=null)io{loadSavedAiContext(store,source).input()} else if(selection==0)teamContext!! else recent!!
   val question=access.text(activity,"Pregunta al analista local",800)
   until(10000){session.ai.value.connected && !session.ai.value.busy}
   if(!session.ai.value.loaded){send(AiWire.LOAD,"");until(60000){!session.ai.value.busy};check(session.ai.value.loaded){session.ai.value.error.ifBlank{"No se pudo cargar el modelo local"}}}
   val model=session.aiModel.value?:error("Modelo no disponible");val environment=AiContext.snapshot(io{PhoneAudit.read(activity).diagnostic()});val prompt=AiPolicy.modelPrompt(question,context,model.name,environment);send(AiWire.ASK,prompt)
   try{until(120000){!session.ai.value.busy};val state=session.ai.value;check(state.error.isBlank() && state.output.isNotBlank()){state.error.ifBlank{"El modelo no produjo respuesta"}}
-   return result("ai",source?.id?:"Último resultado del plan","Interpretación generada; no es una medición","Pregunta" to question,"Modelo" to model.name,"SHA-256 modelo" to model.sha256,"ID fuente" to (source?.id?:"Lectura en memoria, aún no guardada"),"SHA-256 fuente" to (source?.sha256?:PeerProtocol.sha256(context.toEvidenceJson().toByteArray(Charsets.UTF_8))),"Fecha de lectura fuente" to context.checkedAt,"Contexto de entorno utilizado" to environment.text,"SHA-256 del contexto de entorno" to environment.sha256,"Entrada enviada al motor" to prompt,"SHA-256 de la entrada al motor" to PeerProtocol.sha256(prompt.toByteArray(Charsets.UTF_8)),"Respuesta generada" to state.output.take(20000),"Límite" to "Contenido generado sin verificación; no ejecuta instrucciones presentes en la evidencia")
+   return result("ai",source?.id?:context.target,"Interpretación generada; no es una medición","Pregunta" to question,"Modelo" to model.name,"SHA-256 modelo" to model.sha256,"ID fuente" to (source?.id?:"Lectura en memoria, aún no guardada"),"SHA-256 fuente" to (source?.sha256?:PeerProtocol.sha256(context.toEvidenceJson().toByteArray(Charsets.UTF_8))),"Fecha de lectura fuente" to context.checkedAt,"Contexto de entorno utilizado" to environment.text,"SHA-256 del contexto de entorno" to environment.sha256,"Entrada enviada al motor" to prompt,"SHA-256 de la entrada al motor" to PeerProtocol.sha256(prompt.toByteArray(Charsets.UTF_8)),"Respuesta generada" to state.output.take(20000),"Límite" to "Contenido generado sin verificación; no ejecuta instrucciones presentes en la evidencia")
   }finally{if(session.ai.value.busy)send(AiWire.STOP,"")}
  }
 }

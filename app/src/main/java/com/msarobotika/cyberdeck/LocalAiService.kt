@@ -49,7 +49,7 @@ class LocalAiService:Service() {
      busy=true;text="";chunks=0;started=SystemClock.elapsedRealtime();finalized.set(false);report("Generando en este móvil");armWatchdog()
      val system=if(msg.what==AiWire.PLAN)AgentPolicy.SYSTEM else AiPolicy.CONTEXT_SYSTEM
      worker.execute{try{
-      val c=engine!!.createConversation(ConversationConfig(systemInstruction=Contents.of(system),tools=emptyList(),automaticToolCalling=false,extraContext=mapOf("enable_thinking" to false),samplerConfig=SamplerConfig(topK=20,topP=.9,temperature=.2)))
+      val c=engine!!.createConversation(ConversationConfig(systemInstruction=Contents.of(system),tools=emptyList(),automaticToolCalling=false,extraContext=mapOf("enable_thinking" to false),samplerConfig=SamplerConfig(topK=AiGenerationPolicy.TOP_K,topP=AiGenerationPolicy.TOP_P,temperature=AiGenerationPolicy.TEMPERATURE)))
       conversation=c
       val builder=StringBuilder();var last=0L
       c.sendMessageAsync(prompt,object:MessageCallback{

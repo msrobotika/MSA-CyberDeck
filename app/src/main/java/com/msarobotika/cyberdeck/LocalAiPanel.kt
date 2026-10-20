@@ -108,6 +108,7 @@ import java.time.Instant
     TextButton(enabled=!blocked && !state.loaded,onClick={deleting=true}){Text("Eliminar copia")}
    }
   }
+  Text(AiGenerationPolicy.DESCRIPTION,style=MaterialTheme.typography.bodySmall)
   Text("CPU · 2 hilos · contexto limitado · se libera al salir. Cargar un modelo puede tardar y aumentar el consumo.",style=MaterialTheme.typography.bodySmall)
   }
   if(!agentMode)HorizontalDivider()

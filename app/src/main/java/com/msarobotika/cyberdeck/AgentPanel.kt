@@ -34,7 +34,7 @@ import java.time.Instant
   val snapshot=session.agent.value;val plan=snapshot.plan?:return
   val prior=snapshot.run;val pending=prior?.steps?.lastOrNull()?.takeIf{it.awaiting}
   val id=if(prior==null)work?.id else snapshot.workId
-  session.agent.update{it.copy(running=true,error="",evidenceScope=if(prior==null)work?.let{w->"${w.name} [${w.id}]"}?:"Todas las evidencias locales" else snapshot.evidenceScope,workId=id)}
+  session.agent.update{it.copy(running=true,activeTool=null,error="",evidenceScope=if(prior==null)work?.let{w->"${w.name} [${w.id}]"}?:"Todas las evidencias locales" else snapshot.evidenceScope,workId=id)}
   executionJob=scope.launch{try{
    val run=withContext(Dispatchers.Default){
     validateAgentInputs(plan,snapshot.inputs)
@@ -49,19 +49,20 @@ import java.time.Instant
      prior!!.steps.dropLast(1)+completed
     }
     val progress:(List<AgentStepResult>)->Unit={steps->session.agent.update{it.copy(results=steps,run=AgentRun(plan,prior?.startedAt?:started,Instant.now().toString(),steps))}}
-    if(runtime!=null)executeAgentActions(plan,perform={tool->ensureActive();runtime.execute(tool,snapshot.inputs,id,send)},progress=progress,previous=previous,startedAt=prior?.startedAt?:started)
+    if(runtime!=null)executeAgentActions(plan,perform={tool->ensureActive();runtime.execute(tool,snapshot.inputs,id,send)},progress=progress,previous=previous,startedAt=prior?.startedAt?:started,active={tool->session.agent.update{it.copy(activeTool=tool)}})
     else executeAgentPlan(plan,perform={tool->ensureActive();performAgentTool(context,tool,id,snapshot.inputs){!isActive}},progress=progress,previous=previous,startedAt=prior?.startedAt?:started)
    }
    session.agent.update{it.copy(run=run,results=run.steps,resumeEvidence=null)}
   }catch(e:CancellationException){session.agent.update{it.copy(error="",notice="Detenido. Los pasos pendientes no se han ejecutado.")};throw e}
    catch(e:Exception){session.agent.update{it.copy(error=e.message?:"Error de ejecución")}}
-   finally{session.agent.update{it.copy(running=false)}}}
+   finally{session.agent.update{it.copy(running=false,activeTool=null)}}}
  }
  fun chooseTask(task:AgentTask){if(session.agent.value.running || session.agent.value.planning || blocked)return;request=task.title;session.agent.value=task.session();queuedTask=if(task.instant)task else null}
  LaunchedEffect(queuedTask,scopeLoaded,blocked){if(queuedTask!=null && scopeLoaded && !blocked && !session.agent.value.running){queuedTask=null;execute()}}
  fun planWithAi(){val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty(),environment))}
  LaunchedEffect(agent.run?.startedAt){showResults=false}
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
+  AgentTeamPanel(agent)
   AgentSummary.from(agent)?.let{summary->
    Card(Modifier.fillMaxWidth().testTag("agent-summary")){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
     Text(summary.title,style=MaterialTheme.typography.titleLarge,color=if(summary.title=="Revisión con error")MaterialTheme.colorScheme.error else DeckCyan)
@@ -135,7 +136,7 @@ import java.time.Instant
    Card(Modifier.fillMaxWidth().testTag("agent-plan")){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
     Text("PLAN PROPUESTO · ${plan.steps.size} PASOS",color=DeckMint,style=MaterialTheme.typography.labelLarge)
     Text(agent.request);Text("Origen: ${agent.origin}",style=MaterialTheme.typography.bodySmall)
-    plan.steps.forEachIndexed{i,tool->Text("${i+1}. ${tool.label}${if(runtime!=null && tool==AgentTool.MODULES)" · solo información" else if(runtime!=null && tool.assisted)" · espera interacción si hace falta" else if(tool.assisted)" · asistida" else ""}")}
+    plan.steps.forEachIndexed{i,tool->Text("${i+1}. ${AgentTeam.workerFor(tool).label} → ${tool.label}${if(runtime!=null && tool==AgentTool.MODULES)" · solo información" else if(runtime!=null && tool.assisted)" · espera interacción si hace falta" else if(tool.assisted)" · asistida" else ""}")}
     Text("Copias: ${if(agent.run!=null)agent.evidenceScope else work?.name?:if(scopeLoaded)"Todas las evidencias locales" else "Leyendo alcance…"}",style=MaterialTheme.typography.bodySmall)
     if(inputError!=null)Text(inputError,color=MaterialTheme.colorScheme.error,style=MaterialTheme.typography.bodySmall)
     if(agent.run==null)Button(enabled=scopeLoaded && editing && inputError==null,onClick={execute()}){Text(if(agent.running)"Ejecutando…" else "Ejecutar este plan")}
