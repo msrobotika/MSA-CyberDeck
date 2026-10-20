@@ -16,8 +16,13 @@ class AgentNavigationDeviceTest {
   val session=ViewModelProvider(ui.activity)[DeckSessionModel::class.java]
   ui.waitUntil(20000){session.agentMode.value && session.ai.value.connected && !session.ai.value.busy}
   ui.onNodeWithTag("screen-title").assertTextEquals("Agente")
-  ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().assertIsDisplayed()
-  ui.onNodeWithText("Elegir funciones · 30").performScrollTo().assertIsDisplayed()
+  if(session.agent.value.plan!=null || session.agent.value.run!=null){
+   ui.onNodeWithTag("agent-change-task").performScrollTo().assertIsDisplayed()
+   ui.onAllNodesWithText("Qué quieres que haga CiberDeck").assertCountEquals(0)
+  } else {
+   ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().assertIsDisplayed()
+   ui.onNodeWithText("Elegir funciones · 30").performScrollTo().assertIsDisplayed()
+  }
  }
  @Test fun homeOpensActualAgentWithoutHiddenModeSwitch(){
   ui.onNodeWithTag("home-agent").performScrollTo().performClick();assertAgent()

@@ -6,7 +6,11 @@ Aplicación Android local para comprobar, observar y documentar dispositivos pro
 
 Red y web presentan resumen, destino, fecha y guardado antes del formulario. Los campos técnicos se despliegan y se pueden buscar sin recortar el informe original. «Copiar resumen» incluye la fecha y el destino; no copia los campos técnicos. La última observación pasa a la sesión para conservarse al recrear la actividad y la vista vuelve al resultado cuando llega una lectura.
 
-APK 0.27 instalada en A15. **216 pruebas JVM correctas**, compilación y lint sin errores. Los tres ensayos Android nuevos, las regresiones de pantalla y las capturas siguen pendientes del desbloqueo del A15. OPPO no conectado. [Método, archivos y límites](docs/VALIDATION-027.md).
+APK 0.27 instalada en A15. **216 pruebas JVM correctas y 16 casos Android comprobados**: áreas/búsqueda, recientes, foco del agente, conservación del plan, filtro/guardado del resultado y retención de lectura al recrear la actividad. Una expectativa antigua del ensayo de navegación se actualizó para respetar el formulario plegado; los cuatro casos afectados de seguimiento pasaron. Compilación y lint sin errores. OPPO no conectado. [Método, rondas y límites](docs/VALIDATION-027.md).
+
+<img src="docs/screenshots/ciberdeck-home-027.png" width="220" alt="Inicio real de CiberDeck 0.27 en A15"> <img src="docs/screenshots/ciberdeck-kit-027.png" width="220" alt="Áreas de herramientas en A15"> <img src="docs/screenshots/ciberdeck-dns-027.png" width="220" alt="Resultado real de resolución loopback; no es una prueba de Internet">
+
+[Búsqueda por tareas](docs/screenshots/ciberdeck-search-027.png) · [Revisión real del móvil por el agente](docs/screenshots/ciberdeck-agent-027.png). Capturas del A15 con la APK 0.27; el diagnóstico DNS usa `127.0.0.1`. Las capturas históricas inferiores conservan su versión.
 
 ## Desarrollo 0.26 · Una tarea cada vez
 

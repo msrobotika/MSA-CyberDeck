@@ -1,5 +1,7 @@
 # CiberDeck 0.26 · Una tarea cada vez
 
+Validación posterior: los dos recorridos de foco y el de recientes/guía descritos aquí se comprobaron en el A15 con la APK 0.27 el 20 de octubre de 2026. Véanse método y capturas reales en [VALIDATION-027.md](VALIDATION-027.md). Las notas pendientes originales corresponden al momento de creación de 0.26.
+
 ## Implementación
 
 El agente centra la vista en la tarea actual. Al preparar un plan se ocultan el formulario de petición, las tareas rápidas y el selector manual; quedan las entradas requeridas y la ejecución. Tras obtener resultados permanecen el resumen, los métodos desplegables, el guardado y «Preparar de nuevo». «Elegir otra tarea» abre el selector sin borrar ni ejecutar la sesión actual. Volver a cerrarlo conserva el plan y los resultados. Preparar otra tarea sustituye la sesión en memoria, como antes; se explica que hay que guardar los resultados que se quieran conservar.

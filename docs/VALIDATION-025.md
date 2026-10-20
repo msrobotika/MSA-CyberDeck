@@ -1,5 +1,7 @@
 # CiberDeck 0.25 · Elegir una tarea
 
+Validación posterior: los tres recorridos de catálogo descritos aquí se comprobaron en el A15 con la APK 0.27 el 20 de octubre de 2026, junto con las regresiones del agente. Véanse las rondas y capturas reales en [VALIDATION-027.md](VALIDATION-027.md). El estado pendiente del apartado original refleja el momento de creación de 0.25.
+
 ## Cambios de uso
 
 El inicio tiene una acción principal: revisar este móvil mediante `PhoneAudit.read`. La revisión anterior conserva fecha y ajustes por revisar. El agente sigue accesible con «Pedir una tarea al agente», sin ejecutar planes automáticamente al abrirlo. El robot conserva su animación y permite pausarla.
