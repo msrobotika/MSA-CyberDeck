@@ -4,7 +4,9 @@ Aplicación Android local para comprobar, observar y documentar dispositivos pro
 
 ## Desarrollo 0.23 · Coordinador y especialistas
 
-El agente delega las treinta herramientas entre trabajadores de Móvil, Red, Sensores, Hardware, Evidencias y Analista. El panel muestra solo los necesarios y sus estados reales. Se conserva el orden del plan; errores y cancelaciones detienen el resto. Un solo motor local, sin seis modelos cargados ni razonamiento independiente por trabajador. El balance final es código, no una conclusión generada. Versión instalada en A15: 190 pruebas JVM y dos pruebas Android físicas correctas; revisión visual pendiente por bloqueo del teléfono. Temperatura 0,01 y top-k 1 reducen variación, sin garantizar exactitud. [Implementación, pruebas y límites](docs/VALIDATION-023.md).
+El agente delega las treinta herramientas entre trabajadores de Móvil, Red, Sensores, Hardware, Evidencias y Analista. El panel muestra solo los necesarios y sus estados reales. Se conserva el orden del plan; errores y cancelaciones detienen el resto. Un solo motor local, sin seis modelos cargados ni razonamiento independiente por trabajador. El balance final es código, no una conclusión generada. Versión instalada en A15: 190 pruebas JVM, dos pruebas Android de ejecución/modelo y seis pruebas de interfaz correctas. Capturas reales del equipo y balance disponibles. La respuesta del analista sigue conteniendo inferencias sin respaldo, incluso con el muestreo nuevo. Temperatura 0,01 y top-k 1 reducen variación, sin garantizar exactitud. [Implementación, pruebas y límites](docs/VALIDATION-023.md).
+
+<img src="docs/screenshots/ciberdeck-team-portrait-023.png" width="260" alt="Coordinador de CiberDeck con resultados reales en A15">
 
 ## Desarrollo 0.22 · IA con contexto local
 

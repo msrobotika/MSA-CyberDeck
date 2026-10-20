@@ -11,6 +11,7 @@ fun ComposeContentTestRule.openDeck(route:String) {
         onNodeWithTag("deck-list").performScrollToIndex(0)
         onNodeWithText("Buscar una herramienta").performTextClearance()
         onNodeWithText("Buscar una herramienta").performImeAction()
+        waitForIdle()
         onNodeWithTag("deck-list").performScrollToNode(hasTestTag("tool-$route"))
         onNodeWithTag("tool-$route").performClick()
     }
