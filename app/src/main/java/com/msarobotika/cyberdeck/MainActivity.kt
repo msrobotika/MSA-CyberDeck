@@ -307,6 +307,7 @@ class MainActivity : ComponentActivity() {
         DeckTheme {
             DeckShell(tab,busy,message,navigate={tab=it;rootNavigationEvent++},receiving=browserState.active) {
                 screenStates.SaveableStateProvider(if(tab=="Agente")"IA" else tab) {
+                var homeExtras by rememberSaveable { mutableStateOf(false) }
                 val contentScroll=rememberLazyListState()
                 LaunchedEffect(diagnostic){if(tab in listOf("Red","Web") && diagnostic!=null)contentScroll.scrollToItem(0)}
                 LaunchedEffect(toolArea,toolQuery){if(tab=="Herramientas")contentScroll.scrollToItem(0)}
@@ -321,12 +322,13 @@ class MainActivity : ComponentActivity() {
                     if(hasToolGuide(tab))item(key="tool-guide-$tab"){DeckToolGuide(tab)}
                     when(tab) {
                         "Resumen" -> {
-                            item { CiberDeckCommand(phoneSnapshot,busy,agent={tab="Agente"},analyze={run{
+                            item { CiberDeckCommand(phoneSnapshot,busy,agent={tab="Agente"},investigate={tab="Investigar"},analyze={run{
                                 val result=PhoneAudit.read(this@MainActivity)
                                 runOnUiThread{session.phone.value=result;tab="Móvil"}
                                 "Chequeo local terminado"
                             }}) }
-                            item { OutlinedButton(onClick={tab="Investigar"},modifier=Modifier.fillMaxWidth().testTag("home-investigation")){Text("Misión · ¿Qué cambió?")} }
+                            item { TextButton(onClick={homeExtras=!homeExtras},modifier=Modifier.fillMaxWidth().testTag("home-more")){Text(if(homeExtras) "Ocultar herramientas y actividad" else "Más herramientas y actividad")} }
+                            if(homeExtras){
                             if(recentTools.isNotEmpty())item{DeckRecentTools(recentTools,open={tab=it},clear={recentTools=emptyList();navigationPrefs.edit().remove("recent-tools").apply()})}
                             item { DeckSection("¿Qué quieres comprobar?",subtitle="Elige un área para ver sus herramientas.",action="Ver kit",click={toolArea="";toolQuery="";tab="Herramientas"}) }
                             item { CiberDeckActions { toolArea=it;toolQuery="";tab="Herramientas" } }
@@ -347,6 +349,7 @@ class MainActivity : ComponentActivity() {
                             if(entries.isEmpty())item{Text("Los resultados que guardes aparecerán aquí.",style=MaterialTheme.typography.bodySmall)}
                             items(entries.takeLast(3).asReversed(),key={"recent-${it.id}"}) { entry ->
                                 DeckRecent(entry){evidenceQuery=entry.name;evidenceFilter="Todas";tab="Evidencias"}
+                            }
                             }
                         }
                         "Equipo" -> {item{ExposurePanel(session,save={saveDiagnostic(it)})}}

@@ -21,7 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-@Composable fun CiberDeckCommand(snapshot:PhoneSnapshot?,busy:Boolean,analyze:()->Unit,agent:()->Unit={}) {
+@Composable fun CiberDeckCommand(snapshot:PhoneSnapshot?,busy:Boolean,analyze:()->Unit,agent:()->Unit={},investigate:()->Unit={}) {
     var motion by rememberSaveable{mutableStateOf(true)}
     val enabled=motion && ValueAnimator.areAnimatorsEnabled()
     val glow=if(enabled){val value by rememberInfiniteTransition(label="ciberdeck").animateFloat(.08f,.25f,infiniteRepeatable(tween(2200),RepeatMode.Reverse),label="breath");value}else .15f
@@ -34,15 +34,15 @@ import androidx.compose.ui.unit.sp
             }
             Column(Modifier.fillMaxWidth().padding(18.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically){
-                    Text("LABORATORIO DE BOLSILLO",Modifier.weight(1f),fontFamily=FontFamily.Monospace,fontSize=10.sp,letterSpacing=1.sp,color=DeckCyan)
+                    Text("¿POR DÓNDE EMPEZAMOS?",Modifier.weight(1f),fontFamily=FontFamily.Monospace,fontSize=10.sp,letterSpacing=1.sp,color=DeckCyan)
                     IconButton(onClick={motion=!motion},modifier=Modifier.size(48.dp).semantics{contentDescription=if(motion)"Pausar animación" else "Activar animación"}){Text(if(motion)"Ⅱ" else "▷",color=DeckCyan)}
                 }
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp)){
-                        Text("Tu laboratorio\nde campo.",fontSize=25.sp,lineHeight=29.sp,fontWeight=FontWeight.Bold,letterSpacing=(-.5).sp)
-                        Text("Observa. Comprueba.\nConserva la evidencia.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Elige qué\nquieres hacer.",fontSize=23.sp,lineHeight=27.sp,fontWeight=FontWeight.Bold,letterSpacing=(-.5).sp)
+                        Text("CiberDeck te lleva al siguiente paso.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Box(Modifier.size(112.dp).background(Brush.radialGradient(listOf(DeckCyan.copy(alpha=glow),Color.Transparent))),contentAlignment=Alignment.Center){
+                    Box(Modifier.size(84.dp).background(Brush.radialGradient(listOf(DeckCyan.copy(alpha=glow),Color.Transparent))),contentAlignment=Alignment.Center){
                         Canvas(Modifier.fillMaxSize()){
                             drawCircle(DeckCyan.copy(alpha=.12f),size.minDimension*.47f,style=androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx()))
                             drawArc(DeckCyan.copy(alpha=.5f),-40f,78f,false,style=androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
@@ -52,15 +52,20 @@ import androidx.compose.ui.unit.sp
                 }
                 Button(enabled=!busy,onClick=analyze,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp).testTag("home-phone")){
                     DeckGlyph("shield",Modifier.size(20.dp),MaterialTheme.colorScheme.onPrimary)
-                    Text(if(snapshot==null)"Revisar este móvil" else "Actualizar revisión",Modifier.weight(1f).padding(horizontal=10.dp))
+                    Text(if(snapshot==null)"Revisar este móvil" else "Revisar este móvil",Modifier.weight(1f).padding(horizontal=10.dp))
                     DeckGlyph("forward",Modifier.size(16.dp),MaterialTheme.colorScheme.onPrimary)
                 }
                 OutlinedButton(enabled=!busy,onClick=agent,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("home-agent")){
                     DeckGlyph("spark",Modifier.size(20.dp),DeckViolet)
-                    Text("Pedir una tarea al agente",Modifier.weight(1f).padding(horizontal=10.dp))
+                    Text("Pedir ayuda al agente",Modifier.weight(1f).padding(horizontal=10.dp))
                     DeckGlyph("forward",Modifier.size(16.dp))
                 }
-                Text(snapshot?.let{"${displayTime(it.at)} · ${it.checks.count{c->c.tone==PhoneTone.REVIEW}} ajustes para revisar"}?:"Sin lectura todavía · empieza por este móvil",fontFamily=FontFamily.Monospace,fontSize=10.sp,lineHeight=15.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(enabled=!busy,onClick=investigate,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("home-investigation")){
+                    DeckGlyph("report",Modifier.size(20.dp),DeckMint)
+                    Text("Ver qué ha cambiado",Modifier.weight(1f).padding(horizontal=10.dp))
+                    DeckGlyph("forward",Modifier.size(16.dp))
+                }
+                Text(snapshot?.let{"${displayTime(it.at)} · ${it.checks.count{c->c.tone==PhoneTone.REVIEW}} ajustes para revisar"}?:"Empieza por una revisión del móvil",fontFamily=FontFamily.Monospace,fontSize=10.sp,lineHeight=15.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

@@ -2,6 +2,14 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.31 · Menos pasos
+
+Inicio se centra en tres acciones: revisar el móvil, pedir ayuda al agente y ver cambios. El resto aparece al desplegar «Más herramientas y actividad» o desde el kit. La revisión de cambios arranca al entrar y sus valores se consultan dentro de cada tarjeta; la comparación completa sigue disponible. Guardar el resumen queda junto al resultado, antes de la lista. [Cambios y límites](docs/VALIDATION-031.md).
+
+Instalada en A15: **234 pruebas JVM y ocho casos Android correctos**, con las rondas y ajustes de ensayos documentados.
+
+[Inicio simplificado en A15](docs/screenshots/ciberdeck-home-031.png) · [Resumen de cambios](docs/screenshots/ciberdeck-investigation-031.png).
+
 ## Desarrollo 0.30 · Misión «¿Qué cambió?»
 
 Inicio ofrece una investigación local de las lecturas guardadas: verifica las copias, reúne parejas del mismo tipo y destino y muestra los cambios con sus fuentes. Las barras cuentan campos textuales; no representan riesgo. Cada pareja se puede abrir en Comparar y el informe de misión conserva referencias y SHA-256 sin copiar los valores originales. No genera tráfico ni necesita IA. [Implementación y límites](docs/VALIDATION-030.md).

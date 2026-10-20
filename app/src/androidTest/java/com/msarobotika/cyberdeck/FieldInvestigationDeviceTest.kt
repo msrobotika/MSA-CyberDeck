@@ -21,11 +21,17 @@ class FieldInvestigationDeviceTest {
   ui.onNodeWithTag("investigation-panel").assertExists()
   if(candidates.isEmpty()){ui.onNodeWithTag("investigation-run").assertIsNotEnabled()}
   else{
-   ui.onNodeWithTag("investigation-run").performScrollTo().performClick()
    ui.waitUntil(20000){ui.onAllNodesWithTag("investigation-result").fetchSemanticsNodes().isNotEmpty()}
    ui.onNodeWithText("${expected.changed} campos diferentes").assertExists()
    ui.onNodeWithTag("investigation-result").performScrollTo()
-   File(ui.activity.filesDir,"validation/ciberdeck-investigation-030.png").apply{parentFile?.mkdirs()}.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
+   File(ui.activity.filesDir,"validation/ciberdeck-investigation-031.png").apply{parentFile?.mkdirs()}.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
+  }
+  if(expected.changed>0){
+   ui.onAllNodesWithText("Ver qué cambió").onFirst().performScrollTo().performClick()
+   ui.onNodeWithText("Ver comparación completa").performScrollTo().assertIsDisplayed()
+   ui.onNodeWithTag("screen-title").assertTextEquals("¿Qué cambió?")
+   ui.onNodeWithText("Ocultar cambios").performScrollTo().performClick()
+   ui.onAllNodesWithText("Ver comparación completa").assertCountEquals(0)
   }
   assertEquals(before,store.list());assertEquals(works,AuditWorkStore(ui.activity).read())
  }

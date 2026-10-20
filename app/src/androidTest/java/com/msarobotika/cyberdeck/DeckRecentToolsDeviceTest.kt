@@ -22,9 +22,12 @@ class DeckRecentToolsDeviceTest {
   ui.onNodeWithTag("tool-guide").performScrollTo().performClick()
   ui.onNodeWithText("Necesitas NFC activo y una etiqueta compatible propia.").performScrollTo().assertIsDisplayed()
   ui.openDeck("Resumen")
-  ui.onNodeWithTag("recent-NFC").performScrollTo().assertIsDisplayed()
+  ui.onNodeWithTag("home-more").performScrollTo().performClick()
+  ui.onNodeWithTag("deck-list").performScrollToNode(hasTestTag("recent-NFC"))
+  ui.onNodeWithTag("recent-NFC").assertIsDisplayed()
   ui.activityRule.scenario.recreate()
-  ui.onNodeWithTag("recent-NFC").performScrollTo().performClick()
+  ui.onNodeWithTag("deck-list").performScrollToNode(hasTestTag("recent-NFC"))
+  ui.onNodeWithTag("recent-NFC").performClick()
   ui.onNodeWithTag("screen-title").assertTextEquals("NFC")
  }
 }
