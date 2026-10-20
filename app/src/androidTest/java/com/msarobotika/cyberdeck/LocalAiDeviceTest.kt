@@ -29,6 +29,6 @@ class LocalAiDeviceTest {
   shot.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
   ui.openDeck("Resumen")
   ui.waitUntil(10000){!ViewModelProvider(ui.activity)[DeckSessionModel::class.java].ai.value.connected}
-  ui.onNodeWithText("Analizar mi móvil").assertIsDisplayed()
+  ui.onNodeWithTag("home-phone").assertIsDisplayed()
  }
 }

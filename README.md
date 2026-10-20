@@ -2,6 +2,12 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.25 · Elegir una tarea
+
+Inicio con una acción principal para revisar el móvil y acceso al agente. El kit se divide en seis áreas compartidas con el inicio: móvil, red, proximidad, hardware, archivos y agente. La búsqueda encuentra tareas por términos comunes, recorre todo el catálogo y permite volver al área elegida. Las 21 herramientas existentes siguen accesibles desde «Todas» y el menú lateral.
+
+APK 0.25 instalada en A15 conservando datos. **207 pruebas JVM correctas** y compilación correcta. Las pruebas táctiles y capturas nuevas están pendientes: el A15 está bloqueado. OPPO no conectado. [Cambios, validación y límites](docs/VALIDATION-025.md). Las imágenes inferiores pertenecen a sus versiones indicadas.
+
 ## Desarrollo 0.24 · Fuentes primero
 
 «Revisar fuentes · sin IA» prepara y guarda una instantánea fechada de Android y de la fuente elegida, sin cargar un modelo. El resumen procede de código; declaraciones del usuario, resúmenes y texto generado conservan su procedencia. La interpretación de IA se abre por separado y queda plegada por defecto. Esto no elimina los errores del modelo.

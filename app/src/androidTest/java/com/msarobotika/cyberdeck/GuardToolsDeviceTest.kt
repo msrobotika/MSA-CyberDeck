@@ -35,6 +35,6 @@ class GuardToolsDeviceTest {
   shot("calls")
   // Do not accept a role dialog, place calls, or populate the journal with fictitious events.
   ui.openDeck("Resumen")
-  ui.onNodeWithText("Analizar mi móvil").assertIsDisplayed()
+  ui.onNodeWithTag("home-phone").assertIsDisplayed()
  }
 }

@@ -14,9 +14,9 @@ class PhoneAuditDeviceTest {
     @get:Rule val ui=createAndroidComposeRule<MainActivity>()
     private fun shot(name:String){val f=File(ui.activity.filesDir,"validation/ciberdeck-$name.png").apply{parentFile?.mkdirs()};f.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}}
     @Test fun oneTapReadsRealPhoneAndKeepsObservationAcrossRecreation(){
-        ui.onNodeWithText("Analizar mi móvil").assertIsDisplayed()
+        ui.onNodeWithTag("home-phone").assertIsDisplayed()
         shot("home")
-        ui.onNodeWithText("Analizar mi móvil").performClick()
+        ui.onNodeWithTag("home-phone").performClick()
         ui.waitUntil(10000){ui.onAllNodesWithText("Guardar chequeo").fetchSemanticsNodes().isNotEmpty()}
         val snapshot=ViewModelProvider(ui.activity)[DeckSessionModel::class.java].phone.value!!
         assertEquals("${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",snapshot.device)

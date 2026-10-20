@@ -9,6 +9,7 @@ fun ComposeContentTestRule.openDeck(route:String) {
     } else {
         onNodeWithTag("navigate-Herramientas").performClick()
         onNodeWithTag("deck-list").performScrollToIndex(0)
+        onNodeWithTag("tool-all").performScrollTo().performClick()
         onNodeWithText("Buscar una herramienta").performTextClearance()
         onNodeWithText("Buscar una herramienta").performImeAction()
         waitForIdle()

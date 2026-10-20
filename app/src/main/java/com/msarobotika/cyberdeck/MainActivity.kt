@@ -96,6 +96,7 @@ class MainActivity : ComponentActivity() {
         var reportSelection by rememberSaveable { mutableStateOf(arrayListOf<String>()) }
         var usbMode by rememberSaveable { mutableStateOf("Consola") }
         var toolQuery by rememberSaveable { mutableStateOf("") }
+        var toolArea by rememberSaveable { mutableStateOf("") }
         var manageEvidence by rememberSaveable { mutableStateOf(false) }
         var entries by remember { mutableStateOf(emptyList<Evidence>()) }
         var tab by rememberSaveable { mutableStateOf("Resumen") }
@@ -299,6 +300,7 @@ class MainActivity : ComponentActivity() {
             DeckShell(tab,busy,message,navigate={tab=it;rootNavigationEvent++},receiving=browserState.active) {
                 screenStates.SaveableStateProvider(if(tab=="Agente")"IA" else tab) {
                 val contentScroll=rememberLazyListState()
+                LaunchedEffect(toolArea,toolQuery){if(tab=="Herramientas")contentScroll.scrollToItem(0)}
                 LaunchedEffect(tab){if(tab in listOf("IA","Agente"))contentScroll.scrollToItem(0)}
                 LaunchedEffect(rootNavigationEvent){if(tab in listOf("Resumen","Evidencias","Informes"))contentScroll.scrollToItem(0)}
                 LaunchedEffect(evidenceQuery,evidenceFilter){if(tab=="Evidencias")contentScroll.scrollToItem(0)}
@@ -309,13 +311,13 @@ class MainActivity : ComponentActivity() {
                     }
                     when(tab) {
                         "Resumen" -> {
-                            item { CiberDeckCommand(phoneSnapshot,busy,agent={tab="Agente"},audit={tab="Equipo"},analyze={run{
+                            item { CiberDeckCommand(phoneSnapshot,busy,agent={tab="Agente"},analyze={run{
                                 val result=PhoneAudit.read(this@MainActivity)
                                 runOnUiThread{session.phone.value=result;tab="Móvil"}
                                 "Chequeo local terminado"
                             }}) }
-                            item { DeckSection("Qué quieres hacer",action="Ver herramientas",click={tab="Herramientas"}) }
-                            item { CiberDeckActions { tab=it } }
+                            item { DeckSection("¿Qué quieres comprobar?",subtitle="Elige un área para ver sus herramientas.",action="Ver kit",click={toolArea="";toolQuery="";tab="Herramientas"}) }
+                            item { CiberDeckActions { toolArea=it;toolQuery="";tab="Herramientas" } }
                             item {
                                 Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
                                     Text("Tu conexión",style=MaterialTheme.typography.titleMedium)
@@ -364,8 +366,17 @@ class MainActivity : ComponentActivity() {
                         },samples=resourceSamples,live=phoneLive,setLive={session.phoneLive.value=it},add={sample->session.samples.value=(session.samples.value+sample).takeLast(60)}) }}
                         "Herramientas" -> {
                             item { DeckToolSearch(toolQuery){toolQuery=it} }
-                            val matching=deckTools.filter{toolQuery.isBlank() || "${it.title} ${it.subtitle} ${it.group}".contains(toolQuery.trim(),ignoreCase=true)}
-                            if(matching.isEmpty())item{Info("Sin coincidencias","Prueba NFC, DNS, radio o archivos.")}
+                            item {
+                                Row(Modifier.fillMaxWidth(),verticalAlignment=androidx.compose.ui.Alignment.CenterVertically) {
+                                    TextButton(onClick={toolArea="";toolQuery=""},modifier=Modifier.testTag("tool-areas")){Text("Por áreas")}
+                                    TextButton(onClick={toolArea="all";toolQuery=""},modifier=Modifier.testTag("tool-all")){Text("Todas (${deckTools.size})")}
+                                    if(toolQuery.isNotBlank())TextButton(onClick={toolQuery=""},modifier=Modifier.testTag("tool-clear-search")){Text("Limpiar")}
+                                }
+                            }
+                            val matching=DeckCatalog.tools(toolArea,toolQuery)
+                            if(toolArea.isBlank() && toolQuery.isBlank())item{DeckAreaGrid {toolArea=it}}
+                            else item { DeckSection(if(toolQuery.isNotBlank())"Resultados en todo el kit" else DeckCatalog.areas.firstOrNull{it.id==toolArea}?.title?:"Todas las herramientas",subtitle="${matching.size} herramientas · toca una para abrirla") }
+                            if(matching.isEmpty() && (toolArea.isNotBlank() || toolQuery.isNotBlank()))item{Info("No hemos encontrado esa herramienta","Prueba «puertos», «transferir», «Wi-Fi» o vuelve a las áreas.")}
                             matching.groupBy{it.group}.forEach { (group,tools) ->
                                 item { DeckSection(group) }
                                 items(tools,key={it.route}) { tool -> DeckToolCard(tool){tab=tool.route} }

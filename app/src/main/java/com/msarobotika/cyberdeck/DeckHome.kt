@@ -19,6 +19,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -113,8 +115,8 @@ val deckTools=listOf(
 
 @Composable fun DeckToolSearch(query:String, changed:(String)->Unit) {
     val focus=LocalFocusManager.current
-    OutlinedTextField(query,changed,label={Text("Buscar una herramienta")},placeholder={Text("NFC, DNS, archivos…")},
-        singleLine=true,keyboardOptions=KeyboardOptions(imeAction=ImeAction.Done),keyboardActions=KeyboardActions(onDone={focus.clearFocus()}),modifier=Modifier.fillMaxWidth())
+    OutlinedTextField(query,changed,label={Text("Buscar una herramienta")},placeholder={Text("¿Qué quieres hacer? Puertos, archivos…")},
+        singleLine=true,trailingIcon={if(query.isNotBlank())IconButton(onClick={changed("");focus.clearFocus()},modifier=Modifier.testTag("search-clear")){Text("×",modifier=Modifier.semantics{contentDescription="Borrar búsqueda"})}},keyboardOptions=KeyboardOptions(imeAction=ImeAction.Done),keyboardActions=KeyboardActions(onDone={focus.clearFocus()}),modifier=Modifier.fillMaxWidth())
 }
 @Composable fun DeckToolCard(tool:DeckTool,open:()->Unit) {
     Card(onClick=open,modifier=Modifier.fillMaxWidth().testTag("tool-${tool.route}"),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {

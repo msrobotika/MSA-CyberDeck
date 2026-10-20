@@ -16,7 +16,7 @@ class DeckExperienceDeviceTest {
         File(folder,"ux-$name.png").outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
     }
     @Test fun mainNavigationSearchAndToolBackWorkWithoutHorizontalTabs() {
-        ui.onNodeWithText("TU LABORATORIO").assertIsDisplayed()
+        ui.onNodeWithTag("home-phone").assertIsDisplayed()
         shot("home")
         for(root in listOf("Resumen","Herramientas","Evidencias","Informes"))ui.onNodeWithTag("navigate-$root").assertIsDisplayed()
         ui.openDeck("Herramientas")

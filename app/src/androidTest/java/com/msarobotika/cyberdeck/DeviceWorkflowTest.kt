@@ -23,7 +23,7 @@ class DeviceWorkflowTest {
     }
 
     @Test fun connectionDnsWebEvidenceAndPersistentNavigation() {
-        ui.waitUntil(10000) { ui.onAllNodesWithText("Analizar mi móvil").fetchSemanticsNodes().isNotEmpty() }
+        ui.waitUntil(10000) { ui.onAllNodesWithTag("home-phone").fetchSemanticsNodes().isNotEmpty() }
         ui.onNodeWithTag("deck-list").performScrollToNode(hasText("Comprobar mi conexión"))
         ui.onNodeWithText("Comprobar mi conexión").performScrollTo().performClick()
         ui.waitForIdle()
