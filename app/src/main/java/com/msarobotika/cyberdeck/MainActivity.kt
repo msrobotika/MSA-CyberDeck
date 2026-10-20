@@ -314,7 +314,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(rootNavigationEvent){if(tab in listOf("Resumen","Evidencias","Informes"))contentScroll.scrollToItem(0)}
                 LaunchedEffect(evidenceQuery,evidenceFilter){if(tab=="Evidencias")contentScroll.scrollToItem(0)}
                 LazyColumn(Modifier.fillMaxSize().testTag("deck-list"),state=contentScroll,contentPadding=PaddingValues(horizontal=18.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-                    if(tab!="Trabajos")workState.works.firstOrNull{it.id==workState.activeId}?.let{work->item{TextButton(onClick={tab="Trabajos"}){Text("Trabajo activo: ${work.name}",maxLines=2)}}}
+                    if(tab!="Trabajos")workState.works.firstOrNull{it.id==workState.activeId}?.let{work->item{TextButton(onClick={tab="Trabajos"},contentPadding=PaddingValues(horizontal=4.dp,vertical=0.dp)){Text("Trabajo activo: ${work.name}",maxLines=1,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
                     if(agentState.run?.steps?.lastOrNull()?.awaiting==true && (tab !in listOf("IA","Agente") || !agentMode))item(key="agent-resume"){
                         FilledTonalButton(onClick={session.agentMode.value=true;tab="Agente"}){Text("Volver al agente · paso pendiente")}
                     }

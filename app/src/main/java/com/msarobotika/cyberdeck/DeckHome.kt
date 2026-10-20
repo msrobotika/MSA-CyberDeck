@@ -119,14 +119,17 @@ val deckTools=listOf(
         singleLine=true,trailingIcon={if(query.isNotBlank())IconButton(onClick={changed("");focus.clearFocus()},modifier=Modifier.testTag("search-clear")){Text("×",modifier=Modifier.semantics{contentDescription="Borrar búsqueda"})}},keyboardOptions=KeyboardOptions(imeAction=ImeAction.Done),keyboardActions=KeyboardActions(onDone={focus.clearFocus()}),modifier=Modifier.fillMaxWidth())
 }
 @Composable fun DeckToolCard(tool:DeckTool,open:()->Unit) {
-    Card(onClick=open,modifier=Modifier.fillMaxWidth().testTag("tool-${tool.route}"),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
+    val area=DeckCatalog.areas.firstOrNull{tool.route in it.routes}
+    val accent=deckAreaAccent(area?.id.orEmpty())
+    Card(onClick=open,modifier=Modifier.fillMaxWidth().testTag("tool-${tool.route}"),border=BorderStroke(1.dp,accent.copy(alpha=.16f)),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
         Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)) {
-            Box(Modifier.size(44.dp).background(MaterialTheme.colorScheme.primaryContainer,RoundedCornerShape(12.dp)),contentAlignment=Alignment.Center){DeckGlyph(tool.glyph)}
+            Box(Modifier.size(42.dp).background(accent.copy(alpha=.12f),RoundedCornerShape(12.dp)),contentAlignment=Alignment.Center){DeckGlyph(area?.glyph?:tool.glyph,tint=accent)}
             Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 Text(tool.title,style=MaterialTheme.typography.titleMedium)
                 Text(tool.subtitle,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(tool.badge,style=MaterialTheme.typography.labelSmall,color=DeckCyan)
+                Surface(color=accent.copy(alpha=.08f),shape=RoundedCornerShape(6.dp)){Text(tool.badge,Modifier.padding(horizontal=8.dp,vertical=3.dp),style=MaterialTheme.typography.labelSmall,color=accent)}
             }
+            DeckGlyph("forward",Modifier.size(16.dp),accent.copy(alpha=.65f))
         }
     }
 }

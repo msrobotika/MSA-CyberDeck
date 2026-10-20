@@ -11,12 +11,12 @@ object DeckCatalog {
         return (listOfNotNull(opened?.takeIf{it in valid})+previous).filter{it in valid}.distinct().take(3)
     }
     val areas=listOf(
-        DeckArea("phone","Móvil y protección","Ajustes, APK, enlaces y llamadas","home",listOf("Móvil","APK","Enlaces","Llamadas")),
-        DeckArea("network","Red e Internet","Equipos, DNS, puertos y sitios web","radio",listOf("Equipo","Mi red","Red","Web","CIDR")),
-        DeckArea("proximity","Bluetooth y NFC","Dispositivos cercanos y etiquetas","radio",listOf("Bluetooth","NFC")),
-        DeckArea("hardware","ESP32 y sensores","USB, Wi-Fi del ESP y campo magnético","tools",listOf("USB","Radio","Magnético","Módulos")),
+        DeckArea("phone","Móvil y protección","Ajustes, APK, enlaces y llamadas","shield",listOf("Móvil","APK","Enlaces","Llamadas")),
+        DeckArea("network","Red e Internet","Equipos, DNS, puertos y sitios web","network",listOf("Equipo","Mi red","Red","Web","CIDR")),
+        DeckArea("proximity","Bluetooth y NFC","Dispositivos cercanos y etiquetas","bluetooth",listOf("Bluetooth","NFC")),
+        DeckArea("hardware","ESP32 y sensores","USB, Wi-Fi del ESP y campo magnético","chip",listOf("USB","Radio","Magnético","Módulos")),
         DeckArea("evidence","Archivos y trabajos","Recibir, organizar y comparar pruebas","files",listOf("Recibir","Sesiones","Trabajos","Comparar")),
-        DeckArea("assistant","Agente e IA","Ejecutar tareas o interpretar resultados","report",listOf("Agente","IA"))
+        DeckArea("assistant","Agente e IA","Ejecutar tareas o interpretar resultados","spark",listOf("Agente","IA"))
     )
     private val aliases=mapOf(
         "Móvil" to "telefono bateria memoria seguridad permisos recursos",

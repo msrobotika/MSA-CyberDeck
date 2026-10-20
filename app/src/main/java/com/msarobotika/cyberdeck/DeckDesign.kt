@@ -30,21 +30,23 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-val DeckCyan = Color(0xFF71E5F4)
+val DeckCyan = Color(0xFF67E8F9)
 val DeckMint = Color(0xFF8EE7BD)
 val DeckViolet = Color(0xFFB6AAFF)
+val DeckAmber = Color(0xFFFFC078)
+fun deckAreaAccent(id:String)=when(id){"phone"->DeckCyan;"network"->DeckMint;"proximity"->DeckViolet;"hardware"->DeckAmber;"evidence"->Color(0xFF94BAFF);else->Color(0xFFF3A6D8)}
 
 @Composable fun DeckTheme(content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = darkColorScheme(
         primary = DeckCyan, onPrimary = Color(0xFF062B32), primaryContainer = Color(0xFF123A46),
-        secondary = DeckViolet, tertiary = DeckMint, background = Color(0xFF090F1A),
-        surface = Color(0xFF111D2E), surfaceVariant = Color(0xFF1B2A40),
-        surfaceContainerLowest=Color(0xFF090F1A),surfaceContainerLow=Color(0xFF0E1828),
-        surfaceContainer=Color(0xFF111D2E),surfaceContainerHigh=Color(0xFF162439),surfaceContainerHighest=Color(0xFF1B2A40),
+        secondary = DeckViolet, tertiary = DeckMint, background = Color(0xFF090D12),
+        surface = Color(0xFF121B26), surfaceVariant = Color(0xFF202D3C),
+        surfaceContainerLowest=Color(0xFF090D12),surfaceContainerLow=Color(0xFF0E151E),
+        surfaceContainer=Color(0xFF121B26),surfaceContainerHigh=Color(0xFF182433),surfaceContainerHighest=Color(0xFF202D3C),
         secondaryContainer=Color(0xFF20394D),onSecondaryContainer=Color(0xFFD4F4FF),
         onSurface = Color(0xFFE9F0FC), onSurfaceVariant = Color(0xFFB4C2D8),
         outline = Color(0xFF3B506B), error = Color(0xFFFF99A6)),
-        shapes = Shapes(small = RoundedCornerShape(12.dp), medium = RoundedCornerShape(18.dp), large = RoundedCornerShape(24.dp)),
+        shapes = Shapes(small = RoundedCornerShape(10.dp), medium = RoundedCornerShape(14.dp), large = RoundedCornerShape(20.dp),extraLarge=RoundedCornerShape(24.dp)),
         typography = Typography(
             headlineLarge = androidx.compose.ui.text.TextStyle(fontSize=30.sp,lineHeight=36.sp,fontWeight=FontWeight.Bold),
             headlineSmall = androidx.compose.ui.text.TextStyle(fontSize=24.sp,lineHeight=30.sp,fontWeight=FontWeight.SemiBold),
@@ -70,6 +72,12 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
             "home" -> { line(.12f,.45f,.5f,.14f);line(.5f,.14f,.88f,.45f);line(.24f,.4f,.24f,.86f);line(.24f,.86f,.76f,.86f);line(.76f,.86f,.76f,.4f);line(.43f,.86f,.43f,.6f);line(.43f,.6f,.59f,.6f) }
             "files","report" -> { val p=Path().apply{moveTo(s*.24f,s*.12f);lineTo(s*.63f,s*.12f);lineTo(s*.8f,s*.3f);lineTo(s*.8f,s*.88f);lineTo(s*.24f,s*.88f);close()};drawPath(p,tint,style=Stroke(w));line(.36f,.43f,.66f,.43f);line(.36f,.59f,.66f,.59f);if(kind=="report")line(.36f,.73f,.56f,.73f) }
             "back" -> { line(.7f,.15f,.3f,.5f);line(.3f,.5f,.7f,.85f) }
+            "forward" -> {line(.3f,.15f,.7f,.5f);line(.7f,.5f,.3f,.85f)}
+            "shield" -> {val p=Path().apply{moveTo(s*.5f,s*.1f);lineTo(s*.84f,s*.25f);lineTo(s*.78f,s*.63f);quadraticBezierTo(s*.7f,s*.83f,s*.5f,s*.93f);quadraticBezierTo(s*.3f,s*.83f,s*.22f,s*.63f);lineTo(s*.16f,s*.25f);close()};drawPath(p,tint,style=Stroke(w));line(.34f,.49f,.46f,.62f);line(.46f,.62f,.68f,.36f)}
+            "bluetooth" -> {line(.48f,.08f,.48f,.92f);line(.48f,.08f,.76f,.3f);line(.76f,.3f,.24f,.7f);line(.24f,.3f,.76f,.7f);line(.76f,.7f,.48f,.92f)}
+            "chip" -> {drawRoundRect(tint,Offset(s*.25f,s*.25f),androidx.compose.ui.geometry.Size(s*.5f,s*.5f),androidx.compose.ui.geometry.CornerRadius(s*.07f),style=Stroke(w));for(v in listOf(.35f,.5f,.65f)){line(v,.08f,v,.25f);line(v,.75f,v,.92f);line(.08f,v,.25f,v);line(.75f,v,.92f,v)};drawRect(tint.copy(alpha=.5f),Offset(s*.4f,s*.4f),androidx.compose.ui.geometry.Size(s*.2f,s*.2f))}
+            "spark" -> {val p=Path().apply{moveTo(s*.5f,s*.08f);lineTo(s*.61f,s*.38f);lineTo(s*.92f,s*.5f);lineTo(s*.61f,s*.62f);lineTo(s*.5f,s*.92f);lineTo(s*.39f,s*.62f);lineTo(s*.08f,s*.5f);lineTo(s*.39f,s*.38f);close()};drawPath(p,tint,style=Stroke(w))}
+            "network" -> {line(.3f,.25f,.7f,.25f);line(.5f,.25f,.5f,.64f);line(.2f,.64f,.8f,.64f);line(.2f,.64f,.2f,.83f);line(.8f,.64f,.8f,.83f);for(p in listOf(Offset(.3f,.25f),Offset(.7f,.25f),Offset(.2f,.83f),Offset(.8f,.83f)))drawCircle(tint,s*.07f,Offset(s*p.x,s*p.y))}
             "radio" -> { for(i in 1..3)drawCircle(tint.copy(alpha=.25f+i*.2f),s*.13f*i,Offset(s*.5f,s*.5f),style=Stroke(w));line(.5f,.5f,.77f,.25f) }
             "transfer" -> { line(.12f,.34f,.84f,.34f);line(.84f,.34f,.65f,.15f);line(.84f,.34f,.65f,.53f);line(.88f,.73f,.16f,.73f);line(.16f,.73f,.35f,.54f);line(.16f,.73f,.35f,.92f) }
             else -> { for(x in listOf(.23f,.5f,.77f))for(y in listOf(.23f,.5f,.77f))drawCircle(tint,s*.055f,Offset(s*x,s*y)) }
@@ -98,7 +106,7 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
                     IconButton(onClick={focus.clearFocus();openMenu()},modifier=Modifier.semantics{contentDescription="Abrir menú"}){DeckGlyph("menu")}
                     if(tool!=null) IconButton(onClick={go("Herramientas")},modifier=Modifier.semantics{contentDescription="Volver a herramientas"}) { DeckGlyph("back") }
                     Column(Modifier.weight(1f).padding(start=12.dp)) {
-                        Text("MSA ROBOTIKA",fontFamily=FontFamily.Monospace,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.primary,letterSpacing=1.sp)
+                        Text("MSA ROBOTIKA",fontFamily=FontFamily.Monospace,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant,letterSpacing=2.sp)
                         Text(tool?.title ?: when(route){"Resumen"->"CiberDeck";"Herramientas"->"Tu kit de campo";"Evidencias"->"Archivo de evidencias";else->"Informe de trabajo"},style=MaterialTheme.typography.titleLarge,modifier=Modifier.testTag("screen-title"))
                     }
                 }
@@ -111,12 +119,13 @@ fun deckRoot(route: String) = if (deckRoots.any { it.route == route }) route els
                         style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis)
                 }
                 Box(Modifier.weight(1f).fillMaxWidth()){content()}
-                if(!wide && !keyboard) NavigationBar(containerColor=MaterialTheme.colorScheme.background,tonalElevation=0.dp,windowInsets=WindowInsets(0,0,0,0)) {
+                if(!wide && !keyboard) {HorizontalDivider(color=MaterialTheme.colorScheme.outline.copy(alpha=.3f))
+                NavigationBar(containerColor=MaterialTheme.colorScheme.background,tonalElevation=0.dp,windowInsets=WindowInsets(0,0,0,0)) {
                     deckRoots.forEach { root -> NavigationBarItem(selected=selected==root.route,onClick={go(root.route)},
                         modifier=Modifier.testTag("navigate-${root.route}"),icon={DeckGlyph(root.glyph,tint=if(selected==root.route) DeckCyan else MaterialTheme.colorScheme.onSurfaceVariant)},
                         label={Text(if(root.route=="Herramientas")"Kit" else root.title,fontSize=11.sp,lineHeight=14.sp,maxLines=1,softWrap=false,overflow=TextOverflow.Ellipsis,textAlign=TextAlign.Center)},
                         colors=NavigationBarItemDefaults.colors(indicatorColor=MaterialTheme.colorScheme.primaryContainer)) }
-                }
+                }}
             }
         }
     }

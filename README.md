@@ -2,6 +2,12 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.28 · Identidad visual de campo
+
+Rediseño visual de la portada y el kit: robot con mayor presencia, retícula decorativa, seis acentos de área, iconos vectoriales propios, tarjetas de altura compartida por fila y condiciones de uso en etiquetas. Se mantienen las rutas, permisos, resultados y sus fechas; las animaciones no representan lecturas ni conexiones.
+
+APK 0.28 instalada en A15. **216 pruebas JVM correctas**, compilación y lint sin errores. **Revisión visual, capturas y regresiones Android pendientes del desbloqueo del A15**; los PNG inferiores muestran 0.27, no el diseño nuevo. [Implementación, contraste calculado y límites](docs/VALIDATION-028.md).
+
 ## Desarrollo 0.27 · Resultados primero
 
 Red y web presentan resumen, destino, fecha y guardado antes del formulario. Los campos técnicos se despliegan y se pueden buscar sin recortar el informe original. «Copiar resumen» incluye la fecha y el destino; no copia los campos técnicos. La última observación pasa a la sesión para conservarse al recrear la actividad y la vista vuelve al resultado cuando llega una lectura.
