@@ -13,6 +13,7 @@ class PhoneReviewUiDeviceTest {
   ui.openDeck("Móvil")
   ui.onNode(hasText("Analizar ahora") or hasText("Actualizar")).performScrollTo().performClick()
   ui.waitUntil(10000){ui.onAllNodesWithText("Guardar chequeo").fetchSemanticsNodes().isNotEmpty()}
+  ui.onNodeWithTag("phone-advanced").performScrollTo().performClick()
   ui.onNodeWithText("Plan de revisión").performScrollTo().performClick()
   ui.onNodeWithText("PLAN DE REVISIÓN").performScrollTo().assertIsDisplayed()
   ui.onNodeWithText("Guardar plan como evidencia").performScrollTo().assertIsDisplayed()

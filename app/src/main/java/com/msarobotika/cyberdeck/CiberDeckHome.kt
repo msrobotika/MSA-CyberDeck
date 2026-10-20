@@ -52,7 +52,7 @@ import androidx.compose.ui.unit.sp
                 }
                 Button(enabled=!busy,onClick=analyze,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp).testTag("home-phone")){
                     DeckGlyph("shield",Modifier.size(20.dp),MaterialTheme.colorScheme.onPrimary)
-                    Text(if(snapshot==null)"Revisar este móvil" else "Revisar este móvil",Modifier.weight(1f).padding(horizontal=10.dp))
+                    Text("Revisar este móvil",Modifier.weight(1f).padding(horizontal=10.dp))
                     DeckGlyph("forward",Modifier.size(16.dp),MaterialTheme.colorScheme.onPrimary)
                 }
                 OutlinedButton(enabled=!busy,onClick=agent,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("home-agent")){

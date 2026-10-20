@@ -23,11 +23,13 @@ class PhoneAuditDeviceTest {
         assertTrue(snapshot.ramTotal==null || snapshot.ramTotal>0)
         assertTrue(snapshot.battery==null || snapshot.battery in 0..100)
         assertTrue(snapshot.checks.any{it.title=="Bloqueo de pantalla"})
+        ui.onNodeWithTag("phone-advanced").performScrollTo().performClick()
         ui.onNodeWithText("Bloqueo de pantalla").performScrollTo().assertIsDisplayed()
         shot("phone")
         ui.activityRule.scenario.recreate()
         assertEquals(snapshot.at,ViewModelProvider(ui.activity)[DeckSessionModel::class.java].phone.value?.at)
-        ui.onNodeWithText("Recursos").performScrollTo().performClick()
+        try{ui.onNodeWithText("Recursos").performScrollTo().performClick()}
+        catch(e:Throwable){File(ui.activity.filesDir,"validation/phone-mode-recreation-private.txt").writeText(ui.onRoot().printToString());shot("mode-recreation-private");throw e}
         ui.onNodeWithText("Iniciar gráfica en vivo").performScrollTo().performClick()
         ui.waitUntil(10000){ViewModelProvider(ui.activity)[DeckSessionModel::class.java].samples.value.size>=2}
         ui.onNodeWithText("Pausar gráfica").performScrollTo().performClick()

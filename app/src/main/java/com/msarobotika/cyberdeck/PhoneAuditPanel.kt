@@ -5,16 +5,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
-@Composable fun PhoneAuditPanel(snapshot:PhoneSnapshot?,busy:Boolean,refresh:()->Unit,save:(DiagnosticResult)->Unit,settings:(String)->Unit,
+@Composable fun PhoneAuditPanel(ui:PhoneUiModel,snapshot:PhoneSnapshot?,busy:Boolean,refresh:()->Unit,save:(DiagnosticResult)->Unit,settings:(String)->Unit,
     samples:List<ResourceSample>,live:Boolean,setLive:(Boolean)->Unit,add:(ResourceSample)->Unit) {
-    var section by rememberSaveable{mutableStateOf("Seguridad")}
-    LaunchedEffect(section){if(section!="Recursos")setLive(false)}
+    val advanced by ui.advanced.collectAsState()
+    val section by ui.section.collectAsState()
+    LaunchedEffect(section,advanced){if(!advanced || section!="Recursos")setLive(false)}
     Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
         Text("MI MÓVIL",style=MaterialTheme.typography.labelLarge,color=DeckCyan)
         if(snapshot==null){Text("Comprueba los ajustes y recursos que Android permite observar. Todo se analiza en este móvil.");Button(enabled=!busy,onClick=refresh){Text("Analizar ahora")}}
         else {
+            if(!advanced){
+                GuidedPhonePanel(ui,snapshot,busy,refresh,save,settings)
+                TextButton(onClick={ui.advanced(true)},modifier=Modifier.testTag("phone-advanced")){Text("Todos los datos y herramientas")}
+            }else{
+            TextButton(onClick={ui.advanced(false)},modifier=Modifier.testTag("phone-guided-return")){Text("← Volver al modo guiado")}
             Card(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
                 Text(snapshot.device,style=MaterialTheme.typography.titleLarge)
                 val review=snapshot.checks.count{it.tone==PhoneTone.REVIEW}
@@ -26,9 +33,9 @@ import androidx.compose.ui.unit.dp
                     OutlinedButton(enabled=!busy,onClick={save(snapshot.diagnostic())}){Text("Guardar chequeo")}
                 }
             }}
-            FilterChip(selected=section=="Plan",onClick={section="Plan"},label={Text("Plan de revisión")})
+            FilterChip(selected=section=="Plan",onClick={ui.section("Plan")},label={Text("Plan de revisión")})
             for(pair in listOf(listOf("Seguridad","Conexión"),listOf("Recursos","Hardware")))Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)){
-                pair.forEach{label->FilterChip(selected=section==label,onClick={section=label},label={Text(label)},modifier=Modifier.weight(1f))}
+                pair.forEach{label->FilterChip(selected=section==label,onClick={ui.section(label)},label={Text(label)},modifier=Modifier.weight(1f))}
             }
             if(section=="Plan")PhoneReviewPanel(snapshot,busy,save,settings)
             if(section in listOf("Seguridad","Conexión")) snapshot.checks.filter{it.section==section}.forEach{check->
@@ -54,6 +61,7 @@ import androidx.compose.ui.unit.dp
             if(section=="Hardware")snapshot.hardware.forEach{(label,value)->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(6.dp)){
                 Text(label,color=DeckCyan,style=MaterialTheme.typography.titleMedium);Text(value,style=MaterialTheme.typography.bodyMedium)
             }}}
+            }
         }
     }
 }

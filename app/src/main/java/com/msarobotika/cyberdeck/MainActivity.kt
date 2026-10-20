@@ -76,6 +76,7 @@ class MainActivity : ComponentActivity() {
         var workState by remember{mutableStateOf(AuditWorkState())}
         var workLoaded by remember{mutableStateOf(false)}
         val session=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[DeckSessionModel::class.java]}
+        val phoneUi=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[PhoneUiModel::class.java]}
         val comparisonSelection=remember{androidx.lifecycle.ViewModelProvider(this@MainActivity)[ComparisonSelectionModel::class.java]}
         val agentState by session.agent.collectAsState()
         val agentMode by session.agentMode.collectAsState()
@@ -373,7 +374,7 @@ class MainActivity : ComponentActivity() {
                             save={saveDiagnostic(it)})}}
                         "Llamadas" -> {item{CallGuardPanel(save={saveDiagnostic(it)})}}
                         "Enlaces" -> {item{LinkInspectionPanel(save={saveDiagnostic(it)})};item{QrInspectionPanel(session,save={saveDiagnostic(it)})}}
-                        "Móvil" -> {item(key="tool-phone") { PhoneAuditPanel(phoneSnapshot,busy,refresh={run{
+                        "Móvil" -> {item(key="tool-phone") { PhoneAuditPanel(phoneUi,phoneSnapshot,busy,refresh={run{
                             val result=PhoneAudit.read(this@MainActivity)
                             runOnUiThread{session.phone.value=result}
                             "Chequeo local terminado"
