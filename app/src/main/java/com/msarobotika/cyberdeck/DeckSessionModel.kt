@@ -22,6 +22,7 @@ class DeckSessionModel:ViewModel() {
     val apk=MutableStateFlow<ApkSnapshot?>(null)
     val phone=MutableStateFlow<PhoneSnapshot?>(null)
     val diagnostic=MutableStateFlow<DiagnosticResult?>(null)
+    val qr=MutableStateFlow<QrObservation?>(null)
     val samples=MutableStateFlow<List<ResourceSample>>(emptyList())
     val phoneLive=MutableStateFlow(false)
 }

@@ -21,14 +21,14 @@ enum class AgentTool(val wire:String,val label:String,val group:String="Diagnós
  val assisted get()=route!=null
 }
 data class AgentPlan(val steps:List<AgentTool>){init{require(steps.isNotEmpty() && steps.size<=8 && steps.distinct().size==steps.size){"El plan debe tener entre uno y ocho pasos distintos"}}}
-data class AgentInputs(val host:String="",val port:String="443",val url:String="",val cidr:String="",val networkApproved:Boolean=false,val bleGatt:Boolean=false)
+data class AgentInputs(val host:String="",val port:String="443",val url:String="",val cidr:String="",val networkApproved:Boolean=false,val bleGatt:Boolean=false,val qrImage:Boolean=false)
 fun validateAgentInputs(plan:AgentPlan,input:AgentInputs){
  if(plan.steps.any{it.network})require(input.networkApproved){"Confirma la autorización del destino de red antes de ejecutar"}
  if(plan.steps.any{it in listOf(AgentTool.DNS,AgentTool.TCP,AgentTool.EXPOSURE)})Diagnostics.host(input.host)
  if(AgentTool.TCP in plan.steps){val port=input.port.toIntOrNull();require(port!=null && port in 1..65535){"Introduce un puerto entre 1 y 65535"}}
  if(AgentTool.EXPOSURE in plan.steps)ExposurePolicy.ports(input.port)
  if(AgentTool.WEB in plan.steps)Diagnostics.url(input.url)
- if(AgentTool.LINK in plan.steps)LinkInspection.inspect(input.url)
+ if(AgentTool.LINK in plan.steps && !input.qrImage)LinkInspection.inspect(input.url)
  if(AgentTool.CIDR in plan.steps)NetworkPlan.parse(input.cidr)
 }
 object AgentPolicy {

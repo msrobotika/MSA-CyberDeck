@@ -367,7 +367,7 @@ class MainActivity : ComponentActivity() {
                             self={run{val result=ApkInspector.inspectFile(this@MainActivity,java.io.File(applicationInfo.sourceDir));runOnUiThread{session.apk.value=result};"CiberDeck inspeccionada desde su APK instalado"}},
                             save={saveDiagnostic(it)})}}
                         "Llamadas" -> {item{CallGuardPanel(save={saveDiagnostic(it)})}}
-                        "Enlaces" -> {item{LinkInspectionPanel(save={saveDiagnostic(it)})}}
+                        "Enlaces" -> {item{LinkInspectionPanel(save={saveDiagnostic(it)})};item{QrInspectionPanel(session,save={saveDiagnostic(it)})}}
                         "Móvil" -> {item(key="tool-phone") { PhoneAuditPanel(phoneSnapshot,busy,refresh={run{
                             val result=PhoneAudit.read(this@MainActivity)
                             runOnUiThread{session.phone.value=result}

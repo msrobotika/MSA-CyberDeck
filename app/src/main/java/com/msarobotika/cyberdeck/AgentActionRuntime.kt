@@ -37,8 +37,9 @@ class AgentActionRuntime(private val activity:ComponentActivity,private val acce
    AgentTool.TRANSFER->transfer()
    AgentTool.RECEIVE->receive()
    AgentTool.ANALYST->analyst(workId,send)
+   AgentTool.LINK->if(inputs.qrImage){status.value="Elige la imagen con el QR en Android";val uri=access.open(arrayOf("image/*"));io{QrImageReader.read(activity,uri)}.also{session.qr.value=it}.diagnostic()}else io{performAgentTool(activity,tool,workId,inputs)}
    AgentTool.MODULES->result("modules","Catálogo implementado","Consulta de capacidades; no ejecuta hardware pendiente","Disponibles en Android" to "BLE, NFC, magnetómetro si existe, USB Host serie con adaptador autorizado, diagnósticos de red y archivos elegidos","Coprocesador" to "ESP32 con firmware compatible conectado al teléfono por OTG; estar conectado al PC no es suficiente","Pendiente" to "RF externo, IR, GPIO, sensores externos, MQTT/Modbus y extensiones no implementadas: no se anuncian como operaciones ejecutables")
-   AgentTool.PHONE,AgentTool.CONNECTION,AgentTool.COMPARE,AgentTool.REVIEW,AgentTool.RESOURCES,AgentTool.SELF_APK,AgentTool.INVENTORY,AgentTool.INTEGRITY,AgentTool.CALL_STATUS,AgentTool.DNS,AgentTool.TCP,AgentTool.WEB,AgentTool.LINK,AgentTool.CIDR->io{performAgentTool(activity,tool,workId,inputs)}
+   AgentTool.PHONE,AgentTool.CONNECTION,AgentTool.COMPARE,AgentTool.REVIEW,AgentTool.RESOURCES,AgentTool.SELF_APK,AgentTool.INVENTORY,AgentTool.INTEGRITY,AgentTool.CALL_STATUS,AgentTool.DNS,AgentTool.TCP,AgentTool.WEB,AgentTool.CIDR->io{performAgentTool(activity,tool,workId,inputs)}
   }}finally{status.value="";liveLink.value=""}
  }
  private suspend fun ble(gatt:Boolean):DiagnosticResult {

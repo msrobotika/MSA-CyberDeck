@@ -16,7 +16,8 @@ class DeckCatalogDeviceTest {
  private fun shot(name:String){File(ui.activity.filesDir,"validation/$name").apply{parentFile?.mkdirs()}.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}}
  @Test fun homeOpensSelectedAreaAndBackKeepsIt(){
   ui.openDeck("Resumen");ui.onNodeWithTag("deck-list").performScrollToIndex(0);shot("ciberdeck-home-025.png")
-  ui.onNodeWithTag("home-area-proximity").performScrollTo().performClick()
+  ui.onNodeWithTag("deck-list").performScrollToNode(hasTestTag("home-area-proximity"))
+  ui.onNodeWithTag("home-area-proximity").performClick()
   ui.onNodeWithTag("tool-NFC").performScrollTo().assertIsDisplayed()
   ui.onAllNodesWithTag("tool-USB").assertCountEquals(0)
   ui.onNodeWithTag("tool-NFC").performClick();ui.onNodeWithTag("screen-title").assertTextEquals("NFC")

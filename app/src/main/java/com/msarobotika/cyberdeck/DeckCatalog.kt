@@ -21,7 +21,7 @@ object DeckCatalog {
     private val aliases=mapOf(
         "Móvil" to "telefono bateria memoria seguridad permisos recursos",
         "APK" to "aplicacion firma permisos paquete",
-        "Enlaces" to "url phishing estafa direccion sospechosa",
+        "Enlaces" to "url phishing estafa direccion sospechosa qr codigo captura imagen",
         "Llamadas" to "telefono spam operador",
         "Equipo" to "auditoria router servidor",
         "Mi red" to "wifi wi-fi dispositivos lan servicios descubrir",

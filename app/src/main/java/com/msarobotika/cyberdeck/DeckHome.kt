@@ -36,7 +36,7 @@ val deckTools=listOf(
     DeckTool("IA","Asistente IA","IA local para explicar resultados elegidos","Asistente","report","Modelo local"),
     DeckTool("APK","Inspector APK","Firma, permisos y manifiesto sin instalar","Protección personal","files","Análisis local"),
     DeckTool("Llamadas","Llamadas","Verificación del operador y avisos locales","Protección personal","report","Activación opcional"),
-    DeckTool("Enlaces","Analizar enlace","Señales de riesgo sin abrir la dirección","Protección personal","report","Sin conexión"),
+    DeckTool("Enlaces","Enlaces y QR","Revisar direcciones y códigos de imágenes sin abrirlos","Protección personal","report","Análisis local"),
     DeckTool("Móvil","Mi móvil","Seguridad, conexión, recursos y hardware","En este móvil","report","Sin periféricos"),
     DeckTool("Mi red","Mi red","Servicios anunciados en tu red local","Conectividad","radio","15 s"),
     DeckTool("Red","DNS y puertos","Resolver un destino y comprobar un puerto TCP","Conectividad","tools","Un destino"),

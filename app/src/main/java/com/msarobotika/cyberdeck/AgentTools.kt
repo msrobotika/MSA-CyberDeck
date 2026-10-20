@@ -29,7 +29,7 @@ fun performAgentTool(context:Context,tool:AgentTool,workId:String?,inputs:AgentI
  AgentTool.DNS->Diagnostics.dns(inputs.host)
  AgentTool.TCP->Diagnostics.tcp(inputs.host,inputs.port.toInt())
  AgentTool.WEB->Diagnostics.web(inputs.url)
- AgentTool.LINK->LinkInspection.inspect(inputs.url).diagnostic()
+ AgentTool.LINK->if(inputs.qrImage)error("La lectura QR requiere el selector de imágenes de Android") else LinkInspection.inspect(inputs.url).diagnostic()
  AgentTool.CIDR->DiagnosticResult("cidr",inputs.cidr,Instant.now().toString(),"Cálculo IPv4 local, sin escaneo",NetworkPlan.details(NetworkPlan.parse(inputs.cidr)))
  else->error("Esta herramienta requiere interacción en su pantalla; no se ejecuta en segundo plano")
 

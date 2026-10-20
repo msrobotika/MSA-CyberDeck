@@ -2,11 +2,19 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.29 · Inspección de QR
+
+«Enlaces y QR» lee un código desde una imagen elegida, identifica su tipo y analiza localmente los enlaces HTTP(S). Puede reconocer configuraciones Wi-Fi, contactos y otros esquemas sin conectarlos, importarlos o ejecutarlos. El contenido completo se oculta por defecto; el informe conserva metadatos y huella de imagen, sin el payload completo ni claves Wi-Fi. El agente incorpora «Lee un QR de una imagen» usando el selector Android mediante la acción LINK.
+
+APK 0.29 instalada en A15: **226 pruebas JVM y dos pruebas nativas Android correctas**. La prueba de interfaz se interrumpió porque el A15 volvió a bloquearse; selección mediante el selector real, botones de mostrar/ocultar y flujo del agente quedan pendientes de comprobación física. [Implementación, pruebas y límites](docs/VALIDATION-029.md).
+
 ## Desarrollo 0.28 · Identidad visual de campo
 
 Rediseño visual de la portada y el kit: robot con mayor presencia, retícula decorativa, seis acentos de área, iconos vectoriales propios, tarjetas de altura compartida por fila y condiciones de uso en etiquetas. Se mantienen las rutas, permisos, resultados y sus fechas; las animaciones no representan lecturas ni conexiones.
 
-APK 0.28 instalada en A15. **216 pruebas JVM correctas**, compilación y lint sin errores. **Revisión visual, capturas y regresiones Android pendientes del desbloqueo del A15**; los PNG inferiores muestran 0.27, no el diseño nuevo. [Implementación, contraste calculado y límites](docs/VALIDATION-028.md).
+Rediseño comprobado en A15 con **216 pruebas JVM y diez casos Android**, incluyendo un ajuste del desplazamiento del ensayo para componer la fila antes de pulsarla. Cinco capturas reales revisadas y conservadas por versión. [Implementación, rondas, contraste calculado y límites](docs/VALIDATION-028.md).
+
+<img src="docs/screenshots/ciberdeck-home-028.png" width="240" alt="Portada real del rediseño en A15"> <img src="docs/screenshots/ciberdeck-kit-028.png" width="240" alt="Áreas con colores e iconos propios en A15"> <img src="docs/screenshots/ciberdeck-search-028.png" width="240" alt="Tarjetas de herramientas con alcance visible">
 
 ## Desarrollo 0.27 · Resultados primero
 

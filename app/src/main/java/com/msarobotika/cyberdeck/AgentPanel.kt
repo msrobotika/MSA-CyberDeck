@@ -110,7 +110,7 @@ import java.time.Instant
    OutlinedButton(enabled=editing,onClick={chooseTask(AgentTasks.apk)},modifier=Modifier.weight(1f).testTag("agent-task-apk")){Text("Elegir APK")}
   }
   TextButton(enabled=editing,onClick={quickExpanded=!quickExpanded}){Text(if(quickExpanded)"Menos tareas" else "Enlaces y servicios de red")}
-  if(quickExpanded)listOf(AgentTasks.link,AgentTasks.lan).forEach{task->OutlinedButton(enabled=editing,onClick={chooseTask(task)}){Text(task.title)}}
+  if(quickExpanded)listOf(AgentTasks.link,AgentTasks.qr,AgentTasks.lan).forEach{task->OutlinedButton(enabled=editing,onClick={chooseTask(task)}){Text(task.title)}}
   if(ai.loaded)TextButton(enabled=editing && request.isNotBlank(),onClick={planWithAi()}){Text("Preparar plan con IA")}
   TextButton(onClick={catalog=!catalog},enabled=editing){Text(if(catalog)"Cerrar catálogo" else "Elegir funciones · ${AgentTool.entries.size}")}
   if(catalog){
@@ -134,7 +134,8 @@ import java.time.Instant
    fun inputChanged(value:AgentInputs){session.agent.update{it.copy(inputs=value)}}
    if(plan.steps.any{it==AgentTool.DNS || it==AgentTool.TCP || it==AgentTool.EXPOSURE})OutlinedTextField(input.host,{inputChanged(input.copy(host=it.take(253),networkApproved=false))},label={Text("Dominio o IP autorizado")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs,singleLine=true)
    if(AgentTool.TCP in plan.steps || AgentTool.EXPOSURE in plan.steps)OutlinedTextField(input.port,{inputChanged(input.copy(port=it.take(100),networkApproved=false))},label={Text(if(AgentTool.EXPOSURE in plan.steps)"Puertos TCP · hasta ocho, separados por comas" else "Puerto TCP")},enabled=editableInputs,singleLine=true)
-   if(plan.steps.any{it==AgentTool.WEB || it==AgentTool.LINK})OutlinedTextField(input.url,{inputChanged(input.copy(url=it.take(4096),networkApproved=false))},label={Text("URL elegida")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs)
+   if(AgentTool.LINK in plan.steps)Row{Checkbox(input.qrImage,onCheckedChange={inputChanged(input.copy(qrImage=it))},enabled=editableInputs);Text("Leer QR de una imagen elegida en Android",Modifier.weight(1f).padding(top=10.dp),style=MaterialTheme.typography.bodySmall)}
+   if(AgentTool.WEB in plan.steps || (AgentTool.LINK in plan.steps && !input.qrImage))OutlinedTextField(input.url,{inputChanged(input.copy(url=it.take(4096),networkApproved=false))},label={Text("URL elegida")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs)
    if(AgentTool.CIDR in plan.steps)OutlinedTextField(input.cidr,{inputChanged(input.copy(cidr=it.take(32)))},label={Text("IPv4 y prefijo CIDR")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs,singleLine=true)
    if(AgentTool.BLE in plan.steps && agent.run==null)Row{Checkbox(input.bleGatt,onCheckedChange={inputChanged(input.copy(bleGatt=it))},enabled=editableInputs);Text("Consultar también servicios GATT de un equipo autorizado",Modifier.weight(1f).padding(top=10.dp),style=MaterialTheme.typography.bodySmall)}
    if(plan.steps.any{it.network})Row{Checkbox(input.networkApproved,onCheckedChange={inputChanged(input.copy(networkApproved=it))},enabled=editableInputs);Text("Tengo autorización sobre los destinos y la red utilizados. Las operaciones seleccionadas pueden enviar tráfico o abrir una recepción temporal.",Modifier.weight(1f).padding(top=10.dp),style=MaterialTheme.typography.bodySmall)}
