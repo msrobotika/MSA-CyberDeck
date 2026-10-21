@@ -12,6 +12,8 @@ Versión 0.37.0-ciberdeck-dev, código 44. Compilación correcta y 266 pruebas J
 
 Instalada por actualización en Samsung A15 SM-A155F Android 16, versión y código comprobados. Pasaron los 18 casos Android en 123,493 segundos, incluidas la frase exacta escrita, una tarea nueva desde seguimiento, transcripción controlada «analiza mi red Wi-Fi» sin modelo cargado, aviso visible para una auditoría no reconocida y las regresiones de conversación, lecturas, repetición y guardado real sin duplicados. Las fuentes y el transporte mostrado coinciden con el resultado real de Android. No se comprobó dictado hablado por una persona. Compilación en 2 min 44 s; lint cero errores y 24 avisos.
 
-APK: 65298010 bytes, SHA-256 `ff0f9921b402909a8c741c4820d7b66a31ccbcec88a1e935aaff3153530a18fc`. Copia local dist/CiberDeck-0.37.0-dev.apk. Registros privados a15-037-network-final.txt y a15-037-install.json en .private/android-validation. OPPO no conectado en esta ronda; no se declara actualizado.
+APK: 65298010 bytes, SHA-256 `ff0f9921b402909a8c741c4820d7b66a31ccbcec88a1e935aaff3153530a18fc`. Copia local dist/CiberDeck-0.37.0-dev.apk. Registros privados a15-037-network-final.txt y a15-037-install.json en .private/android-validation.
+
+El 21 de octubre de 2026 se actualizó también el OPPO CPH2743 desde 0.35 a esta misma APK, sin borrar datos. ADB confirmó instalación correcta, versión 0.37 código 44 y arranque en frío de MainActivity con estado correcto. Se abrió el agente. Los 18 casos instrumentados anteriores corresponden al A15; no se presentan como pruebas ejecutadas en el OPPO. Dictado humano pendiente.
 
 [Captura auténtica del resultado de conexión en 0.37](screenshots/ciberdeck-network-037.png), tomada durante el caso existente «¿tengo Internet?», que usa la misma herramienta. La frase exacta nueva se verificó por aserciones de interfaz y estado, sin sustituir las lecturas reales por datos de ensayo. Sin cambios de código después de compilar la APK validada.

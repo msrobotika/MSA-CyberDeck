@@ -6,7 +6,7 @@ Aplicación Android local para comprobar, observar y documentar dispositivos pro
 
 La petición reconoce también «red Wi-Fi» y «red inalámbrica», y se puede enviar desde la entrada inicial o como tarea nueva desde el seguimiento. Consulta la conexión real de Android sin cargar el modelo ni conectar un ESP32, y muestra qué transporte está usando. Las peticiones desconocidas reciben una explicación visible cuando no está disponible la IA. Es un diagnóstico local de conexión, no una auditoría de seguridad. [Cambios y validación](docs/VALIDATION-037.md).
 
-Instalada y probada en A15: **266 pruebas JVM y 18 casos Android correctos**, incluida la frase exacta escrita y la transcripción controlada de Android. Dictado humano y actualización del OPPO pendientes.
+Instalada y probada en A15: **266 pruebas JVM y 18 casos Android correctos**, incluida la frase exacta escrita y la transcripción controlada de Android. También actualizada en OPPO CPH2743, con versión y arranque comprobados. Dictado humano pendiente; las 18 pruebas Android corresponden al A15.
 
 <img src="docs/screenshots/ciberdeck-network-037.png" width="220" alt="Resultado auténtico de conexión en CiberDeck 0.37 con el transporte Wi-Fi observado por Android">
 
