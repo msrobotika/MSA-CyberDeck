@@ -16,6 +16,9 @@ import java.time.Instant
  val context=LocalContext.current;val scope=rememberCoroutineScope()
  val ai by session.ai.collectAsState();val agent by session.agent.collectAsState();val model by session.aiModel.collectAsState()
  var request by rememberSaveable{mutableStateOf("")}
+ val speaker=remember(context){AgentSpeaker(context)}
+ val voiceReady by speaker.ready.collectAsState();val voiceSpeaking by speaker.speaking.collectAsState();val voiceStatus by speaker.status.collectAsState()
+ var teamExpanded by rememberSaveable{mutableStateOf(false)}
  var showResults by rememberSaveable{mutableStateOf(false)}
  var work by remember{mutableStateOf<AuditWork?>(null)};var scopeLoaded by remember{mutableStateOf(false)}
  var scopeError by remember{mutableStateOf("")};var executionJob by remember{mutableStateOf<Job?>(null)}
@@ -27,6 +30,7 @@ import java.time.Instant
  val actionLink by (runtime?.liveLink?:remember{ kotlinx.coroutines.flow.MutableStateFlow("") }).collectAsState()
  val editing=!blocked && !agent.running && !agent.planning
  val owner=androidx.lifecycle.compose.LocalLifecycleOwner.current
+ DisposableEffect(owner,speaker){val observer=androidx.lifecycle.LifecycleEventObserver{_,event->if(event==androidx.lifecycle.Lifecycle.Event.ON_STOP)speaker.stop()};owner.lifecycle.addObserver(observer);onDispose{owner.lifecycle.removeObserver(observer);speaker.close()}}
  DisposableEffect(owner,runtime){val listener=androidx.lifecycle.LifecycleEventObserver{_,event->if(event==androidx.lifecycle.Lifecycle.Event.ON_STOP && runtime?.waitingForAndroid!=true)executionJob?.cancel()};owner.lifecycle.addObserver(listener);onDispose{owner.lifecycle.removeObserver(listener)}}
  LaunchedEffect(agent.running,agent.plan){try{val works=withContext(Dispatchers.IO){AuditWorkStore(context).read()};work=works.works.firstOrNull{it.id==works.activeId};scopeLoaded=true}catch(e:CancellationException){throw e}catch(e:Exception){scopeError="No se pudo leer el alcance: ${e.message}"}}
  LaunchedEffect(ai.busy,ai.output,ai.error){if(session.agent.value.planning && !ai.busy){val plan=runCatching{check(ai.error.isBlank()){ai.error};AgentTasks.checkHardwareRequest(session.agent.value.request,AgentPolicy.parse(ai.output))};session.agent.update{it.copy(planning=false,raw=ai.output,plan=plan.getOrNull(),error=if(plan.isFailure)"No he podido preparar esa tarea. Prueba una acción directa o concreta qué quieres comprobar." else "",notice="")}}}
@@ -63,9 +67,14 @@ import java.time.Instant
  fun planWithAi(){choosingTask=false;val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty(),environment))}
  LaunchedEffect(agent.run?.startedAt){showResults=false}
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
-  AgentTeamPanel(agent)
+  AgentHud(agent,voiceSpeaking)
   AgentSummary.from(agent)?.let{summary->
-   Card(Modifier.fillMaxWidth().testTag("agent-summary")){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+   Card(Modifier.fillMaxWidth().testTag("agent-summary"),border=androidx.compose.foundation.BorderStroke(1.dp,DeckMint.copy(alpha=.3f)),colors=CardDefaults.cardColors(containerColor=androidx.compose.ui.graphics.Color(0xFF0D2029))){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
+    AgentAnswerPolicy.primary(agent)?.let{answer->
+     Text("LO OBSERVADO",color=DeckMint,style=MaterialTheme.typography.labelLarge)
+     Text(answer.result!!.summary,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.testTag("agent-answer"))
+     Text("${answer.tool.label} · ${displayTime(answer.result.checkedAt)}",style=MaterialTheme.typography.bodySmall)
+    }
     Text(summary.title,style=MaterialTheme.typography.titleLarge,color=if(summary.title=="Revisión con error")MaterialTheme.colorScheme.error else DeckCyan)
     Text(agent.request,style=MaterialTheme.typography.bodyMedium,maxLines=2)
     LinearProgressIndicator(progress={summary.progress},modifier=Modifier.fillMaxWidth())
@@ -79,6 +88,10 @@ import java.time.Instant
      Text(when{step.error.isNotBlank()->"Error: ${step.error}";step.awaiting->"Espera tu intervención";step.skipped->"Paso omitido";step.manual->"Confirmación manual · sin lectura verificada";step.tool==AgentTool.ANALYST && step.result!=null->"Interpretación de IA · revisar";else->step.result?.summary?:"Sin resultado"},maxLines=2,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall)
     }
     Text("Progreso de la tarea; no es una puntuación de seguridad.",style=MaterialTheme.typography.bodySmall)
+    if(!agent.running && agent.run!=null){
+     OutlinedButton(enabled=voiceReady,onClick={if(voiceSpeaking)speaker.stop() else speaker.speak(AgentVoicePolicy.brief(agent))},modifier=Modifier.testTag("agent-speak")){Text(if(voiceSpeaking)"Detener voz" else "Escuchar resumen")}
+     Text(voiceStatus,style=MaterialTheme.typography.bodySmall)
+    }
     if(agent.running)OutlinedButton(onClick={executionJob?.cancel()}){Text("Detener ejecución")}
     else {
      if(agent.results.isNotEmpty())TextButton(onClick={showResults=!showResults}){Text(if(showResults)"Ocultar detalles de resultados" else "Ver detalles de resultados")}
@@ -87,20 +100,21 @@ import java.time.Instant
     }
    }}
   }
+  if(agent.plan!=null){TextButton(onClick={teamExpanded=!teamExpanded},modifier=Modifier.testTag("agent-show-team")){Text(if(teamExpanded)"Ocultar equipo y herramientas" else "Ver equipo y herramientas")};if(teamExpanded)AgentTeamPanel(agent)}
   val taskFocused=agent.plan!=null || agent.run!=null || agent.planning
   if(taskFocused && !agent.running && !agent.planning)OutlinedButton(enabled=editing,onClick={choosingTask=!choosingTask},modifier=Modifier.fillMaxWidth().testTag("agent-change-task")){Text(if(choosingTask)"Volver a la tarea actual" else "Elegir otra tarea")}
   if(!taskFocused || choosingTask) {
   if(choosingTask)Text("La tarea actual se conserva mientras eliges. Al preparar otra se sustituye la sesión; guarda antes los resultados que quieras conservar.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-  Text("Tu móvil es el equipo principal. El ESP32 es opcional.",style=MaterialTheme.typography.bodySmall)
-  FilledTonalButton(enabled=editing,onClick={chooseTask(AgentTasks.phone)},modifier=Modifier.fillMaxWidth().testTag("agent-task-phone")){Column(Modifier.padding(vertical=4.dp)){Text("Revisar mi móvil");Text("Ajustes, conexión, batería y APK · comprobar ahora",style=MaterialTheme.typography.bodySmall)}}
   OutlinedTextField(request,{request=it.take(800)},label={Text("Qué quieres que haga CiberDeck")},placeholder={Text("Revisa mi móvil, busca Bluetooth…")},modifier=Modifier.fillMaxWidth(),enabled=editing,maxLines=3)
+  AgentVoiceInput(editing){request=it}
   AiContext.domainGuidance(request).takeIf{it.isNotBlank()}?.let{DeckDisclosure("Alcance para campos y salud",it)}
   Button(modifier=Modifier.fillMaxWidth(),enabled=editing && request.isNotBlank(),onClick={
    val task=AgentTasks.match(request)
    if(task!=null){choosingTask=false;session.agent.value=task.session(request);queuedTask=if(task.instant)task else null}
    else if(ai.connected && ai.loaded)planWithAi()
    else session.agent.update{it.copy(error="",notice="Prueba una tarea de abajo. Para otras peticiones puedes cargar la IA local en sus ajustes.")}
-  }){Text("Preparar tarea")}
+  }){Text("Enviar petición")}
+  FilledTonalButton(enabled=editing,onClick={chooseTask(AgentTasks.phone)},modifier=Modifier.fillMaxWidth().testTag("agent-task-phone")){Column(Modifier.padding(vertical=4.dp)){Text("Revisar mi móvil");Text("Ajustes, conexión, batería y APK · comprobar ahora",style=MaterialTheme.typography.bodySmall)}}
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
    OutlinedButton(enabled=editing,onClick={chooseTask(AgentTasks.connection)},modifier=Modifier.weight(1f).testTag("agent-task-connection")){Text("Mi conexión")}
    OutlinedButton(enabled=editing,onClick={chooseTask(AgentTasks.ble)},modifier=Modifier.weight(1f).testTag("agent-task-ble")){Text("Bluetooth")}
@@ -110,7 +124,7 @@ import java.time.Instant
    OutlinedButton(enabled=editing,onClick={chooseTask(AgentTasks.apk)},modifier=Modifier.weight(1f).testTag("agent-task-apk")){Text("Elegir APK")}
   }
   TextButton(enabled=editing,onClick={quickExpanded=!quickExpanded}){Text(if(quickExpanded)"Menos tareas" else "Enlaces y servicios de red")}
-  if(quickExpanded)listOf(AgentTasks.link,AgentTasks.qr,AgentTasks.lan).forEach{task->OutlinedButton(enabled=editing,onClick={chooseTask(task)}){Text(task.title)}}
+  if(quickExpanded)listOf(AgentTasks.link,AgentTasks.qr,AgentTasks.lan,AgentTasks.changes,AgentTasks.web).forEach{task->OutlinedButton(enabled=editing,onClick={chooseTask(task)}){Text(task.title)}}
   if(ai.loaded)TextButton(enabled=editing && request.isNotBlank(),onClick={planWithAi()}){Text("Preparar plan con IA")}
   TextButton(onClick={catalog=!catalog},enabled=editing){Text(if(catalog)"Cerrar catálogo" else "Elegir funciones · ${AgentTool.entries.size}")}
   if(catalog){

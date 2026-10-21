@@ -15,17 +15,27 @@ object AgentTasks {
  val link=AgentTask("link","Revisar un enlace","Comprobación local sin visitar la dirección",listOf(AgentTool.LINK))
  val qr=AgentTask("qr","Leer QR de una imagen","Elige una imagen; se analiza sin abrir su contenido",listOf(AgentTool.LINK),true,AgentInputs(qrImage=true))
  val lan=AgentTask("lan","Servicios de mi red","Anuncios de servicios, sin barrer equipos",listOf(AgentTool.LAN))
- val all=listOf(phone,connection,ble,nfc,apk,link,qr,lan)
+ val changes=AgentTask("changes","Comparar mis lecturas","Dos copias verificadas del mismo tipo y destino",listOf(AgentTool.COMPARE),true)
+ val web=AgentTask("web","Revisar una web autorizada","Enlace, certificado y cabeceras; requiere URL y autorización",listOf(AgentTool.LINK,AgentTool.WEB))
+ val all=listOf(phone,connection,ble,nfc,apk,link,qr,lan,changes,web)
  private fun normalized(raw:String)=Normalizer.normalize(raw,Normalizer.Form.NFD).replace(Regex("""\p{M}+"""),"").lowercase(Locale.ROOT)
  /** Small explicit grammar, not an LLM: unmatched/negated/compound requests are left for review. */
  fun match(raw:String):AgentTask? {
-  val t=normalized(raw).trim().trimEnd('.','!','?')
+  val t=normalized(raw).trim().trimStart('¿','¡').trimEnd('.','!','?').replace(Regex("^(?:ciberdeck|jarvis)[,:]?\\s+"),"").replace(Regex("\\s*,?\\s*por favor$"),"").trim().trimStart('¿','¡')
   if(t.length !in 3..800 || Regex("""\b(no|nunca|evita|excepto)\b""").containsMatchIn(t))return null
   if(Regex("""\b(borra|elimina|envia|transfiere|clona|instala|desactiva)\b""").containsMatchIn(t))return null
   val topics=listOf("bluetooth","nfc","apk","enlace","conexion","movil","qr").count{t.contains(it)}
   if(topics>1 && !(t.contains("movil") && (t.contains("conexion") || t.contains("apk"))))return null
   val cleaned=t.replace(Regex("""\bsin (?:el |usar |necesitar )?(?:esp32|esp|usb|placa)\b"""),"").trim()
   return when {
+   cleaned in setOf("tengo internet","hay internet","estoy conectado a internet")->connection
+   Regex("""(?:haz|hacer) (?:un )?(?:chequeo|diagnostico) de (?:mi |este |el )?(?:movil|telefono)""").matches(cleaned)->phone
+   Regex("""(?:compara|comparar) (?:mis |las )?(?:lecturas|revisiones)(?: guardadas)?""").matches(cleaned)->changes
+   Regex("""(?:revisa|revisar|analiza|analizar) (?:esta |una |la )?web(?: autorizada)? https?://\S+""").matches(cleaned)->{
+    val url=Regex("""https?://\S+""",RegexOption.IGNORE_CASE).find(raw)?.value?:return null
+    if(runCatching{Diagnostics.url(url)}.isFailure)return null
+    web.copy(inputs=AgentInputs(url=url))
+   }
    Regex("""(?:revisa|revisar|analiza|analizar|comprueba|comprobar|chequea|chequear) (?:mi |el |este )?(?:movil|telefono)(?: y (?:su |mi |la |el estado de su )?conexion)?""").matches(cleaned)->phone
    Regex("""(?:revisa|revisar|analiza|analizar|comprueba|comprobar|ver|muestra) (?:mi |la |el estado de (?:mi |la )?)?(?:conexion|internet|wifi)""").matches(cleaned)->connection
    Regex("""(?:busca|buscar|escanea|escanear|explora|explorar) (?:dispositivos |anuncios )?(?:bluetooth|ble)(?: cercanos)?""").matches(cleaned)->ble

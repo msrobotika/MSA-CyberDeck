@@ -2,6 +2,14 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.33 · Hablar con CiberDeck
+
+Consola futurista con robot original, estados de ejecución y voz y contador de lecturas auténticas. Los aros son decorativos, no un radar. El agente reúne peticiones por texto o dictado de Android, tareas directas más naturales y lectura explícita de un resumen breve. La transcripción queda como borrador; las tareas con destinos o red siguen necesitando sus datos y autorización. El equipo técnico se despliega después del resultado. Se mantiene la IA local para las peticiones compatibles que requieren planificar. [Implementación, voz y límites](docs/VALIDATION-033.md).
+
+Instalada en Samsung A15 Android 16: **248 pruebas JVM y nueve casos Android correctos**. Dictado hablado y audición física pendientes; se comprobó la síntesis mediante callbacks del motor.
+
+<img src="docs/screenshots/ciberdeck-agent-command-033.png" width="220" alt="Consola real del agente CiberDeck 0.33 en Samsung A15"> <img src="docs/screenshots/ciberdeck-agent-answer-033.png" width="220" alt="Respuesta de conexión real en CiberDeck 0.33">
+
 ## Desarrollo 0.32 · De la observación al siguiente paso
 
 La revisión del móvil empieza en modo guiado: prioridades reales, una observación a la vez, acción relacionada y nueva lectura para comprobar qué cambió. Los paneles técnicos siguen en «Todos los datos y herramientas». No convierte datos ausentes en amenazas ni abrir un ajuste en una corrección. [Recorrido y límites](docs/VALIDATION-032.md).

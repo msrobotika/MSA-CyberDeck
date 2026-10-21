@@ -39,8 +39,8 @@ import androidx.compose.ui.unit.sp
                 }
                 Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)){
                     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(8.dp)){
-                        Text("Elige qué\nquieres hacer.",fontSize=23.sp,lineHeight=27.sp,fontWeight=FontWeight.Bold,letterSpacing=(-.5).sp)
-                        Text("CiberDeck te lleva al siguiente paso.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Tu agente\nde campo.",fontSize=23.sp,lineHeight=27.sp,fontWeight=FontWeight.Bold,letterSpacing=(-.5).sp)
+                        Text("Pide una tarea y comprueba sus resultados.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Box(Modifier.size(84.dp).background(Brush.radialGradient(listOf(DeckCyan.copy(alpha=glow),Color.Transparent))),contentAlignment=Alignment.Center){
                         Canvas(Modifier.fillMaxSize()){
@@ -50,22 +50,22 @@ import androidx.compose.ui.unit.sp
                         Image(painterResource(R.drawable.cyberdeck_robot),"Robot MSA Robotika",Modifier.fillMaxSize().padding(4.dp))
                     }
                 }
-                Button(enabled=!busy,onClick=analyze,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp).testTag("home-phone")){
-                    DeckGlyph("shield",Modifier.size(20.dp),MaterialTheme.colorScheme.onPrimary)
+                OutlinedButton(enabled=!busy,onClick=analyze,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp).testTag("home-phone")){
+                    DeckGlyph("shield",Modifier.size(20.dp),DeckCyan)
                     Text("Revisar este móvil",Modifier.weight(1f).padding(horizontal=10.dp))
-                    DeckGlyph("forward",Modifier.size(16.dp),MaterialTheme.colorScheme.onPrimary)
+                    DeckGlyph("forward",Modifier.size(16.dp),DeckCyan)
                 }
-                OutlinedButton(enabled=!busy,onClick=agent,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("home-agent")){
-                    DeckGlyph("spark",Modifier.size(20.dp),DeckViolet)
-                    Text("Pedir ayuda al agente",Modifier.weight(1f).padding(horizontal=10.dp))
-                    DeckGlyph("forward",Modifier.size(16.dp))
+                Button(enabled=!busy,onClick=agent,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("home-agent")){
+                    DeckGlyph("spark",Modifier.size(20.dp),MaterialTheme.colorScheme.onPrimary)
+                    Text("Hablar con CiberDeck",Modifier.weight(1f).padding(horizontal=10.dp))
+                    DeckGlyph("forward",Modifier.size(16.dp),MaterialTheme.colorScheme.onPrimary)
                 }
                 OutlinedButton(enabled=!busy,onClick=investigate,shape=RoundedCornerShape(12.dp),modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("home-investigation")){
                     DeckGlyph("report",Modifier.size(20.dp),DeckMint)
                     Text("Ver qué ha cambiado",Modifier.weight(1f).padding(horizontal=10.dp))
                     DeckGlyph("forward",Modifier.size(16.dp))
                 }
-                Text(snapshot?.let{"${displayTime(it.at)} · ${it.checks.count{c->c.tone==PhoneTone.REVIEW}} ajustes para revisar"}?:"Empieza por una revisión del móvil",fontFamily=FontFamily.Monospace,fontSize=10.sp,lineHeight=15.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(snapshot?.let{"${displayTime(it.at)} · ${it.checks.count{c->c.tone==PhoneTone.REVIEW}} ajustes para revisar"}?:"Escribe o dicta una petición al agente",fontFamily=FontFamily.Monospace,fontSize=10.sp,lineHeight=15.sp,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }

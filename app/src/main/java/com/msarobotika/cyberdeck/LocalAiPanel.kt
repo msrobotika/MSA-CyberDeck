@@ -81,7 +81,7 @@ import java.time.Instant
   onDispose{preparation?.cancel();owner.lifecycle.removeObserver(observer);client.disconnect()}
  }
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-  Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+  if(!agentMode)Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
    FilterChip(!agentMode,onClick={session.agentMode.value=false;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null;navigate("IA")},enabled=!blocked,label={Text("Analista")})
    FilterChip(agentMode,onClick={session.agentMode.value=true;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null;navigate("Agente")},enabled=!blocked,label={Text("Agente")})
   }
@@ -131,6 +131,7 @@ import java.time.Instant
   if(!agentMode)HorizontalDivider()
   if(agentMode){AgentPanel(session,blocked,runtime=agentRuntime,send={what,prompt->client.send(what,prompt)},save=save,navigate={route->if(route=="IA"){session.agentMode.value=false;session.ai.update{it.copy(output="")};session.aiRequest.value=null};navigate(route)})
   if(agentMode){
+   TextButton(enabled=!blocked,onClick={session.agentMode.value=false;session.ai.update{it.copy(output="",error="")};session.aiRequest.value=null;navigate("IA")}){Text("Abrir analista de evidencias")}
    TextButton(enabled=!blocked,onClick={engineOptions=!engineOptions}){Text(if(engineOptions)"Ocultar ajustes de IA" else "Modelo y ajustes de IA")}
    if(!engineOptions && !state.loaded && model!=null)Button(enabled=!blocked && state.runtime,onClick={client.send(AiWire.LOAD)}){Text("Cargar IA local")}
    if(!engineOptions && model==null)OutlinedButton(enabled=!blocked,onClick=pick){Text("Importar modelo para el agente")}

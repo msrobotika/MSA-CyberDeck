@@ -31,6 +31,7 @@ class AgentTeamUiDeviceTest {
   open();ui.onNodeWithTag("agent-task-phone").performScrollTo().performClick()
   ui.waitUntil(25000){!session().agent.value.running && session().agent.value.results.size==5}
   assertTrue(session().agent.value.results.all{it.result!=null && it.error.isBlank()})
+  ui.onNodeWithTag("agent-show-team").performScrollTo().performClick()
   ui.onNodeWithTag("agent-worker-mobile").assertTextEquals("Resultados recibidos · 4/4")
   ui.onNodeWithTag("agent-worker-network").assertTextEquals("Resultados recibidos · 1/1")
   ui.onAllNodesWithTag("agent-worker-hardware").assertCountEquals(0)
@@ -60,6 +61,7 @@ class AgentTeamUiDeviceTest {
   val prompt=result.details.first{it.first=="Entrada enviada al motor"}.second
   assertTrue(prompt.contains("team-context"));assertTrue(prompt.contains("Móvil/phone"));assertTrue(prompt.contains("Red/connection"))
   assertTrue(result.details.first{it.first=="Respuesta generada"}.second.isNotBlank())
+  ui.onNodeWithTag("agent-show-team").performScrollTo().performClick()
   ui.onNodeWithTag("agent-worker-analyst").assertTextEquals("Interpretación generada · revisar")
   ui.onNodeWithTag("agent-team").performScrollTo();shot("ciberdeck-team-analyst-023.png")
  }

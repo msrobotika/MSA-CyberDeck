@@ -24,13 +24,13 @@ class AgentPhoneTasksDeviceTest {
  }
  @Test fun plainConnectionRequestRunsOnPhoneWithoutModel(){
   open();ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().performTextInput("Comprueba mi conexión")
-  ui.onNodeWithText("Preparar tarea",substring=false).performScrollTo().performClick()
+  ui.onNodeWithText("Enviar petición",substring=false).performScrollTo().performClick()
   ui.waitUntil(15000){!session().agent.value.running && session().agent.value.results.size==2}
   assertEquals(listOf("connection","resources"),session().agent.value.results.map{it.result?.kind});assertFalse(session().ai.value.loaded)
  }
  @Test fun unrecognizedRequestOffersNextStepInsteadOfDemandingEsp(){
   open();ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().performTextInput("Quiero investigar algo diferente")
-  ui.onNodeWithText("Preparar tarea",substring=false).performScrollTo().performClick()
+  ui.onNodeWithText("Enviar petición",substring=false).performScrollTo().performClick()
   ui.waitUntil(5000){session().agent.value.notice.isNotBlank()};assertTrue(session().agent.value.error.isBlank());assertTrue(session().agent.value.results.isEmpty());assertFalse(session().agent.value.notice.contains("ESP"))
  }
  @Test fun summaryKeepsMethodsAccessibleAndReprepareDoesNotRerun(){
