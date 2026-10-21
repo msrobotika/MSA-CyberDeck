@@ -19,8 +19,8 @@ class AgentPhoneTasksDeviceTest {
   ui.onNodeWithTag("agent-summary").performScrollTo().assertIsDisplayed()
   ui.onNodeWithText("Revisión finalizada").assertExists()
   ui.onNodeWithText("5 de 5 pasos con resultado").assertExists()
-  ui.onNodeWithText("Guardar ejecución como evidencia").performScrollTo()
-  File(ui.activity.filesDir,"validation/ciberdeck-phone-task.png").apply{parentFile?.mkdirs()}.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}
+  ui.onNodeWithTag("agent-save-result").performScrollTo()
+  File(ui.activity.filesDir,"validation/ciberdeck-phone-task.png").apply{parentFile?.mkdirs()}.outputStream().use{androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()!!.compress(Bitmap.CompressFormat.PNG,100,it)}
  }
  @Test fun plainConnectionRequestRunsOnPhoneWithoutModel(){
   open();ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().performTextInput("Comprueba mi conexión")
@@ -41,6 +41,7 @@ class AgentPhoneTasksDeviceTest {
   ui.onAllNodesWithText("Ver resultado y método").assertCountEquals(2)
   ui.onNodeWithText("Ocultar detalles de resultados").performScrollTo().performClick()
   ui.onAllNodesWithText("Ver resultado y método").assertCountEquals(0)
+  ui.onNodeWithText("Ver detalles de resultados").performScrollTo().performClick()
   ui.onNodeWithText("Preparar de nuevo").performScrollTo().performClick()
   ui.runOnIdle{assertNull(session().agent.value.run);assertFalse(session().agent.value.running);assertTrue(session().agent.value.results.isEmpty())}
   ui.onNodeWithText("Ejecutar este plan").performScrollTo().assertIsDisplayed()

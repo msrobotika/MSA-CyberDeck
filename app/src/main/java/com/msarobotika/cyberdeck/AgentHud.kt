@@ -41,7 +41,7 @@ import androidx.compose.ui.unit.sp
    }
    Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
     Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)){
-     Box(Modifier.size(if(compact)48.dp else 78.dp),contentAlignment=Alignment.Center){
+     Box(Modifier.size(if(compact)48.dp else 64.dp),contentAlignment=Alignment.Center){
       Canvas(Modifier.fillMaxSize()){
        val w=size.width
        drawCircle(accent.copy(alpha=.15f),w*.48f,style=Stroke(1.dp.toPx()))
@@ -49,12 +49,12 @@ import androidx.compose.ui.unit.sp
        drawArc(accent.copy(alpha=.4f),angle+115f,75f,false,Offset(w*.04f,w*.04f),Size(w*.92f,w*.92f),style=Stroke(2.dp.toPx()))
        for(i in 0..3){val a=Math.toRadians((45+i*90).toDouble());val dx=kotlin.math.cos(a).toFloat();val dy=kotlin.math.sin(a).toFloat();drawLine(accent.copy(alpha=.5f),center+Offset(dx*w*.40f,dy*w*.40f),center+Offset(dx*w*.46f,dy*w*.46f),1.dp.toPx())}
       }
-      Image(painterResource(R.drawable.cyberdeck_robot),"Robot original MSA Robotika",Modifier.size(if(compact)36.dp else 58.dp))
+      Image(painterResource(R.drawable.cyberdeck_robot),"Robot original MSA Robotika",Modifier.size(if(compact)36.dp else 48.dp))
      }
      Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)){
       Text("MSA ROBOTIKA / AGENTE",fontFamily=FontFamily.Monospace,fontSize=10.sp,letterSpacing=1.sp,color=accent)
-      Text(if(agent.plan==null && agent.run==null && !agent.planning)"¿Qué investigamos?" else "CiberDeck",style=MaterialTheme.typography.titleLarge)
-      if(!compact || active)Text(if(active)detail.ifBlank{agent.activeTool?.label?:if(speaking)"Voz del sistema" else "Preparando herramientas"} else "Pide una tarea. Comprueba el resultado.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+      Text(if(agent.plan==null && agent.run==null && !agent.planning)"¿Qué hacemos?" else "CiberDeck",style=MaterialTheme.typography.titleLarge)
+      if(!compact || active)Text(if(active)detail.ifBlank{agent.activeTool?.label?:if(speaking)"Voz del sistema" else "Preparando herramientas"} else "Pide una tarea por voz o texto.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
      }
     }
     HorizontalDivider(color=accent.copy(alpha=.2f))

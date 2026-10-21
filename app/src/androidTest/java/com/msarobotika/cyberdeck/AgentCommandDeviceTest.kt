@@ -16,7 +16,7 @@ class AgentCommandDeviceTest {
  private var originalOrientation=android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
  @Before fun portraitForScreenshots(){originalOrientation=ui.activity.requestedOrientation;ui.activity.runOnUiThread{ui.activity.requestedOrientation=android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT};ui.waitUntil(15000){ui.activity.resources.configuration.orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT}}
  @After fun restoreOrientation(){ui.activity.runOnUiThread{ui.activity.requestedOrientation=originalOrientation}}
- private fun shot(name:String){File(ui.activity.filesDir,"validation/$name").apply{parentFile?.mkdirs()}.outputStream().use{ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it)}}
+ private fun shot(name:String){File(ui.activity.filesDir,"validation/$name").apply{parentFile?.mkdirs()}.outputStream().use{androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()!!.compress(Bitmap.CompressFormat.PNG,100,it)}}
  @Test fun naturalRequestRunsRealToolsAndVoiceControlsDoNotRequireModelOrMicrophonePermission(){
   ui.activity.runOnUiThread{ui.activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)}
   ui.openDeck("Agente")

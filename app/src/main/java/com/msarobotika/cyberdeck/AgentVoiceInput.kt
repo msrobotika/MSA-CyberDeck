@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
   if(result.resultCode!=Activity.RESULT_OK)status="Dictado cancelado. No se ha enviado ninguna tarea."
   else{
    val raw=result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
-   runCatching{AgentVoicePolicy.draft(raw)}.onSuccess{receive(it);status="Petición transcrita. Revisa el texto y pulsa Enviar petición."}.onFailure{status="No se recibió un dictado válido. Puedes escribir la petición."}
+   runCatching{AgentVoicePolicy.draft(raw)}.onSuccess{receive(it);status="Petición transcrita. Revisa el texto antes de enviarla."}.onFailure{status="No se recibió un dictado válido. Puedes escribir la petición."}
   }
  }
  Column(verticalArrangement=Arrangement.spacedBy(4.dp)){

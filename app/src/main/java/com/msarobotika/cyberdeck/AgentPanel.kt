@@ -10,12 +10,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.first
 import java.time.Instant
 
 @Composable fun AgentPanel(session:DeckSessionModel,blocked:Boolean,send:(Int,String)->Unit,save:(DiagnosticResult)->Unit,navigate:(String)->Unit={},runtime:AgentActionRuntime?=null){
  val context=LocalContext.current;val scope=rememberCoroutineScope()
  val ai by session.ai.collectAsState();val agent by session.agent.collectAsState();val model by session.aiModel.collectAsState()
  val request by session.agentDraft.collectAsState()
+ val followup by session.agentFollowup.collectAsState();val followupStatus by session.agentFollowupStatus.collectAsState();val savedResult by session.agentSaved.collectAsState()
+ var saving by remember{mutableStateOf(false)}
  val recent by session.agentRecent.collectAsState();val speakReplies by session.agentSpeakReplies.collectAsState()
  val speaker=remember(context){AgentSpeaker(context)}
  val voiceReady by speaker.ready.collectAsState();val voiceSpeaking by speaker.speaking.collectAsState();val voiceStatus by speaker.status.collectAsState()
@@ -29,7 +32,7 @@ import java.time.Instant
  var picked by rememberSaveable{mutableStateOf(arrayListOf<String>())};var manualNote by rememberSaveable{mutableStateOf("")}
  val actionStatus by (runtime?.status?:remember{ kotlinx.coroutines.flow.MutableStateFlow("") }).collectAsState()
  val actionLink by (runtime?.liveLink?:remember{ kotlinx.coroutines.flow.MutableStateFlow("") }).collectAsState()
- val editing=!blocked && !agent.running && !agent.planning
+ val editing=!blocked && !agent.running && !agent.planning && !saving
  val owner=androidx.lifecycle.compose.LocalLifecycleOwner.current
  var foreground by remember(owner){mutableStateOf(owner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))}
  DisposableEffect(owner,speaker){val observer=androidx.lifecycle.LifecycleEventObserver{_,event->foreground=owner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);if(event==androidx.lifecycle.Lifecycle.Event.ON_PAUSE || event==androidx.lifecycle.Lifecycle.Event.ON_STOP)speaker.stop()};owner.lifecycle.addObserver(observer);onDispose{owner.lifecycle.removeObserver(observer);speaker.close()}}
@@ -67,11 +70,42 @@ import java.time.Instant
  fun chooseTask(task:AgentTask){if(session.agent.value.running || session.agent.value.planning || blocked)return;choosingTask=false;session.agentDraft.value=task.title;session.agent.value=task.session();queuedTask=if(task.instant)task else null}
  LaunchedEffect(queuedTask,scopeLoaded,blocked){if(queuedTask!=null && scopeLoaded && !blocked && !session.agent.value.running){queuedTask=null;execute()}}
  fun planWithAi(){choosingTask=false;val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty(),environment))}
- LaunchedEffect(agent.run?.startedAt){showResults=false}
+ LaunchedEffect(agent.run?.startedAt){showResults=false;session.agentFollowup.value="";session.agentFollowupStatus.value=""}
  LaunchedEffect(agent.running,agent.planning,agent.run?.finishedAt,agent.error){session.agentRecent.update{AgentConversationPolicy.record(it,agent)}}
  LaunchedEffect(agent.running,agent.planning,agent.run?.finishedAt,speakReplies,voiceReady,foreground){
   if(AgentConversationPolicy.shouldSpeak(agent,speakReplies,voiceReady,foreground,session.agentLastSpokenId.value)){
    session.agentLastSpokenId.value=agent.run!!.startedAt;speaker.speak(AgentVoicePolicy.brief(agent))
+  }
+ }
+ fun saveCurrent(){
+  val snapshot=session.agent.value;val run=snapshot.run?:return
+  if(!editing || saving)return
+  if(session.agentSaved.value?.runId==run.startedAt){session.agentFollowupStatus.value="Este resultado ya está guardado y verificado.";return}
+  saving=true;session.agentFollowupStatus.value="Guardando y verificando la copia…"
+  scope.launch{try{
+   val report=withContext(Dispatchers.Default){run.diagnostic(snapshot.request,snapshot.modelHash,snapshot.evidenceScope,snapshot.origin,snapshot.contextSnapshot)}
+   save(report)
+   withTimeout(15000){session.agentSaved.first{it?.runId==run.startedAt}}
+   session.agentFollowupStatus.value="Resultado guardado con SHA-256 verificado."
+  }catch(e:CancellationException){if(e is TimeoutCancellationException)session.agentFollowupStatus.value="No he podido confirmar el guardado; consulta Evidencias antes de repetirlo." else throw e}
+   catch(e:Exception){session.agentFollowupStatus.value="No se confirmó el guardado: ${e.message}"}
+   finally{saving=false}}
+ }
+ fun repeatCurrent(){
+  if(!editing)return
+  val next=AgentFollowupPolicy.repeated(session.agent.value)?:return
+  speaker.stop();choosingTask=false;session.agent.value=next
+  session.agentFollowupStatus.value="";session.agentFollowup.value=""
+  if(AgentFollowupPolicy.canRepeatImmediately(next))queuedTask=AgentTask("repeat",next.request,"",next.plan!!.steps,true)
+ }
+ fun continueTask(){
+  if(!editing)return
+  when(AgentFollowupPolicy.match(followup)){
+   AgentFollowup.REPEAT->repeatCurrent()
+   AgentFollowup.SAVE->saveCurrent()
+   AgentFollowup.DETAILS->{showResults=true;session.agentFollowupStatus.value="Los resultados y el método están desplegados debajo."}
+   AgentFollowup.NEW->{session.agentDraft.value="";choosingTask=true}
+   null->session.agentFollowupStatus.value="Puedes decir «repítelo», «guárdalo» o «muéstrame los detalles». Para una tarea distinta, pulsa Nueva petición."
   }
  }
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
@@ -85,29 +119,34 @@ import java.time.Instant
     }
     Text(summary.title,style=MaterialTheme.typography.titleLarge,color=if(summary.title=="Revisión con error")MaterialTheme.colorScheme.error else DeckCyan)
     Text(agent.request,style=MaterialTheme.typography.bodyMedium,maxLines=2)
-    LinearProgressIndicator(progress={summary.progress},modifier=Modifier.fillMaxWidth())
-    Text("${summary.results} de ${summary.total} pasos con resultado",style=MaterialTheme.typography.titleMedium)
+    if(agent.running)LinearProgressIndicator(progress={summary.progress},modifier=Modifier.fillMaxWidth())
+    Text("${summary.results} de ${summary.total} pasos con resultado",style=MaterialTheme.typography.bodySmall)
     if(summary.skipped>0 || summary.manual>0 || summary.generated>0)Text("${summary.skipped} omitidos · ${summary.manual} manuales · ${summary.generated} interpretaciones de IA",style=MaterialTheme.typography.bodySmall)
     if(agent.error.isNotBlank())Text(agent.error,color=MaterialTheme.colorScheme.error)
     if(agent.notice.isNotBlank())Text(agent.notice,style=MaterialTheme.typography.bodySmall)
     if(actionStatus.isNotBlank())Text(actionStatus,color=DeckCyan)
-    agent.results.lastOrNull()?.let{step->
-     Text(step.tool.label,style=MaterialTheme.typography.titleSmall)
-     Text(when{step.error.isNotBlank()->"Error: ${step.error}";step.awaiting->"Espera tu intervención";step.skipped->"Paso omitido";step.manual->"Confirmación manual · sin lectura verificada";step.tool==AgentTool.ANALYST && step.result!=null->"Interpretación de IA · revisar";else->step.result?.summary?:"Sin resultado"},maxLines=2,overflow=androidx.compose.ui.text.style.TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall)
-    }
-    Text("Progreso de la tarea; no es una puntuación de seguridad.",style=MaterialTheme.typography.bodySmall)
-    if(!agent.running && agent.run!=null){
-     OutlinedButton(enabled=voiceReady,onClick={if(voiceSpeaking)speaker.stop() else speaker.speak(AgentVoicePolicy.brief(agent))},modifier=Modifier.testTag("agent-speak")){Text(if(voiceSpeaking)"Detener voz" else "Escuchar resumen")}
-     Text(voiceStatus,style=MaterialTheme.typography.bodySmall)
-    }
     if(agent.running)OutlinedButton(onClick={executionJob?.cancel()}){Text("Detener ejecución")}
-    else {
-     if(agent.results.isNotEmpty())TextButton(onClick={showResults=!showResults}){Text(if(showResults)"Ocultar detalles de resultados" else "Ver detalles de resultados")}
-     agent.run?.let{run->OutlinedButton(enabled=editing,onClick={runCatching{run.diagnostic(agent.request,agent.modelHash,agent.evidenceScope,agent.origin,agent.contextSnapshot)}.onSuccess(save).onFailure{e->session.agent.update{it.copy(error=e.message?:"No se pudo preparar el informe")}}}){Text("Guardar ejecución como evidencia")}}
-     TextButton(enabled=editing,onClick={session.agent.value=AgentSession(request=agent.request,plan=agent.plan,inputs=agent.inputs,origin=agent.origin,modelHash=agent.modelHash,contextSnapshot=agent.contextSnapshot)}){Text("Preparar de nuevo")}
+    else if(agent.run!=null){
+     Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
+      FilledTonalButton(enabled=editing,onClick={repeatCurrent()},modifier=Modifier.weight(1f).testTag("agent-repeat")){Text("Repetir tarea")}
+      Button(enabled=editing && savedResult?.runId!=agent.run?.startedAt,onClick={saveCurrent()},modifier=Modifier.weight(1f).testTag("agent-save-result")){Text(if(savedResult?.runId==agent.run?.startedAt)"Guardado" else "Guardar resultado")}
+     }
+     TextButton(enabled=voiceReady,onClick={if(voiceSpeaking)speaker.stop() else speaker.speak(AgentVoicePolicy.brief(agent))},modifier=Modifier.testTag("agent-speak")){Text(if(voiceSpeaking)"Detener voz" else "Escuchar resumen")}
+     if(speakReplies || voiceSpeaking || voiceStatus.startsWith("Lectura"))Text(voiceStatus,style=MaterialTheme.typography.bodySmall)
+     TextButton(onClick={showResults=!showResults}){Text(if(showResults)"Ocultar detalles de resultados" else "Ver detalles de resultados")}
+     if(showResults){
+      Text("Progreso de la tarea; no es una puntuación de seguridad.",style=MaterialTheme.typography.bodySmall)
+      TextButton(enabled=editing,onClick={session.agent.value=AgentSession(request=agent.request,plan=agent.plan,inputs=agent.inputs,origin=agent.origin,modelHash=agent.modelHash,contextSnapshot=agent.contextSnapshot)}){Text("Preparar de nuevo")}
+     }
     }
    }}
   }
+  if(agent.run!=null && !choosingTask && !agent.running){
+   OutlinedTextField(followup,{session.agentFollowup.value=it.take(800)},label={Text("Continúa esta tarea")},placeholder={Text("Repítelo, guárdalo, muéstrame los detalles…")},modifier=Modifier.fillMaxWidth().testTag("agent-followup-input"),enabled=editing,maxLines=2)
+   AgentVoiceInput(editing){session.agentFollowup.value=it;session.agentFollowupStatus.value="Petición transcrita. Pulsa Enviar seguimiento."}
+   Button(enabled=editing && followup.isNotBlank(),onClick={continueTask()},modifier=Modifier.fillMaxWidth().testTag("agent-followup-send")){Text("Enviar seguimiento")}
+  }
+  if(followupStatus.isNotBlank())Text(followupStatus,modifier=Modifier.testTag("agent-followup-status"),style=MaterialTheme.typography.bodySmall,color=DeckCyan)
   if(agent.plan!=null && !choosingTask){TextButton(onClick={teamExpanded=!teamExpanded},modifier=Modifier.testTag("agent-show-team")){Text(if(teamExpanded)"Ocultar equipo y herramientas" else "Ver equipo y herramientas")};if(teamExpanded)AgentTeamPanel(agent)}
   val taskFocused=agent.plan!=null || agent.run!=null || agent.planning
   if(taskFocused && !agent.running && !agent.planning)OutlinedButton(enabled=editing,onClick={if(!choosingTask)session.agentDraft.value="";choosingTask=!choosingTask},modifier=Modifier.fillMaxWidth().testTag("agent-change-task")){Text(if(choosingTask)"Volver a la tarea actual" else "Nueva petición")}

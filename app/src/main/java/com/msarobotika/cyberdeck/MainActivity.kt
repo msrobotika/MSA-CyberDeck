@@ -218,10 +218,13 @@ class MainActivity : ComponentActivity() {
             val intendedWork=if(associationReady)workState.activeId else null
             run {
                 val loaded = store.saveBytes("diagnostico-${result.kind}-${System.currentTimeMillis()}.json", result.toEvidenceJson().toByteArray(Charsets.UTF_8))
+                val verifiedAgentEntry=if(result.kind=="agent" && agentRunId!=null){loaded.last().also{check(store.diagnostic(it)==result){"La copia guardada no coincide con el informe"}}}else null
                 runOnUiThread { entries = loaded;session.agent.value=offerAgentEvidence(session.agent.value,loaded.last(),result.kind,sourceRoute,agentRunId) }
-                if(!associationReady)return@run "Resultado guardado con SHA-256; los trabajos no están disponibles. Puedes asociarlo después desde Trabajos."
+                fun acknowledge(){if(verifiedAgentEntry!=null)runOnUiThread{session.agentSaved.value=AgentSavedResult(agentRunId!!,verifiedAgentEntry)}}
+                if(!associationReady){acknowledge();return@run "Resultado guardado con SHA-256; los trabajos no están disponibles. Puedes asociarlo después desde Trabajos."}
                 val associated=runCatching{if(intendedWork!=null)workStore.attach(intendedWork,listOf(loaded.last())) else workStore.read()}
                 associated.onSuccess{state->runOnUiThread{workState=state}}
+                acknowledge()
                 if(associated.isSuccess)"Resultado guardado con SHA-256" else "Resultado guardado con SHA-256; no se pudo asociar al trabajo: ${associated.exceptionOrNull()?.message}"
             }
         }
