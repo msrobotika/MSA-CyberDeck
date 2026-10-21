@@ -2,6 +2,14 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.37 · «Analiza mi red wifi»
+
+La petición reconoce también «red Wi-Fi» y «red inalámbrica», y se puede enviar desde la entrada inicial o como tarea nueva desde el seguimiento. Consulta la conexión real de Android sin cargar el modelo ni conectar un ESP32, y muestra qué transporte está usando. Las peticiones desconocidas reciben una explicación visible cuando no está disponible la IA. Es un diagnóstico local de conexión, no una auditoría de seguridad. [Cambios y validación](docs/VALIDATION-037.md).
+
+Instalada y probada en A15: **266 pruebas JVM y 18 casos Android correctos**, incluida la frase exacta escrita y la transcripción controlada de Android. Dictado humano y actualización del OPPO pendientes.
+
+<img src="docs/screenshots/ciberdeck-network-037.png" width="220" alt="Resultado auténtico de conexión en CiberDeck 0.37 con el transporte Wi-Fi observado por Android">
+
 ## Desarrollo 0.36 · Continuar la tarea
 
 Resultado principal más compacto, acciones de repetir/guardar y seguimiento «repítelo», «guárdalo» o «muéstrame los detalles». Repetir crea una lectura nueva para planes locales permitidos; los demás planes requieren revisión y nueva autorización de red. Guardar confirma tras verificar la copia con SHA-256. **262 pruebas JVM y quince casos Android correctos**, compilación sin errores, instalada y probada en A15 con repetición, guardado real y ausencia de duplicados. [Implementación y límites](docs/VALIDATION-036.md).

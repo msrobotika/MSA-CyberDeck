@@ -69,7 +69,7 @@ import java.time.Instant
  }
  fun chooseTask(task:AgentTask){if(session.agent.value.running || session.agent.value.planning || blocked)return;choosingTask=false;session.agentDraft.value=task.title;session.agent.value=task.session();queuedTask=if(task.instant)task else null}
  LaunchedEffect(queuedTask,scopeLoaded,blocked){if(queuedTask!=null && scopeLoaded && !blocked && !session.agent.value.running){queuedTask=null;execute()}}
- fun planWithAi(){choosingTask=false;val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty(),environment))}
+ fun planWithAi(text:String=request){choosingTask=false;val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=text,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(text,model?.name.orEmpty(),environment))}
  LaunchedEffect(agent.run?.startedAt){showResults=false;session.agentFollowup.value="";session.agentFollowupStatus.value=""}
  LaunchedEffect(agent.running,agent.planning,agent.run?.finishedAt,agent.error){session.agentRecent.update{AgentConversationPolicy.record(it,agent)}}
  LaunchedEffect(agent.running,agent.planning,agent.run?.finishedAt,speakReplies,voiceReady,foreground){
@@ -98,14 +98,19 @@ import java.time.Instant
   session.agentFollowupStatus.value="";session.agentFollowup.value=""
   if(AgentFollowupPolicy.canRepeatImmediately(next))queuedTask=AgentTask("repeat",next.request,"",next.plan!!.steps,true)
  }
- fun continueTask(){
-  if(!editing)return
-  when(AgentFollowupPolicy.match(followup)){
-   AgentFollowup.REPEAT->repeatCurrent()
-   AgentFollowup.SAVE->saveCurrent()
-   AgentFollowup.DETAILS->{showResults=true;session.agentFollowupStatus.value="Los resultados y el método están desplegados debajo."}
-   AgentFollowup.NEW->{session.agentDraft.value="";choosingTask=true}
-   null->session.agentFollowupStatus.value="Puedes decir «repítelo», «guárdalo» o «muéstrame los detalles». Para una tarea distinta, pulsa Nueva petición."
+ fun submit(text:String,continuation:Boolean=false){
+  if(!editing || text.isBlank())return
+  fun feedback(value:String){if(continuation)session.agentFollowupStatus.value=value else session.agent.update{it.copy(error="",notice=value)}}
+  when(val input=AgentInputPolicy.resolve(text,session.agent.value.run!=null)){
+   is AgentInput.Task->{speaker.stop();choosingTask=false;session.agentDraft.value=text;session.agent.value=input.task.session(text);session.agentFollowupStatus.value="";queuedTask=if(input.task.instant)input.task else null}
+   is AgentInput.Followup->when(input.action){
+    AgentFollowup.REPEAT->repeatCurrent()
+    AgentFollowup.SAVE->saveCurrent()
+    AgentFollowup.DETAILS->{showResults=true;session.agentFollowupStatus.value="Los resultados y el método están desplegados debajo."}
+    AgentFollowup.NEW->{session.agentDraft.value="";choosingTask=true}
+   }
+   AgentInput.MissingContext->feedback("Primero realiza una tarea: todavía no hay un resultado al que aplicar esa instrucción.")
+   AgentInput.Unknown->if(ai.connected && ai.loaded && !ai.busy)planWithAi(text) else feedback("No he reconocido esa petición y no se ha ejecutado nada. Prueba «Analiza mi red wifi», «Revisa mi móvil» o «Mide el campo magnético». Para otras peticiones puedes cargar la IA local en sus ajustes.")
   }
  }
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
@@ -116,6 +121,7 @@ import java.time.Instant
      Text("LO OBSERVADO",color=DeckMint,style=MaterialTheme.typography.labelLarge)
      Text(answer.result!!.summary,style=MaterialTheme.typography.headlineSmall,modifier=Modifier.testTag("agent-answer"))
      Text("${answer.tool.label} · ${displayTime(answer.result.checkedAt)}",style=MaterialTheme.typography.bodySmall)
+     if(answer.result.kind=="connection")Text("Red observada: ${answer.result.details.firstOrNull{it.first=="Transporte"}?.second?:"No identificado"}",style=MaterialTheme.typography.bodySmall,modifier=Modifier.testTag("agent-network-transport"))
     }
     Text(summary.title,style=MaterialTheme.typography.titleLarge,color=if(summary.title=="Revisión con error")MaterialTheme.colorScheme.error else DeckCyan)
     Text(agent.request,style=MaterialTheme.typography.bodyMedium,maxLines=2)
@@ -142,9 +148,9 @@ import java.time.Instant
    }}
   }
   if(agent.run!=null && !choosingTask && !agent.running){
-   OutlinedTextField(followup,{session.agentFollowup.value=it.take(800)},label={Text("Continúa esta tarea")},placeholder={Text("Repítelo, guárdalo, muéstrame los detalles…")},modifier=Modifier.fillMaxWidth().testTag("agent-followup-input"),enabled=editing,maxLines=2)
+   OutlinedTextField(followup,{session.agentFollowup.value=it.take(800)},label={Text("Continúa esta tarea")},placeholder={Text("Repítelo o pide otra comprobación…")},modifier=Modifier.fillMaxWidth().testTag("agent-followup-input"),enabled=editing,maxLines=2)
    AgentVoiceInput(editing){session.agentFollowup.value=it;session.agentFollowupStatus.value="Petición transcrita. Pulsa Enviar seguimiento."}
-   Button(enabled=editing && followup.isNotBlank(),onClick={continueTask()},modifier=Modifier.fillMaxWidth().testTag("agent-followup-send")){Text("Enviar seguimiento")}
+   Button(enabled=editing && followup.isNotBlank(),onClick={submit(followup,continuation=true)},modifier=Modifier.fillMaxWidth().testTag("agent-followup-send")){Text("Enviar seguimiento")}
   }
   if(followupStatus.isNotBlank())Text(followupStatus,modifier=Modifier.testTag("agent-followup-status"),style=MaterialTheme.typography.bodySmall,color=DeckCyan)
   if(agent.plan!=null && !choosingTask){TextButton(onClick={teamExpanded=!teamExpanded},modifier=Modifier.testTag("agent-show-team")){Text(if(teamExpanded)"Ocultar equipo y herramientas" else "Ver equipo y herramientas")};if(teamExpanded)AgentTeamPanel(agent)}
@@ -157,12 +163,7 @@ import java.time.Instant
   AgentVoiceInput(editing){session.agentDraft.value=it;session.agent.update{a->a.copy(notice="",error="")}}
   if(AgentTasks.match(request)?.id=="magnetic")Text("Mediré con el magnetómetro de este móvil. Llévalo al lugar indicado y pulsa Enviar petición. No se mide una habitación a distancia.",style=MaterialTheme.typography.bodySmall,color=DeckCyan,modifier=Modifier.testTag("agent-magnetic-preview"))
   AiContext.domainGuidance(request).takeIf{it.isNotBlank()}?.let{DeckDisclosure("Alcance para campos y salud",it)}
-  Button(modifier=Modifier.fillMaxWidth(),enabled=editing && request.isNotBlank(),onClick={
-   val task=AgentTasks.match(request)
-   if(task!=null){choosingTask=false;session.agent.value=task.session(request);queuedTask=if(task.instant)task else null}
-   else if(ai.connected && ai.loaded)planWithAi()
-   else session.agent.update{it.copy(error="",notice="No he reconocido esa petición y no se ha ejecutado nada. Prueba «Mide el campo magnético», «Revisa mi móvil» o «Comprueba mi conexión». Para otras peticiones, carga la IA local en sus ajustes.")}
-  }){Text("Enviar petición")}
+  Button(modifier=Modifier.fillMaxWidth(),enabled=editing && request.isNotBlank(),onClick={submit(request)}){Text("Enviar petición")}
   AgentSpeechPreference(speakReplies){session.agentSpeakReplies.value=it;if(!it)speaker.stop()}
   if(agent.notice.isNotBlank())Text(agent.notice,modifier=Modifier.testTag("agent-submit-feedback"),color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
   FilledTonalButton(enabled=editing,onClick={chooseTask(AgentTasks.phone)},modifier=Modifier.fillMaxWidth().testTag("agent-task-phone")){Column(Modifier.padding(vertical=4.dp)){Text("Revisar mi móvil");Text("Ajustes, conexión, batería y APK · comprobar ahora",style=MaterialTheme.typography.bodySmall)}}

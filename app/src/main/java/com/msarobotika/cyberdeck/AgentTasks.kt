@@ -19,7 +19,11 @@ object AgentTasks {
  val web=AgentTask("web","Revisar una web autorizada","Enlace, certificado y cabeceras; requiere URL y autorización",listOf(AgentTool.LINK,AgentTool.WEB))
  val magnetic=AgentTask("magnetic","Medir campo magnético","Seis muestras del sensor del móvil; lleva el teléfono al lugar indicado",listOf(AgentTool.MAGNETIC),true)
  val all=listOf(phone,connection,ble,nfc,apk,link,qr,lan,changes,web,magnetic)
- private fun normalized(raw:String)=Normalizer.normalize(raw,Normalizer.Form.NFD).replace(Regex("""\p{M}+"""),"").lowercase(Locale.ROOT)
+ private fun normalized(raw:String)=Normalizer.normalize(raw,Normalizer.Form.NFD).replace(Regex("""\p{M}+"""),"").lowercase(Locale.ROOT).replace(Regex("""\s+""")," ")
+ private fun localConnectionRequest(text:String):Boolean {
+  val wifi=text.replace(Regex("""wi[\s\-‐‑–]?fi"""),"wifi")
+  return Regex("""(?:analiza|analizar|analizame|revisa|revisar|revisame|comprueba|comprobar|compruebame|verifica|verificar|verificame|mira|mirame|ver|muestra|muestrame|dime como esta) (?:mi |la |esta |nuestra |el estado de (?:mi |la )?)?(?:conexion|internet|wifi|red(?: wifi| inalambrica)?|conexion (?:wifi|de mi red(?: wifi)?))(?: actual| a la que estoy conectado)?""").matches(wifi)
+ }
  /** Small explicit grammar, not an LLM: unmatched/negated/compound requests are left for review. */
  fun match(raw:String):AgentTask? {
   val t=normalized(raw).trim().trimStart('¿','¡').trimEnd('.','!','?').replace(Regex("^(?:ciberdeck|jarvis)[,:]?\\s+"),"").replace(Regex("\\s*,?\\s*por favor$"),"").trim().trimStart('¿','¡')
@@ -39,7 +43,7 @@ object AgentTasks {
     web.copy(inputs=AgentInputs(url=url))
    }
    Regex("""(?:revisa|revisar|analiza|analizar|comprueba|comprobar|chequea|chequear) (?:mi |el |este )?(?:movil|telefono)(?: y (?:su |mi |la |el estado de su )?conexion)?""").matches(cleaned)->phone
-   Regex("""(?:revisa|revisar|analiza|analizar|comprueba|comprobar|ver|muestra) (?:mi |la |el estado de (?:mi |la )?)?(?:conexion|internet|wifi)""").matches(cleaned)->connection
+   localConnectionRequest(cleaned)->connection
    Regex("""(?:busca|buscar|escanea|escanear|explora|explorar) (?:dispositivos |anuncios )?(?:bluetooth|ble)(?: cercanos)?""").matches(cleaned)->ble
    Regex("""(?:lee|leer|escanea|escanear) (?:una |mi |la )?(?:etiqueta )?nfc""").matches(cleaned)->nfc
    Regex("""(?:lee|leer|analiza|analizar|revisa|revisar) (?:un |el |este )?(?:codigo )?qr(?: de (?:una |la )?(?:imagen|captura))?""").matches(cleaned)->qr
