@@ -21,6 +21,7 @@ class AgentFocusDeviceTest {
   ui.onNodeWithText("IPv4 y prefijo CIDR").performScrollTo().assertIsDisplayed()
   ui.onNodeWithTag("agent-change-task").performScrollTo().performClick()
   ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().assertIsDisplayed()
+  ui.onAllNodesWithText("IPv4 y prefijo CIDR").assertCountEquals(0)
   ui.runOnIdle{assertEquals(original,session().agent.value)}
   ui.onNodeWithTag("agent-change-task").performScrollTo().performClick()
   ui.onAllNodesWithText("Qué quieres que haga CiberDeck").assertCountEquals(0)

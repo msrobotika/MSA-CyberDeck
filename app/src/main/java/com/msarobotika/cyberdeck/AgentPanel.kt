@@ -16,6 +16,7 @@ import java.time.Instant
  val context=LocalContext.current;val scope=rememberCoroutineScope()
  val ai by session.ai.collectAsState();val agent by session.agent.collectAsState();val model by session.aiModel.collectAsState()
  val request by session.agentDraft.collectAsState()
+ val recent by session.agentRecent.collectAsState();val speakReplies by session.agentSpeakReplies.collectAsState()
  val speaker=remember(context){AgentSpeaker(context)}
  val voiceReady by speaker.ready.collectAsState();val voiceSpeaking by speaker.speaking.collectAsState();val voiceStatus by speaker.status.collectAsState()
  var teamExpanded by rememberSaveable{mutableStateOf(false)}
@@ -30,7 +31,8 @@ import java.time.Instant
  val actionLink by (runtime?.liveLink?:remember{ kotlinx.coroutines.flow.MutableStateFlow("") }).collectAsState()
  val editing=!blocked && !agent.running && !agent.planning
  val owner=androidx.lifecycle.compose.LocalLifecycleOwner.current
- DisposableEffect(owner,speaker){val observer=androidx.lifecycle.LifecycleEventObserver{_,event->if(event==androidx.lifecycle.Lifecycle.Event.ON_STOP)speaker.stop()};owner.lifecycle.addObserver(observer);onDispose{owner.lifecycle.removeObserver(observer);speaker.close()}}
+ var foreground by remember(owner){mutableStateOf(owner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED))}
+ DisposableEffect(owner,speaker){val observer=androidx.lifecycle.LifecycleEventObserver{_,event->foreground=owner.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED);if(event==androidx.lifecycle.Lifecycle.Event.ON_PAUSE || event==androidx.lifecycle.Lifecycle.Event.ON_STOP)speaker.stop()};owner.lifecycle.addObserver(observer);onDispose{owner.lifecycle.removeObserver(observer);speaker.close()}}
  DisposableEffect(owner,runtime){val listener=androidx.lifecycle.LifecycleEventObserver{_,event->if(event==androidx.lifecycle.Lifecycle.Event.ON_STOP && runtime?.waitingForAndroid!=true)executionJob?.cancel()};owner.lifecycle.addObserver(listener);onDispose{owner.lifecycle.removeObserver(listener)}}
  LaunchedEffect(agent.running,agent.plan){try{val works=withContext(Dispatchers.IO){AuditWorkStore(context).read()};work=works.works.firstOrNull{it.id==works.activeId};scopeLoaded=true}catch(e:CancellationException){throw e}catch(e:Exception){scopeError="No se pudo leer el alcance: ${e.message}"}}
  LaunchedEffect(ai.busy,ai.output,ai.error){if(session.agent.value.planning && !ai.busy){val plan=runCatching{check(ai.error.isBlank()){ai.error};AgentTasks.checkHardwareRequest(session.agent.value.request,AgentPolicy.parse(ai.output))};session.agent.update{it.copy(planning=false,raw=ai.output,plan=plan.getOrNull(),error=if(plan.isFailure)"No he podido preparar esa tarea. Prueba una acción directa o concreta qué quieres comprobar." else "",notice="")}}}
@@ -66,9 +68,15 @@ import java.time.Instant
  LaunchedEffect(queuedTask,scopeLoaded,blocked){if(queuedTask!=null && scopeLoaded && !blocked && !session.agent.value.running){queuedTask=null;execute()}}
  fun planWithAi(){choosingTask=false;val environment=AiContext.snapshot(agent.results.lastOrNull{it.tool==AgentTool.PHONE && it.result!=null}?.result?:session.phone.value?.diagnostic());session.agent.value=AgentSession(request=request,modelHash=model?.sha256.orEmpty(),planning=true,contextSnapshot=environment.text);session.aiRequest.value=null;send(AiWire.PLAN,AgentPolicy.prompt(request,model?.name.orEmpty(),environment))}
  LaunchedEffect(agent.run?.startedAt){showResults=false}
+ LaunchedEffect(agent.running,agent.planning,agent.run?.finishedAt,agent.error){session.agentRecent.update{AgentConversationPolicy.record(it,agent)}}
+ LaunchedEffect(agent.running,agent.planning,agent.run?.finishedAt,speakReplies,voiceReady,foreground){
+  if(AgentConversationPolicy.shouldSpeak(agent,speakReplies,voiceReady,foreground,session.agentLastSpokenId.value)){
+   session.agentLastSpokenId.value=agent.run!!.startedAt;speaker.speak(AgentVoicePolicy.brief(agent))
+  }
+ }
  Column(verticalArrangement=Arrangement.spacedBy(12.dp)){
-  AgentHud(agent,voiceSpeaking)
-  AgentSummary.from(agent)?.let{summary->
+  AgentHud(if(choosingTask)AgentSession() else agent,voiceSpeaking,actionStatus)
+  if(!choosingTask)AgentSummary.from(agent)?.let{summary->
    Card(Modifier.fillMaxWidth().testTag("agent-summary"),border=androidx.compose.foundation.BorderStroke(1.dp,DeckMint.copy(alpha=.3f)),colors=CardDefaults.cardColors(containerColor=androidx.compose.ui.graphics.Color(0xFF0D2029))){Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
     AgentAnswerPolicy.primary(agent)?.let{answer->
      Text("LO OBSERVADO",color=DeckMint,style=MaterialTheme.typography.labelLarge)
@@ -100,9 +108,10 @@ import java.time.Instant
     }
    }}
   }
-  if(agent.plan!=null){TextButton(onClick={teamExpanded=!teamExpanded},modifier=Modifier.testTag("agent-show-team")){Text(if(teamExpanded)"Ocultar equipo y herramientas" else "Ver equipo y herramientas")};if(teamExpanded)AgentTeamPanel(agent)}
+  if(agent.plan!=null && !choosingTask){TextButton(onClick={teamExpanded=!teamExpanded},modifier=Modifier.testTag("agent-show-team")){Text(if(teamExpanded)"Ocultar equipo y herramientas" else "Ver equipo y herramientas")};if(teamExpanded)AgentTeamPanel(agent)}
   val taskFocused=agent.plan!=null || agent.run!=null || agent.planning
-  if(taskFocused && !agent.running && !agent.planning)OutlinedButton(enabled=editing,onClick={choosingTask=!choosingTask},modifier=Modifier.fillMaxWidth().testTag("agent-change-task")){Text(if(choosingTask)"Volver a la tarea actual" else "Elegir otra tarea")}
+  if(taskFocused && !agent.running && !agent.planning)OutlinedButton(enabled=editing,onClick={if(!choosingTask)session.agentDraft.value="";choosingTask=!choosingTask},modifier=Modifier.fillMaxWidth().testTag("agent-change-task")){Text(if(choosingTask)"Volver a la tarea actual" else "Nueva petición")}
+  if(taskFocused && !choosingTask)AgentSpeechPreference(speakReplies){session.agentSpeakReplies.value=it;if(!it)speaker.stop()}
   if(!taskFocused || choosingTask) {
   if(choosingTask)Text("La tarea actual se conserva mientras eliges. Al preparar otra se sustituye la sesión; guarda antes los resultados que quieras conservar.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
   OutlinedTextField(request,{session.agentDraft.value=it.take(800)},label={Text("Qué quieres que haga CiberDeck")},placeholder={Text("Revisa mi móvil, busca Bluetooth…")},modifier=Modifier.fillMaxWidth(),enabled=editing,maxLines=3)
@@ -115,6 +124,7 @@ import java.time.Instant
    else if(ai.connected && ai.loaded)planWithAi()
    else session.agent.update{it.copy(error="",notice="No he reconocido esa petición y no se ha ejecutado nada. Prueba «Mide el campo magnético», «Revisa mi móvil» o «Comprueba mi conexión». Para otras peticiones, carga la IA local en sus ajustes.")}
   }){Text("Enviar petición")}
+  AgentSpeechPreference(speakReplies){session.agentSpeakReplies.value=it;if(!it)speaker.stop()}
   if(agent.notice.isNotBlank())Text(agent.notice,modifier=Modifier.testTag("agent-submit-feedback"),color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
   FilledTonalButton(enabled=editing,onClick={chooseTask(AgentTasks.phone)},modifier=Modifier.fillMaxWidth().testTag("agent-task-phone")){Column(Modifier.padding(vertical=4.dp)){Text("Revisar mi móvil");Text("Ajustes, conexión, batería y APK · comprobar ahora",style=MaterialTheme.typography.bodySmall)}}
   Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){
@@ -145,7 +155,7 @@ import java.time.Instant
   if(agent.error.isNotBlank())Text(agent.error,color=MaterialTheme.colorScheme.error)
   if(taskFocused && !choosingTask && agent.notice.isNotBlank())Text(agent.notice,color=MaterialTheme.colorScheme.onSurfaceVariant,style=MaterialTheme.typography.bodySmall)
   if(scopeError.isNotBlank())Text(scopeError,color=MaterialTheme.colorScheme.error)
-  agent.plan?.takeIf{agent.run==null || showResults || agent.results.any{it.awaiting}}?.let{plan->
+  if(!choosingTask)agent.plan?.takeIf{agent.run==null || showResults || agent.results.any{it.awaiting}}?.let{plan->
    val input=agent.inputs;val editableInputs=editing && agent.run==null
    fun inputChanged(value:AgentInputs){session.agent.update{it.copy(inputs=value)}}
    if(plan.steps.any{it==AgentTool.DNS || it==AgentTool.TCP || it==AgentTool.EXPOSURE})OutlinedTextField(input.host,{inputChanged(input.copy(host=it.take(253),networkApproved=false))},label={Text("Dominio o IP autorizado")},modifier=Modifier.fillMaxWidth(),enabled=editableInputs,singleLine=true)
@@ -167,7 +177,7 @@ import java.time.Instant
   }
   if(actionStatus.isNotBlank())Text(actionStatus,color=DeckCyan,modifier=Modifier.testTag("agent-action-status"))
   if(actionLink.isNotBlank()){Text("Enlace temporal · solo para tu red de confianza");androidx.compose.foundation.text.selection.SelectionContainer{Text(actionLink)}}
-  if(showResults || agent.results.any{it.awaiting})agent.results.forEach{step->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
+  if(!choosingTask && (showResults || agent.results.any{it.awaiting}))agent.results.forEach{step->Card(Modifier.fillMaxWidth()){Column(Modifier.padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){
    Text(step.tool.label,style=MaterialTheme.typography.titleMedium)
    Text(when{step.awaiting->"PENDIENTE DE INTERACCIÓN";step.skipped->"OMITIDO";step.manual->"CONFIRMADO POR TI · SIN VERIFICACIÓN";step.result!=null && step.tool==AgentTool.ANALYST->"INTERPRETACIÓN GENERADA · REVISAR";step.result!=null->"COMPLETADO · RESULTADO DE HERRAMIENTA";else->"ERROR · PLAN DETENIDO"},color=if(step.result!=null)DeckMint else DeckCyan,style=MaterialTheme.typography.labelLarge)
    step.result?.let{r->Text(r.summary);DeckDisclosure("Ver resultado y método",listOf("Destino: ${r.target}","Lectura: ${r.checkedAt}").plus(r.details.map{"${it.first}: ${it.second}"}).joinToString("\n"))}
@@ -181,6 +191,7 @@ import java.time.Instant
     TextButton(onClick={execute("skip")},enabled=editing){Text("Omitir este paso")}
    }
   }}}
+  AgentConversationPanel(recent,use={text->session.agentDraft.value=text;choosingTask=true},clear={session.agentRecent.value=emptyList()},enabled=editing)
   if(agent.raw.isNotBlank())DeckDisclosure("Plan recibido de la IA",agent.raw)
   if(agent.contextSnapshot.isNotBlank())DeckDisclosure("Contexto usado para preparar el plan",agent.contextSnapshot)
   DeckDisclosure("Acceso y límites","El agente utiliza las funciones implementadas de CiberDeck y permisos concedidos por Android. No tiene root, shell ni acceso a datos privados de otras apps. Las operaciones integradas conservan los permisos y selectores de Android; se espera la respuesta real antes de continuar. Borrar una copia requiere confirmación específica. Los resultados guardados se vuelven a verificar; confirmaciones manuales y texto generado se distinguen de lecturas. RF/IR y otros módulos del catálogo futuro siguen pendientes. La sesión permanece en memoria hasta guardarla; salir durante una ejecución la interrumpe. Un plan puede no corresponder a tu intención: revísalo.")

@@ -15,6 +15,9 @@ class DeckSessionModel:ViewModel() {
     val agent=MutableStateFlow(AgentSession())
     // Draft survives Activity recreation and lazy item disposal, without writing spoken text to disk.
     val agentDraft=MutableStateFlow("")
+    val agentRecent=MutableStateFlow<List<AgentExchange>>(emptyList())
+    val agentSpeakReplies=MutableStateFlow(false)
+    val agentLastSpokenId=MutableStateFlow("")
     val agentMode=MutableStateFlow(false)
     val aiSource=MutableStateFlow<SavedAiContext?>(null)
     val aiRequest=MutableStateFlow<AiRequest?>(null)
