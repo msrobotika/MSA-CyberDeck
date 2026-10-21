@@ -4,7 +4,7 @@ Aplicación Android local para comprobar, observar y documentar dispositivos pro
 
 ## Desarrollo 0.35 · Asistente de campo
 
-Cabecera compacta durante la tarea, progreso del controlador real, «Nueva petición» sin mezclar el resultado anterior, conversación temporal de cinco tareas y respuesta hablada opcional al terminar. Reutilizar solo rellena el borrador; no repite operaciones. Memoria en RAM, separada del modelo. Instalada en A15: **257 pruebas JVM y trece casos Android correctos**, incluidos conversación y control de voz tras recreación. Dictado humano y audición física pendientes. [Implementación y límites](docs/VALIDATION-035.md). Las imágenes históricas inferiores conservan su versión.
+Cabecera compacta durante la tarea, progreso del controlador real, «Nueva petición» sin mezclar el resultado anterior, conversación temporal de cinco tareas y respuesta hablada opcional al terminar. Reutilizar solo rellena el borrador; no repite operaciones. Memoria en RAM, separada del modelo. Instalada en A15 y OPPO: **257 pruebas JVM, trece casos Android en A15 y seis casos Android en OPPO correctos**, incluidos conversación y control de voz tras recreación. Dictado humano y audición física pendientes. [Implementación y límites](docs/VALIDATION-035.md). Las imágenes históricas inferiores conservan su versión.
 
 <img src="docs/screenshots/ciberdeck-agent-answer-035.png" width="220" alt="Resultado real y cabecera compacta de CiberDeck 0.35 en A15"> <img src="docs/screenshots/ciberdeck-conversation-035.png" width="220" alt="Conversación de una sesión real de CiberDeck 0.35">
 

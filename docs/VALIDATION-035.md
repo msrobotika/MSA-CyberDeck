@@ -26,7 +26,7 @@ El test de voz automática comprueba que una finalización real se marca una sol
 Se revisaron capturas PNG reales de entrada, cabecera compacta y respuesta de conexión. El estado de Internet es el validado por Android, no una navegación manual ni una valoración de seguridad.
 
 
-OPPO no conectado; conserva 0.33 según la última instalación registrada. El Samsung tenía 0.34 y ahora 0.35. Sin pruebas nuevas de dictado por micrófono, audición física, inferencia del modelo ni USB OTG.
+El Samsung se actualizó de 0.34 a 0.35. Posteriormente se conectó el OPPO y se actualizó también a 0.35; ver la ronda específica inferior. Sin pruebas nuevas de dictado por micrófono, audición física, inferencia del modelo ni USB OTG.
 
 APK: 66491728 bytes, SHA-256 `92a855aec33017d63df9ad6822b992d4199374f231ddb60175eeb29815992c3a`. Registros privados en `.private/android-validation/`; copia local en `dist/CiberDeck-0.35.0-dev.apk`. No se crea una release ni se fusiona main.
 
@@ -43,3 +43,8 @@ Se amplió únicamente la APK de ensayo para capturar conversación, borrador re
 Se reforzó después el ensayo automático de voz para esperar «Lectura finalizada» del motor antes de recrear la Activity. La ronda final de esos dos casos pasó en 35,040 s, con capturas de pantalla del dispositivo. Así se confirma también la finalización por callback de la respuesta automática, manteniendo pendiente su audición por una persona. La APK de producción conserva la huella indicada; solo cambió el capturador y las aserciones de la APK de ensayo.
 
 [Control de voz y finalización](screenshots/ciberdeck-voice-035.png).
+
+
+## OPPO actualizado y probado
+
+OPPO CPH2743 Android 16 conectado y autorizado: APK 0.35 código 42 instalada por actualización, conservando datos/modelo; versión y misma huella de producción verificadas. Seis casos Android correctos en 59,465 s: envío de petición y respuesta de conexión, contrato de dictado/cancelación, conservación del borrador y medición magnética real, síntesis/fallback, conversación/reutilización/vaciado y voz automática con finalización por callback y sin repetición tras recrear. No se cuentan estos seis como una ejecución de todos los trece casos del A15. El dictado hablado y audición física por una persona siguen pendientes. Registro en `.private/android-validation/oppo-035-install.json` y `oppo-035-assistant-final.txt`. Agente abierto tras la prueba.
