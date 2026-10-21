@@ -17,10 +17,29 @@ Los nuevos ensayos preparados comprueban límite/deduplicación del historial, a
 
 ## Resultados y pendientes
 
-Compilación final correcta en 2 min 12 s; **257 pruebas JVM correctas**. Lint: cero errores/fatales y 24 avisos. APK de desarrollo código 42 instalada mediante actualización en A15 SM-A155F; versión comprobada, datos/modelo conservados. APK de instrumentación compilada. El A15 estaba bloqueado durante las comprobaciones: **no se ejecutaron los trece casos Android previstos, no se comprobó el arranque visible ni se obtuvieron capturas de 0.35**. La voz automática y la interacción de conversación quedan experimentales hasta realizar esa prueba física. Los trece ensayos de esta ronda incluyen los once anteriores más reutilización/vaciado de conversación y estado de voz después de recrear; sus resultados no se heredan de 0.34.
+Compilación de producción correcta en 2 min 12 s; **257 pruebas JVM correctas**. Lint: cero errores/fatales y 24 avisos. APK código 42 instalada por actualización en A15 SM-A155F, versión comprobada, datos/modelo conservados.
+
+La primera comprobación quedó pendiente porque el A15 estaba bloqueado. Tras desbloquearlo, **los trece casos Android pasaron en 78,411 s** sobre esa misma APK: dictado mediante resultado de contrato de ensayo y cancelación, petición magnética con sensor físico, envío y respuesta nativa de conexión, síntesis/fallback, tareas del móvil, conservación del plan y foco, equipo, conversación temporal, reutilización como borrador y vaciado sin cambiar la tarea, preferencia de voz e identificador leído conservados después de recrear. El borrador nuevo oculta los campos de la tarea anterior.
+
+El test de voz automática comprueba que una finalización real se marca una sola vez y que la marca/preferencia sobrevive a recreación; la prueba del motor por separado recibió «Lectura finalizada». No se ha verificado acústicamente el altavoz ni dictado una persona al micrófono. Los trece casos son la ronda completa de 0.35, sin heredar resultados de 0.34.
+
+Se revisaron capturas PNG reales de entrada, cabecera compacta y respuesta de conexión. El estado de Internet es el validado por Android, no una navegación manual ni una valoración de seguridad.
+
 
 OPPO no conectado; conserva 0.33 según la última instalación registrada. El Samsung tenía 0.34 y ahora 0.35. Sin pruebas nuevas de dictado por micrófono, audición física, inferencia del modelo ni USB OTG.
 
 APK: 66491728 bytes, SHA-256 `92a855aec33017d63df9ad6822b992d4199374f231ddb60175eeb29815992c3a`. Registros privados en `.private/android-validation/`; copia local en `dist/CiberDeck-0.35.0-dev.apk`. No se crea una release ni se fusiona main.
 
 Archivos principales: AgentConversation.kt, AgentHud.kt, AgentPanel.kt, DeckSessionModel.kt; pruebas AgentConversationPolicyTest.kt y AgentConversationDeviceTest.kt, y ampliación de AgentFocusDeviceTest.kt.
+
+
+## Capturas adicionales
+
+Se amplió únicamente la APK de ensayo para capturar conversación, borrador recuperado y control de voz, usando la orientación de la Activity y restaurándola después. La primera ronda adicional pasó el caso de voz y falló el de conversación: el dibujo de captura Compose coincidió con la precomposición de la lista y provocó SnapshotStateObserver multihilo. Se sustituyó ese método del ensayo por UiAutomation.takeScreenshot del dispositivo, sin cambiar la APK de producción. Los dos casos adicionales pasaron en 17,250 s con el nuevo capturador; se revisaron las imágenes. Esta incidencia de captura no se oculta ni se cuenta como validación correcta.
+
+[Entrada](screenshots/ciberdeck-agent-command-035.png) · [Resultado real](screenshots/ciberdeck-agent-answer-035.png) · [Conversación](screenshots/ciberdeck-conversation-035.png) · [Borrador recuperado](screenshots/ciberdeck-followup-035.png).
+
+
+Se reforzó después el ensayo automático de voz para esperar «Lectura finalizada» del motor antes de recrear la Activity. La ronda final de esos dos casos pasó en 35,040 s, con capturas de pantalla del dispositivo. Así se confirma también la finalización por callback de la respuesta automática, manteniendo pendiente su audición por una persona. La APK de producción conserva la huella indicada; solo cambió el capturador y las aserciones de la APK de ensayo.
+
+[Control de voz y finalización](screenshots/ciberdeck-voice-035.png).
