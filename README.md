@@ -4,7 +4,9 @@ Aplicación Android local para comprobar, observar y documentar dispositivos pro
 
 ## Desarrollo 0.36 · Continuar la tarea
 
-Resultado principal más compacto, acciones de repetir/guardar y seguimiento «repítelo», «guárdalo» o «muéstrame los detalles». Repetir crea una lectura nueva para planes locales permitidos; los demás planes requieren revisión y nueva autorización de red. Guardar confirma tras verificar la copia con SHA-256. **262 pruebas JVM correctas**, compilación sin errores, instalada en A15. Nuevos quince casos Android y capturas pendientes de desbloquear el teléfono. [Implementación y límites](docs/VALIDATION-036.md).
+Resultado principal más compacto, acciones de repetir/guardar y seguimiento «repítelo», «guárdalo» o «muéstrame los detalles». Repetir crea una lectura nueva para planes locales permitidos; los demás planes requieren revisión y nueva autorización de red. Guardar confirma tras verificar la copia con SHA-256. **262 pruebas JVM y quince casos Android correctos**, compilación sin errores, instalada y probada en A15 con repetición, guardado real y ausencia de duplicados. [Implementación y límites](docs/VALIDATION-036.md).
+
+<img src="docs/screenshots/ciberdeck-answer-036.png" width="220" alt="Resultado real y acciones de repetir y guardar en CiberDeck 0.36"> <img src="docs/screenshots/ciberdeck-followup-036.png" width="220" alt="Campo para continuar la tarea actual en CiberDeck 0.36">
 
 ## Desarrollo 0.35 · Asistente de campo
 
