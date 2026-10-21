@@ -1,0 +1,15 @@
+.gradle/
+.kotlin/
+.toolchain/
+local.properties
+**/build/
+.idea/
+*.iml
+*.log
+dist/
+.private/
+firmware/.pio/
+firmware/superflyper-bridge/.pio/
+
+# Generated ESP-IDF build configuration; source defaults are tracked.
+firmware/sdkconfig.sentinel

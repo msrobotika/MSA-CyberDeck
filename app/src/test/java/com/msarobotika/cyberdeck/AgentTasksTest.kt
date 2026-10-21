@@ -1,0 +1,22 @@
+package com.msarobotika.cyberdeck
+import org.junit.Test
+import org.junit.Assert.*
+class AgentTasksTest {
+ @Test fun phoneTasksNeedNoEspOrLoadedModel(){
+  for(task in AgentTasks.all){assertTrue(task.steps.none{it==AgentTool.USB || it==AgentTool.RADIO});assertEquals("Tarea del móvil",task.session().origin);assertTrue(task.session().modelHash.isEmpty())}
+  assertEquals(listOf(AgentTool.PHONE,AgentTool.CONNECTION,AgentTool.RESOURCES,AgentTool.REVIEW,AgentTool.SELF_APK),AgentTasks.phone.steps)
+ }
+ @Test fun ordinaryPhoneRequestsResolveLocallyIncludingExplicitNoEsp(){
+  listOf("Revisa mi móvil","Analiza mi teléfono","Revisa mi móvil y el estado de su conexión","Revisa mi móvil sin ESP32").forEach{assertEquals(it,AgentTasks.phone,AgentTasks.match(it))}
+ }
+ @Test fun phoneConnectionIsNotAnEspWifiScan(){listOf("Comprueba mi conexión","Analiza mi wifi","Ver internet").forEach{assertEquals(AgentTasks.connection,AgentTasks.match(it))}}
+ @Test fun proximityAndFileTasksResolveWithoutModel(){assertEquals(AgentTasks.ble,AgentTasks.match("Busca dispositivos Bluetooth cercanos"));assertEquals(AgentTasks.nfc,AgentTasks.match("Lee una etiqueta NFC"));assertEquals(AgentTasks.apk,AgentTasks.match("Inspecciona una APK"))}
+ @Test fun ambiguousNegativeAndDestructiveRequestsNeverAutoMatch(){listOf("No revises mi móvil","Busca Bluetooth y lee NFC","Borra todo","Instala esta APK","Conecta al ESP32","Haz cualquier cosa").forEach{assertNull(it,AgentTasks.match(it))}}
+ @Test fun linkKeepsExplicitTargetAndRequiresReview(){val task=AgentTasks.match("Revisa este enlace https://example.com/path?q=own")!!;assertEquals("https://example.com/path?q=own",task.inputs.url);assertFalse(task.instant);assertFalse(task.inputs.networkApproved)}
+ @Test fun modelCannotAddUnrequestedOrNegatedHardware(){val hardware=AgentPlan(listOf(AgentTool.USB));assertTrue(runCatching{AgentTasks.checkHardwareRequest("Revisa mi móvil",hardware)}.isFailure);assertTrue(runCatching{AgentTasks.checkHardwareRequest("Revisa sin ESP32",hardware)}.isFailure);assertEquals(hardware,AgentTasks.checkHardwareRequest("Identifica el ESP32 conectado por USB",hardware));val phone=AgentPlan(listOf(AgentTool.PHONE));assertEquals(phone,AgentTasks.checkHardwareRequest("Revisa mi móvil",phone))}
+ @Test fun presetsThatNeedTargetsOrConsentDoNotAutoExecute(){assertFalse(AgentTasks.link.instant);assertFalse(AgentTasks.lan.instant);assertTrue(AgentTasks.lan.steps.any{it.network});assertFalse(AgentTasks.ble.inputs.bleGatt)}
+ @Test fun conversationalAliasesStayLocalAndKeepNegations(){assertEquals(AgentTasks.connection,AgentTasks.match("CiberDeck, ¿tengo Internet?"));assertEquals(AgentTasks.connection,AgentTasks.match("Jarvis, comprueba mi conexión por favor"));assertEquals(AgentTasks.phone,AgentTasks.match("Haz un chequeo de mi móvil"));assertEquals(AgentTasks.changes,AgentTasks.match("Compara mis lecturas guardadas"));assertNull(AgentTasks.match("Jarvis, no revises mi móvil"));assertNull(AgentTasks.match("Jarvis, tengo Internet y borra mis archivos"))}
+ @Test fun webMissionPreservesTargetAndNeverSuppliesAuthorization(){val task=AgentTasks.match("CiberDeck, revisa esta web https://example.com/Path?q=Own")!!;assertEquals(listOf(AgentTool.LINK,AgentTool.WEB),task.steps);assertEquals("https://example.com/Path?q=Own",task.inputs.url);assertFalse(task.instant);assertFalse(task.inputs.networkApproved);assertTrue(runCatching{validateAgentInputs(AgentPlan(task.steps),task.inputs)}.isFailure)}
+ @Test fun spokenMagneticRequestUsesThePhoneSensorWithoutAnAiModel(){listOf("mírame el campo magnético del cuarto de baño","Mide el campo magnético","Jarvis, mide el campo magnético en mi taller por favor","Comprueba el magnetómetro").forEach{assertEquals(it,AgentTasks.magnetic,AgentTasks.match(it))};assertTrue(AgentTasks.magnetic.instant);assertEquals(listOf(AgentTool.MAGNETIC),AgentTasks.magnetic.steps)}
+ @Test fun magneticRequestNeverSilentlyAddsOtherOperations(){listOf("No midas el campo magnético","Mide el campo magnético y busca Bluetooth","Mírame el campo magnético y borra las copias","Mide el campo eléctrico","Clona el campo magnético").forEach{assertNull(it,AgentTasks.match(it))}}
+}

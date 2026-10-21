@@ -1,0 +1,12 @@
+package com.msarobotika.cyberdeck
+import org.junit.Test
+import org.junit.Assert.*
+class ComparisonPolicyTest {
+ private fun result(fields:List<Pair<String,String>>,kind:String="phone",target:String="Owned phone")=DiagnosticResult(kind,target,"2026-10-19T00:00:00Z","Fixture, no lectura física",fields)
+ @Test fun changedAddedRemovedAndSameAreSeparate(){val rows=ComparisonPolicy.compare(result(listOf("a" to "1","b" to "2","d" to "4")),result(listOf("a" to "1","b" to "3","c" to "5"))).associateBy{it.key};assertEquals(FieldChange.SAME,rows["a"]!!.change);assertEquals(FieldChange.CHANGED,rows["b"]!!.change);assertEquals(FieldChange.ADDED,rows["c"]!!.change);assertEquals(FieldChange.REMOVED,rows["d"]!!.change)}
+ @Test fun duplicateLabelsKeepAllValuesAndIgnoreOrder(){val a=result(listOf("IP" to "a","IP" to "b","IP" to "a"));val b=result(listOf("IP" to "b","IP" to "a","IP" to "a"));assertEquals(FieldChange.SAME,ComparisonPolicy.compare(a,b).single().change);assertEquals(FieldChange.CHANGED,ComparisonPolicy.compare(a,result(listOf("IP" to "a","IP" to "b"))).single().change)}
+ @Test fun differentTypeOrExactTargetRejected(){val a=result(emptyList());assertTrue(runCatching{ComparisonPolicy.compare(a,a.copy(kind="web"))}.isFailure);assertTrue(runCatching{ComparisonPolicy.compare(a,a.copy(target="owned phone"))}.isFailure);assertTrue(runCatching{ComparisonPolicy.compare(a,a.copy(target=""))}.isFailure)}
+ @Test fun timestampsAndSummariesDoNotCreateFieldChanges(){val a=result(listOf("DNS" to "x"));assertEquals(FieldChange.SAME,ComparisonPolicy.compare(a,a.copy(checkedAt="different",summary="different")).single().change)}
+ @Test fun emptyValueIsNotMissingField(){assertEquals(FieldChange.REMOVED,ComparisonPolicy.compare(result(listOf("a" to "")),result(emptyList())).single().change);assertTrue(ComparisonPolicy.compare(result(emptyList()),result(emptyList())).isEmpty())}
+ @Test fun exportRemainsReadableWithinDiagnosticLimit(){val a=result((1..256).map{"field$it" to "\u0001".repeat(800)});val b=result((1..256).map{"field$it" to "😀".repeat(800)});val e=Evidence("one","fixture","a".repeat(64),1,"time");val report=SavedComparison(e,e.copy(id="two"),a,b,ComparisonPolicy.compare(a,b)).diagnostic();assertTrue(report.toEvidenceJson().toByteArray().size<=65536);assertEquals("comparison",diagnosticFromJson(report.toEvidenceJson()).kind);assertTrue(report.details.any{it.first=="Evidencia A" && it.second.contains(e.sha256)})}
+}

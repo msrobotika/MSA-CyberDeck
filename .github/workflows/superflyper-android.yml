@@ -1,0 +1,28 @@
+name: CiberDeck Android Debug
+on:
+  push:
+    branches: [feature/superflyper-usb-v0-1]
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+jobs:
+  build-debug:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - name: Test protocol and existing modules; build debug candidate
+        run: gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ciberdeck-debug-candidate
+          path: app/build/outputs/apk/debug/*.apk
