@@ -2,6 +2,12 @@
 
 Aplicación Android local para comprobar, observar y documentar dispositivos propios o autorizados, con ESP32 opcional. Conserva el proyecto CyberDeck, paquete y funciones anteriores. El nombre visible vuelve a **CiberDeck**; la rama `feature/superflyper-usb-v0-1` conserva su nombre por continuidad. [PR de desarrollo #1](https://github.com/msrobotika/MSA-CyberDeck/pull/1), sin fusionar en main ni publicar una release.
 
+## Desarrollo 0.34 · Petición dictada y medición real
+
+«Mírame el campo magnético del cuarto de baño» reconoce la herramienta local sin cargar IA; mide donde está el teléfono. El borrador sobrevive a la recreación de la pantalla y las peticiones no reconocidas muestran el aviso junto al botón. La respuesta destaca el valor real en µT. **252 pruebas JVM y once casos Android correctos en A15**; el resultado del contrato de dictado se ensaya con texto, el sensor es físico. Micrófono hablado y actualización del OPPO pendientes. [Corrección y método](docs/VALIDATION-034.md).
+
+<img src="docs/screenshots/ciberdeck-agent-magnetic-034.png" width="220" alt="Lectura real del A15 tras enviar una transcripción de ensayo; no es una medición del baño">
+
 ## Desarrollo 0.33 · Hablar con CiberDeck
 
 Consola futurista con robot original, estados de ejecución y voz y contador de lecturas auténticas. Los aros son decorativos, no un radar. El agente reúne peticiones por texto o dictado de Android, tareas directas más naturales y lectura explícita de un resumen breve. La transcripción queda como borrador; las tareas con destinos o red siguen necesitando sus datos y autorización. El equipo técnico se despliega después del resultado. Se mantiene la IA local para las peticiones compatibles que requieren planificar. [Implementación, voz y límites](docs/VALIDATION-033.md).

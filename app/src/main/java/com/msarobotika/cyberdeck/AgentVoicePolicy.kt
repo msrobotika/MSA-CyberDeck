@@ -9,7 +9,7 @@ object AgentVoicePolicy {
  /** Fixed execution status plus limited native summaries, never raw fields, URL or QR payload. */
  fun brief(session:AgentSession):String {
   val summary=AgentSummary.from(session)?:return "Todavía no hay una ejecución con resultados."
-  val native=AgentAnswerPolicy.observations(session).filter{it.tool in setOf(AgentTool.PHONE,AgentTool.CONNECTION,AgentTool.RESOURCES)}.take(2)
+  val native=AgentAnswerPolicy.observations(session).filter{it.tool in setOf(AgentTool.PHONE,AgentTool.CONNECTION,AgentTool.RESOURCES,AgentTool.MAGNETIC)}.take(2)
   return buildString{
    append("${summary.title}. ${summary.results} de ${summary.total} pasos con resultado. ")
    if(summary.generated>0)append(if(summary.generated==1)"Un resultado es una interpretación de inteligencia artificial. " else "${summary.generated} resultados son interpretaciones de inteligencia artificial. ")

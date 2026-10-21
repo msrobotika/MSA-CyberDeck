@@ -21,7 +21,7 @@ data class MagneticSample(val at:String,val sensorNanos:Long,val x:Double,val y:
 object MagneticPolicy {
  fun magnitude(x:Double,y:Double,z:Double):Double {require(listOf(x,y,z).all{it.isFinite()});return sqrt(x*x+y*y+z*z).also{require(it.isFinite())}}
  fun accuracy(value:Int)=when(value){SensorManager.SENSOR_STATUS_ACCURACY_HIGH->"Alta";SensorManager.SENSOR_STATUS_ACCURACY_MEDIUM->"Media";SensorManager.SENSOR_STATUS_ACCURACY_LOW->"Baja";else->"No fiable o sin indicar"}
- fun report(sensor:String,samples:List<MagneticSample>,reference:Double?)=DiagnosticResult("magnetic",sensor,Instant.now().toString(),"${samples.size} lecturas reales del magnetómetro",listOf(
+ fun report(sensor:String,samples:List<MagneticSample>,reference:Double?)=DiagnosticResult("magnetic",sensor,Instant.now().toString(),samples.lastOrNull()?.let{"Campo magnético local: ${String.format(Locale.ROOT,"%.1f",it.magnitude)} µT · ${samples.size} lecturas reales"}?:"Sin lecturas del magnetómetro",listOf(
   "Método" to "Sensor Android TYPE_MAGNETIC_FIELD, ejes del dispositivo, µT. Hasta 60 muestras, máximo 2 por segundo. Pausa al salir.",
   "Referencia temporal" to (reference?.let{"$it µT"}?:"No fijada"),
   "Límites" to "Campo magnético local, no radiación RF, detector de ataques, certificación sanitaria ni identificación de la fuente. La serie de 2 muestras/s no caracteriza exposición a 50 Hz. No mide campo eléctrico ni determina riesgo laboral. Imanes, orientación, metales y calibración afectan a la lectura.")+samples.map{it.at to "X=${it.x}; Y=${it.y}; Z=${it.z}; módulo=${it.magnitude} µT; calidad=${accuracy(it.accuracy)}; reloj sensor=${it.sensorNanos} ns"})

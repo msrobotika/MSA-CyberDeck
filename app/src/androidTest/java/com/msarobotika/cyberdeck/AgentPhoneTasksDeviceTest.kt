@@ -31,7 +31,7 @@ class AgentPhoneTasksDeviceTest {
  @Test fun unrecognizedRequestOffersNextStepInsteadOfDemandingEsp(){
   open();ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().performTextInput("Quiero investigar algo diferente")
   ui.onNodeWithText("Enviar petición",substring=false).performScrollTo().performClick()
-  ui.waitUntil(5000){session().agent.value.notice.isNotBlank()};assertTrue(session().agent.value.error.isBlank());assertTrue(session().agent.value.results.isEmpty());assertFalse(session().agent.value.notice.contains("ESP"))
+  ui.waitUntil(5000){session().agent.value.notice.isNotBlank()};assertTrue(session().agent.value.error.isBlank());assertTrue(session().agent.value.results.isEmpty());assertFalse(session().agent.value.notice.contains("ESP"));ui.onNodeWithTag("agent-submit-feedback").performScrollTo().assertIsDisplayed()
  }
  @Test fun summaryKeepsMethodsAccessibleAndReprepareDoesNotRerun(){
   open();ui.onNodeWithTag("agent-task-connection").performScrollTo().performClick()

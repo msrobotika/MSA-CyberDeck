@@ -17,7 +17,8 @@ object AgentTasks {
  val lan=AgentTask("lan","Servicios de mi red","Anuncios de servicios, sin barrer equipos",listOf(AgentTool.LAN))
  val changes=AgentTask("changes","Comparar mis lecturas","Dos copias verificadas del mismo tipo y destino",listOf(AgentTool.COMPARE),true)
  val web=AgentTask("web","Revisar una web autorizada","Enlace, certificado y cabeceras; requiere URL y autorización",listOf(AgentTool.LINK,AgentTool.WEB))
- val all=listOf(phone,connection,ble,nfc,apk,link,qr,lan,changes,web)
+ val magnetic=AgentTask("magnetic","Medir campo magnético","Seis muestras del sensor del móvil; lleva el teléfono al lugar indicado",listOf(AgentTool.MAGNETIC),true)
+ val all=listOf(phone,connection,ble,nfc,apk,link,qr,lan,changes,web,magnetic)
  private fun normalized(raw:String)=Normalizer.normalize(raw,Normalizer.Form.NFD).replace(Regex("""\p{M}+"""),"").lowercase(Locale.ROOT)
  /** Small explicit grammar, not an LLM: unmatched/negated/compound requests are left for review. */
  fun match(raw:String):AgentTask? {
@@ -28,6 +29,7 @@ object AgentTasks {
   if(topics>1 && !(t.contains("movil") && (t.contains("conexion") || t.contains("apk"))))return null
   val cleaned=t.replace(Regex("""\bsin (?:el |usar |necesitar )?(?:esp32|esp|usb|placa)\b"""),"").trim()
   return when {
+   Regex("""(?:mira|mirame|mide|mideme|medir|comprueba|revisa|analiza) (?:el |mi |este )?(?:campo magnetico|magnetometro)(?: (?:de|del|en|aqui|alrededor) [\p{L}\p{N} ,'-]{1,100})?""").matches(cleaned) && !cleaned.contains(" y ")->magnetic
    cleaned in setOf("tengo internet","hay internet","estoy conectado a internet")->connection
    Regex("""(?:haz|hacer) (?:un )?(?:chequeo|diagnostico) de (?:mi |este |el )?(?:movil|telefono)""").matches(cleaned)->phone
    Regex("""(?:compara|comparar) (?:mis |las )?(?:lecturas|revisiones)(?: guardadas)?""").matches(cleaned)->changes

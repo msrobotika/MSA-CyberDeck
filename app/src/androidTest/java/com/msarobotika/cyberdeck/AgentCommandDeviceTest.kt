@@ -53,4 +53,42 @@ class AgentCommandDeviceTest {
    File(ui.activity.filesDir,"validation/agent-voice-033.json").apply{parentFile?.mkdirs()}.writeText(org.json.JSONObject().put("localVoiceAvailable",available).put("status",speaker.status.value).put("audibleSoundPhysicallyVerified",false).toString())
   }finally{ui.runOnIdle{speaker.close()};assertFalse(speaker.ready.value)}
  }
+ @Test fun dictatedMagneticRequestReturnsToComposerSurvivesRecreationAndRunsRealSensor(){
+  ui.activity.runOnUiThread{ui.activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)}
+  ui.openDeck("Agente")
+  val instrument=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+  val phrase="mírame el campo magnético del cuarto de baño"
+  // Contract fixture only: no claim to have tested microphone transcription.
+  val reply=android.content.Intent().putStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS,arrayListOf(phrase))
+  val monitor=instrument.addMonitor(android.content.IntentFilter(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH),android.app.Instrumentation.ActivityResult(android.app.Activity.RESULT_OK,reply),true)
+  try{
+   ui.onNodeWithTag("agent-dictate").performScrollTo().performClick()
+   ui.waitUntil(10000){monitor.hits>0}
+   ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().assertTextContains(phrase)
+  }finally{instrument.removeMonitor(monitor)}
+  ui.activityRule.scenario.recreate()
+  ui.onNodeWithText("Qué quieres que haga CiberDeck").performScrollTo().assertTextContains(phrase)
+  ui.onNodeWithTag("agent-magnetic-preview").performScrollTo().assertIsDisplayed()
+  val session=ViewModelProvider(ui.activity)[DeckSessionModel::class.java]
+  ui.waitUntil(15000){!session.ai.value.busy}
+  assertFalse(session.ai.value.loaded)
+  ui.onNodeWithText("Enviar petición").performScrollTo().assertIsEnabled().performClick()
+  ui.waitUntil(15000){!session.agent.value.running && session.agent.value.results.isNotEmpty()}
+  assertEquals(listOf(AgentTool.MAGNETIC),session.agent.value.plan!!.steps)
+  val sensor=ui.activity.getSystemService(android.hardware.SensorManager::class.java).getDefaultSensor(android.hardware.Sensor.TYPE_MAGNETIC_FIELD)
+  val step=session.agent.value.results.single()
+  if(sensor==null){assertNull(step.result);assertTrue(step.error.contains("magnetómetro"))}
+  else{
+   assertTrue(step.error.isBlank());assertEquals("magnetic",step.result!!.kind);assertEquals(6,session.magnetic.value.size)
+   assertTrue(step.result.summary.contains("µT"));ui.onNodeWithTag("agent-answer").performScrollTo().assertTextEquals(step.result.summary)
+  }
+  File(ui.activity.filesDir,"validation/agent-magnetic-034.json").apply{parentFile?.mkdirs()}.writeText(org.json.JSONObject().put("speechContractFixture",true).put("microphoneTranscriptionTested",false).put("sensorAvailable",sensor!=null).put("request",phrase).put("result",step.result?.toEvidenceJson()).put("error",step.error).toString())
+  ui.onNodeWithTag("deck-list").performScrollToIndex(0);shot("ciberdeck-agent-magnetic-034.png")
+ }
+ @Test fun cancelledDictationDoesNotSendAnyTask(){
+  ui.openDeck("Agente")
+  val instrument=androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+  val monitor=instrument.addMonitor(android.content.IntentFilter(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH),android.app.Instrumentation.ActivityResult(android.app.Activity.RESULT_CANCELED,null),true)
+  try{ui.onNodeWithTag("agent-dictate").performScrollTo().performClick();ui.waitUntil(10000){monitor.hits>0};ui.onNodeWithText("Dictado cancelado. No se ha enviado ninguna tarea.").performScrollTo().assertIsDisplayed();ui.onNodeWithText("Enviar petición").performScrollTo().assertIsNotEnabled();assertTrue(ViewModelProvider(ui.activity)[DeckSessionModel::class.java].agent.value.results.isEmpty())}finally{instrument.removeMonitor(monitor)}
+ }
 }
