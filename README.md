@@ -1,5 +1,10 @@
 # CiberDeck — MS ROBOTIKA
 
+> **Ficha del proyecto · MS ROBOTIKA**  
+> **Estado:** Aplicación Android de desarrollo; APK 0.37 etiquetada, main con código anterior · **Licencia:** ver archivo [LICENSE](LICENSE)  
+> **Evidencia:** [Capturas/documentación](docs/) · [Estado técnico](docs/PROJECT_STATUS.md)  
+> **Importante:** Para compilar la APK 0.37 se necesita seleccionar la etiqueta o rama correspondiente; main no acredita ese binario.
+
 **Un kit Android para observar tu móvil, revisar redes autorizadas y documentar lo que encuentras, con IA local y ESP32 opcionales.**
 
 [Descargar APK 0.37](https://github.com/msrobotika/MSA-CyberDeck/releases/download/v0.37.0-dev/CiberDeck-0.37.0-dev.apk) · [Guía de uso](docs/QUICKSTART-ANDROID.md) · [Pruebas y límites](docs/VALIDATION-037.md) · [Licencia MIT](LICENSE)
