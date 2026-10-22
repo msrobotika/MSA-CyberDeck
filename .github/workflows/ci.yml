@@ -1,0 +1,33 @@
+name: CyberDeck · Android source integrity
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-integrity:
+    name: Source consistency (not an APK build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check expected Android files and documentation version distinction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          readme=Path('README.md').read_text(encoding='utf-8')
+          app=Path('app/build.gradle.kts').read_text(encoding='utf-8')
+          manifest=Path('app/src/main/AndroidManifest.xml').read_text(encoding='utf-8')
+          assert '0.37' in readme and '0.1' in readme, 'Distinguish release 0.37 and main 0.1'
+          assert 'com.android.application' in app
+          assert 'manifest' in manifest
+          assert Path('docs/VALIDATION-037.md').is_file()
+          assert Path('app/src/main/java/com/msarobotika/cyberdeck/MainActivity.kt').is_file()
+          PY
+      - name: Declare test boundary
+        run: echo 'Static repository checks only; does not build the APK or validate Android hardware.'
