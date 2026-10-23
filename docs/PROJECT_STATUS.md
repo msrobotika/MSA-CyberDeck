@@ -1,11 +1,11 @@
 # Estado técnico · MSA-CyberDeck
 
-**Revisión:** 2026-10-22 · **Estado:** Aplicación Android de desarrollo; APK 0.37 etiquetada, main con código anterior
+**Revisión:** 2026-10-23 · **Estado:** Aplicación Android de desarrollo; APK 0.37 etiquetada, main con código anterior
 
 ## Material y evidencias disponibles
 
 - README e instrucciones de uso; licencia declarada mediante archivo LICENSE.
-- No se verificó un workflow de CI en main. Un release o APK no acredita compilación de main..
+- Existe [workflow de CI en main](../.github/workflows/ci.yml). Su ejecución no acredita que el código de main coincida con la APK v0.37; esta correspondencia requiere verificar el commit de cada etiqueta/release.
 - Capturas de versión Android en documentación: [`docs/screenshots/cyberdeck-dashboard.png`](../docs/screenshots/cyberdeck-dashboard.png), [`docs/screenshots/ciberdeck-network-037.png`](../docs/screenshots/ciberdeck-network-037.png).
 
 ## Limitaciones / trabajo pendiente
